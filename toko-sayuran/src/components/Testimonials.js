@@ -5,19 +5,19 @@ const testimonialsData = [
     name: 'Ani',
     location: 'Jakarta',
     message: 'Saya sangat puas dengan sayuran yang saya beli. Segar dan berkualitas tinggi!',
-    image: 'https://via.placeholder.com/100',
+    image: 'kodok.jpg',
   },
   {
     name: 'Budi',
     location: 'Bandung',
     message: 'Pengiriman sangat cepat dan sayurannya selalu dalam kondisi terbaik!',
-    image: 'https://via.placeholder.com/100',
+    image: 'kodok.jpg',
   },
   {
     name: 'Citra',
     location: 'Surabaya',
     message: 'Harga yang ditawarkan sangat terjangkau, saya pasti akan kembali lagi!',
-    image: 'https://via.placeholder.com/100',
+    image: 'kodok.jpg',
   },
 ];
 
