@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kejutan untuk Aya</title>
+    <!-- Link Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Dancing Script', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ffdde1, #ee9ca7);
+            color: #333;
+            text-align: center;
+            margin: 0;
+            overflow: hidden;
+        }
+        #message {
+            font-size: 32px;
+            font-weight: bold;
+            color: #8e44ad;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 20px;
+            background-color: #ff6f91;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-family: 'Dancing Script', cursive;
+        }
+        button:hover {
+            background-color: #ff4b7b;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div id="message"></div>
+        <button onclick="showMessage()">Klik untuk Melihat</button>
+    </div>
+
+    <script>
+        function showMessage() {
+            const message = "halowww dedee ayaa, maafin mas pitoo yaa sebagai gantinya nih ada bunga buat dedee ❤️";
+            const displayElement = document.getElementById("message");
+            let index = 0;
+
+            // Sembunyikan tombol setelah diklik
+            document.querySelector("button").style.display = "none";
+
+            // Tampilkan karakter satu per satu dengan efek ketikan
+            function typeWriter() {
+                if (index < message.length) {
+                    displayElement.innerHTML += `<span>${message.charAt(index)}</span>`;
+                    index++;
+                    setTimeout(typeWriter, 75); // Kecepatan mengetik (75ms per karakter)
+                } else {
+                    // Tunggu 2 detik, lalu arahkan ke halaman bucin.html
+                    setTimeout(() => {
+                        window.location.href = "bocil.html";
+                    }, 1000);
+                }
+            }
+
+            typeWriter();
+        }
+    </script>
+</body>
+</html>
