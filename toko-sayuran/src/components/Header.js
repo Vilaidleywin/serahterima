@@ -27,11 +27,14 @@ const Header = () => {
           Sayuran terbaik untuk kesehatan Anda
         </p>
         <a
-          href="linktr.ee/fieett_0"
-          className="mt-8 inline-block bg-white text-green-600 font-semibold py-3 px-8 rounded-lg shadow-lg transition-transform duration-300 hover:bg-green-600 hover:text-white transform hover:scale-105"
-        >
-          Hubungi Kami
-        </a>
+  href="https://linktr.ee/fieett_0"
+  className="mt-8 inline-block bg-white text-green-600 font-semibold py-3 px-8 rounded-lg shadow-lg transition-transform duration-300 hover:bg-green-600 hover:text-white transform hover:scale-105"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  Hubungi Kami
+</a>
+
       </div>
 
       {/* Dekorasi Lingkaran */}
