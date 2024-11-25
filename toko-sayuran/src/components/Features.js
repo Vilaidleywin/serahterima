@@ -28,7 +28,7 @@ const Features = () => {
   return (
     <section
       id="features"
-      className={`py-10 transition-opacity duration-1000 ${
+      className={`py-10 cursor-default transition-opacity duration-1000 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
     >

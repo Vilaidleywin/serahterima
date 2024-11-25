@@ -41,7 +41,7 @@ const Testimonials = () => {
   return (
     <section
       id="testimonials"
-      className={`py-10 bg-gray-100 transition-opacity duration-1000 ${
+      className={`py-10 bg-gray-100 transition-opacity duration-1000 cursor-default ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
     >
