@@ -43,10 +43,10 @@ const Footer = () => {
           </a>
           <a
             href="#"
-            aria-label="Twitter"
+            aria-label="Tiktok"
             className="text-gray-300 hover:text-white transition duration-300"
           >
-            <FontAwesomeIcon icon={['fab', 'twitter']} />
+            <FontAwesomeIcon icon={['fab', 'tiktok']} />
           </a>
         </div>
 

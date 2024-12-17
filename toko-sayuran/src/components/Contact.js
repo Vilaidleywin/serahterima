@@ -72,7 +72,7 @@ const Contact = () => {
         )}
         <form
           ref={formRef}
-          action="https://formspree.io/f/mldellqb"
+          action="hhttps://formspree.io/f/xpwzgrog"
           method="POST"
           onSubmit={handleSubmit}
           className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg"
