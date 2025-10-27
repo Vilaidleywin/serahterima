@@ -39,7 +39,7 @@ h1,h2,h3,h4,h5{ color:var(--text) }
 .sidebar{
   position:fixed; top:0; left:0; bottom:0;
   width:260px; background:var(--sidebar-bg); color:var(--sidebar-text);
-  padding:20px; overflow-y:auto; z-index:1040; /* di atas backdrop */
+  padding:20px; overflow-y:auto; z-index:1020; /* topbar di atas sidebar */
 }
 .brand{display:flex;align-items:center;gap:10px;padding:8px 6px 22px 6px}
 .brand-icon{
@@ -99,14 +99,17 @@ h1,h2,h3,h4,h5{ color:var(--text) }
 @keyframes fadeInSlide{ from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:translateY(0)} }
 .alert-success i{ font-size:1.1rem; color:#0b8a45 }
 
-/* ========= APPBAR (Topbar GLPI vibe) ========= */
+/* ========= TOPBAR / APPBAR (FINAL) ========= */
 .appbar{
-  background: var(--sidebar-bg); color:#fff; height:64px; border-radius:12px;
+  background: var(--sidebar-bg); color:#fff;
+  height:56px; border-radius:0;
   display:grid; grid-template-columns:56px 1fr 56px; align-items:center;
-  padding:0 8px; margin-bottom:12px; position:sticky; top:16px; z-index:110;
+  padding:0 12px; margin:0;
+  position:sticky; top:0; z-index:1040;      /* di atas backdrop & sidebar */
   box-shadow:0 2px 6px rgba(20,30,60,.08);
 }
-/* Reset button biar gak ke-override bootstrap */
+
+/* Reset tombol dalam appbar (biar ga di-override bootstrap) */
 .appbar button,
 .user-dropdown button{ all:unset; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 
@@ -114,171 +117,377 @@ h1,h2,h3,h4,h5{ color:var(--text) }
 .appbar-btn.hamburger{
   width:40px; height:40px; border-radius:10px;
   border:1px solid rgba(255,255,255,.20); background:transparent;
+  display:inline-grid; place-items:center; gap:4px; padding:0 8px; cursor:pointer;
 }
 .appbar-btn.hamburger span{
-  display:block; width:18px; height:2px; background:#fff; border-radius:2px;
-  transition:transform .22s ease, opacity .18s ease;
+  display:block; width:20px; height:2px; background:#fff; border-radius:2px;
+  transition:transform .2s, opacity .2s;
 }
-.appbar-btn.hamburger span + span{ margin-top:4px; }
-/* animasi jadi X saat drawer open (pakai body.nav-open) */
-body.nav-open .appbar-btn.hamburger span:nth-child(1){ transform:translateY(6px) rotate(45deg) }
-body.nav-open .appbar-btn.hamburger span:nth-child(2){ opacity:0 }
-body.nav-open .appbar-btn.hamburger span:nth-child(3){ transform:translateY(-6px) rotate(-45deg) }
+.appbar-btn.hamburger:hover{ background:rgba(255,255,255,.08); }
+.appbar-btn.hamburger[data-open="true"] span:nth-child(1){ transform:translateY(6px) rotate(45deg) }
+.appbar-btn.hamburger[data-open="true"] span:nth-child(2){ opacity:0 }
+.appbar-btn.hamburger[data-open="true"] span:nth-child(3){ transform:translateY(-6px) rotate(-45deg) }
 
 /* Brand tengah */
-.appbar-brand{ display:inline-flex; align-items:center; justify-content:center; gap:10px; }
+.appbar-brand{
+  display:inline-flex; align-items:center; gap:10px;
+  color:#fff; text-decoration:none; font-weight:600; letter-spacing:.2px;
+  justify-self:center;
+}
 .appbar-brand .brand-icon{
-  width:32px; height:32px; border-radius:8px;
-  background:rgba(255,255,255,.14); color:#ffcf6e;
-  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:8px;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.12); color:#ffcf6e;
+  font-size:14px; line-height:1;
 }
 
-/* Profil kanan */
-.appbar > .user-dropdown{ justify-self:end; margin-right:8px; position:relative; }
+/* User dropdown kanan */
+.user-dropdown{ position:relative; justify-self:end; }
 .user-chip{
-  padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.2); color:#fff; gap:8px; font-weight:600;
+  all:unset; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.20);
 }
-.user-chip i{ color:#fff; }
-.user-menu{
-  position:absolute; right:0; top:calc(100% + 8px); min-width:200px;
-  background:#fff; color:var(--text); border:1px solid var(--card-border);
-  border-radius:10px; box-shadow:0 10px 24px rgba(20,30,60,.12); padding:6px; display:none;
-}
-.user-dropdown.open .user-menu{ display:block; animation:menuFade .12s ease-out; }
-@keyframes menuFade{ from{opacity:.6; transform:translateY(-4px)} to{opacity:1; transform:translateY(0)} }
-.user-item{ display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; text-decoration:none; color:inherit; }
-.user-item:hover{ background:var(--table-head-bg); }
-.user-sep{ height:1px; background:var(--card-border); margin:6px 4px; }
+.user-chip:hover{ background:rgba(255,255,255,.08); }
+.user-chip .chev{ transition: transform .2s }
+.user-chip[aria-expanded="true"] .chev{ transform: rotate(180deg) }
 
-/* ========= Breadcrumb bawah appbar ========= */
-.breadcrumb-wrap{ background:#fff; border:1px solid var(--card-border); border-radius:12px; padding:10px 14px; margin-bottom:14px; }
+.user-menu{
+  position:absolute; right:0; top:calc(100% + 8px);
+  min-width:200px; border-radius:12px; background:#fff; color:var(--text);
+  box-shadow:0 12px 30px rgba(20,30,60,.16);
+  border:1px solid var(--card-border); padding:8px; display:none;
+}
+.user-dropdown[data-open="true"] .user-menu{ display:block; animation:menuFade .12s ease-out; }
+@keyframes menuFade{ from{opacity:.7; transform:translateY(-4px)} to{opacity:1; transform:translateY(0)} }
+.user-item{
+  display:flex; align-items:center; gap:8px; padding:8px 10px;
+  border-radius:8px; color:inherit; text-decoration:none; width:100%;
+}
+.user-item:hover{ background:#f5f7fb }
+.user-sep{ height:1px; margin:6px 4px; background:#e7ebf3; border-radius:1px }
+
+/* ========= Breadcrumb tepat di bawah appbar ========= */
+.breadcrumb-wrap{
+  background:#fff; border:1px solid var(--card-border); border-radius:12px;
+  padding:10px 14px; margin:12px 0 14px;
+}
 .breadcrumb-mini{ display:flex; gap:8px; }
 .breadcrumb-mini a{ color:var(--primary); font-weight:600; text-decoration:none; }
 .breadcrumb-mini .sep{ color:#9aa7bb; }
 .breadcrumb-mini .current{ color:#6b7b91; font-weight:600; }
 
-/* ========= Overlay (kalau dipakai) ========= */
+/* ========= Backdrop ========= */
 .nav-backdrop{
   position:fixed; inset:0; background:rgba(20,30,60,.35); backdrop-filter:blur(1px);
-  z-index:1035; opacity:0; visibility:hidden; transition:opacity .2s, visibility .2s;
+  z-index:1035; opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s;
 }
-body.nav-open .nav-backdrop{ opacity:1; visibility:visible; }
+.nav-backdrop[data-show="true"]{ opacity:1; visibility:visible }
 
-/* ========= MOBILE NAV (GLPI-like full sheet) ========= */
+/* ========= Mobile drawer (slide dari kiri) ========= */
 .mobile-nav{
-  position: fixed; inset: 0;
-  background: var(--sidebar-bg); color: #fff;
-  z-index: 1055;                    /* di atas overlay */
-  transform: translateY(-100%);     /* hidden */
-  transition: transform .28s cubic-bezier(.22,.61,.36,1);
-  display: none;                    /* desktop hide */
+  position:fixed; top:0; bottom:0; left:0; width:280px;
+  transform:translateX(-100%);
+  background:var(--sidebar-bg); color:#fff; z-index:1038; /* < topbar */
+  transition: transform .22s ease-out; outline:0; display:block;
 }
-.mobile-nav-header{
-  height: 72px;
-  display: grid;
-  grid-template-columns: 56px 1fr 56px;
-  align-items: center;
-  justify-items: center;
-  border-bottom: 1px solid rgba(255,255,255,.1);
-}
-.mobile-close{
-  all: unset;
-  grid-column: 1 / 2; justify-self: start; margin-left: 16px;
-  width: 40px; height: 40px; border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.25);
-  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;
-}
-.mobile-brand{
-  grid-column: 2 / 3; display: inline-flex; align-items: center; gap: 10px;
-}
-.mobile-brand .brand-icon{
-  width: 34px; height: 34px; border-radius: 8px;
-  background: rgba(255,255,255,.14); color: #ffcf6e;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.mobile-menu{ padding: 14px 16px 24px; }
+.mobile-nav[data-open="true"]{ transform:translateX(0) }
+.mobile-nav-inner{ padding:16px }
 .mobile-link{
-  display:flex; align-items:center; gap:12px;
-  padding:14px 16px; border-radius:12px; color:#e7efff; text-decoration:none; font-weight:600;
+  display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none;
+  padding:10px 8px; border-radius:10px;
 }
-.mobile-link:hover{ background: rgba(255,255,255,.06); }
-.mobile-link.active{ background:#274368; }
-.mobile-link.disabled{ opacity:.6; pointer-events:none; }
-
-/* show drawer saat nav-open */
-body.nav-open .mobile-nav{ transform: translateY(0); }
+.mobile-link:hover{ background:rgba(255,255,255,.08) }
 
 /* ========= Responsive ========= */
 @media (max-width: 992px){
-  /* Matikan sidebar desktop, pakai drawer saja */
   .sidebar{ display:none; }
   .content{ margin-left:0; padding:20px 16px }
-  .mobile-nav{ display:block; }      /* aktifkan drawer di mobile */
-  .nav-backdrop{ display:none; }     /* backdrop lama tidak dipakai */
 }
 @media (max-width:576px){
-  .appbar{
-    position:fixed; top:0; left:0; right:0;
-    border-radius:0; height:52px; margin:0; z-index:140;
-  }
-  .content{ padding-top:60px } /* ruang di bawah topbar */
   .user-chip span{ display:none } /* hide teks "Profil" di layar kecil */
 }
-/* ======== Appbar (Topbar) ======== */
-.appbar{
-  background:#fff;
-  border-bottom:1px solid var(--card-border, #e5eaf2);
-}
 
-.appbar .brand-icon{
-  display:inline-grid; place-items:center;
-  width:28px; height:28px; border-radius:8px;
-  background:var(--primary-50, #e9f0fb); color:var(--primary, #2e5aac);
-  font-size:16px;
-}
-.appbar .avatar{
-  width:32px; height:32px; border-radius:50%;
-  display:inline-grid; place-items:center; font-size:12px;
-}
-
-.appbar .btn-icon{
-  width:38px; height:38px; display:inline-grid; place-items:center;
-  border-radius:10px;
-}
-
-.appbar .appbar-brand:hover{ opacity:.9 }
-
-.appbar .appbar-search .form-control{
-  border-color:#e5eaf2;
-}
-.appbar .appbar-search .input-group-text{
-  border-color:#e5eaf2;
-}
-.appbar .appbar-search .form-control:focus{
-  box-shadow:none; border-color: var(--primary, #2e5aac);
-}
-
-.appbar-breadcrumb{
-  background:#fff;
-}
-
-/* Utility */
+/* ========= Utilities ========= */
 .xsmall{ font-size:.7rem; }
-/* ===== HOTFIX TOPBAR GAP ===== */
+/* ====== OVERRIDE: Topbar hanya di mobile, hilang di desktop ====== */
+
+/* Desktop (≥ 992px): pakai sidebar, topbar disembunyikan */
+@media (min-width: 992px){
+  .appbar{ display:none !important; }        /* ilangin topbar */
+  .sidebar{ display:block !important; }      /* pastiin sidebar tampil */
+  .content{ margin-left:260px !important;    /* ruang untuk sidebar */
+            padding:24px 28px !important; }
+}
+
+/* Mobile (< 992px): pakai topbar + mobile drawer, sidebar disembunyikan */
+@media (max-width: 991.98px){
+  .sidebar{ display:none !important; }
+  .appbar{
+    display:grid !important;
+    position:sticky; top:0; z-index:1040;
+    background:var(--sidebar-bg); color:#fff;
+    height:56px; grid-template-columns:56px 1fr 56px;
+    align-items:center; padding:0 12px;
+    margin:0; border-radius:0;                 /* full-width, bukan kartu */
+    box-shadow:0 2px 6px rgba(20,30,60,.08);
+  }
+  .content{ margin-left:0 !important; padding:20px 16px !important; }
+}
+
+/* Rapihin brand & tombol di topbar mobile */
+.appbar .appbar-brand{
+  justify-self:center; display:inline-flex; align-items:center; gap:10px;
+  color:#fff; text-decoration:none; font-weight:600;
+}
+.appbar .appbar-btn.hamburger{
+  width:40px; height:40px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.2); background:transparent;
+}
+.appbar .appbar-btn.hamburger:hover{ background:rgba(255,255,255,.08); }
+
+/* Pastikan backdrop & drawer berada di bawah topbar */
+.nav-backdrop{ z-index:1035 !important; }
+.mobile-nav{ z-index:1038 !important; }  /* < topbar 1040 */
+/* ===== FIX: drawer mobile di bawah topbar & rapihin topbar ===== */
 .appbar{
-  position: sticky;
-  top: 0;                 /* jangan 12/16px */
-  margin: 0 0 12px 0;     /* hilangkan margin-top implisit */
-  border-radius: 12px;
-  height: 64px;
+  border-radius:0 !important;
+  margin:0 !important;
+  top:0 !important;
+  height:56px !important;
+  position:sticky !important;
+  z-index:1040 !important;
 }
 
-/* konten jangan kasih padding-top tambahan di desktop */
-@media (min-width: 577px){
-  .content{ padding-top: 0 !important; }
+/* Drawer & backdrop start di bawah topbar (56px) */
+.mobile-nav{
+  position:fixed !important;
+  left:0; right:auto;
+  top:56px !important;
+  height:calc(100vh - 56px) !important;
+  width:280px;
+  transform:translateX(-100%);
+  background:var(--sidebar-bg);
+  color:#fff;
+  z-index:1038 !important;           /* < topbar */
+  transition: transform .22s ease-out;
+  outline:0;
+}
+.mobile-nav[data-open="true"]{ transform:translateX(0) }
+
+.nav-backdrop{
+  position:fixed !important;
+  left:0; right:0;
+  top:56px !important;
+  height:calc(100vh - 56px) !important;
+  background:rgba(20,30,60,.35);
+  backdrop-filter:blur(1px);
+  z-index:1035 !important;
+  opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s;
+}
+.nav-backdrop[data-show="true"]{ opacity:1; visibility:visible }
+
+/* Non-mobile: drawer & backdrop disembunyikan; pakai sidebar biasa */
+@media (min-width: 992px){
+  .appbar{ display:none !important; }
+  .mobile-nav, .nav-backdrop{ display:none !important; }
+  .sidebar{ display:block !important; z-index:1020; }
+  .content{ margin-left:260px !important; padding:24px 28px !important; }
 }
 
-/* kecilkan ruang pada breadcrumb pertama di bawah appbar */
-.breadcrumb-wrap{ margin-top: 0 !important; }
+/* Mobile content spacing */
+@media (max-width: 991.98px){
+  .sidebar{ display:none !important; }
+  .content{ margin-left:0 !important; padding:20px 16px !important; }
+}
+
+/* Matikan scroll body saat menu buka */
+.no-scroll{ overflow:hidden !important; }
+
+/* ===== GLPI HEADER: full-width, rata atas, bleed keluar container ===== */
+.appbar{
+  background:var(--sidebar-bg); color:#fff;
+  height:56px; display:grid; grid-template-columns:56px 1fr 56px; align-items:center;
+  padding:0 16px; box-shadow:0 2px 6px rgba(20,30,60,.08);
+  position:sticky; top:0; z-index:1040;
+  border-radius:0 !important;                    /* no card look */
+  /* trik "full-bleed" biar header full-width walau di dalam container */
+  margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); width:100vw;
+}
+.appbar .appbar-brand{
+  justify-self:center; display:inline-flex; align-items:center; gap:10px;
+  color:#fff; text-decoration:none; font-weight:700; letter-spacing:.2px;
+}
+.appbar .brand-icon{
+  width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+  background:rgba(255,255,255,.12); color:#ffcf6e; font-size:14px; line-height:1;
+}
+.appbar .appbar-right{ justify-self:end; }
+
+/* Hamburger */
+.appbar .hamburger{
+  width:40px; height:40px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.20); background:transparent;
+  display:inline-grid; place-items:center; gap:4px; padding:0 8px; cursor:pointer;
+}
+.appbar .hamburger span{
+  display:block; width:20px; height:2px; background:#fff; border-radius:2px;
+  transition:transform .2s, opacity .2s;
+}
+.appbar .hamburger:hover{ background:rgba(255,255,255,.08) }
+.appbar .hamburger[data-open="true"] span:nth-child(1){ transform:translateY(6px) rotate(45deg) }
+.appbar .hamburger[data-open="true"] span:nth-child(2){ opacity:0 }
+.appbar .hamburger[data-open="true"] span:nth-child(3){ transform:translateY(-6px) rotate(-45deg) }
+
+/* Drawer ala GLPI: di bawah header */
+.mobile-nav{
+  position:fixed; top:56px; left:0;
+  height:calc(100vh - 56px); width:360px; max-width:92vw;
+  transform:translateX(-100%);
+  background:var(--sidebar-bg); color:#fff;
+  z-index:1038; transition:transform .22s ease-out;
+  box-shadow:6px 0 18px rgba(14,22,34,.25);
+}
+.mobile-nav[data-open="true"]{ transform:translateX(0) }
+
+.mobile-nav-header{
+  height:60px; display:grid; grid-template-columns:56px 1fr; align-items:center;
+  border-bottom:1px solid rgba(255,255,255,.12);
+}
+.mobile-close{
+  all:unset; margin-left:12px; width:40px; height:40px; border-radius:10px;
+  border:1px solid rgba(255,255,255,.25); display:inline-grid; place-items:center;
+  color:#fff; cursor:pointer;
+}
+.mobile-brand{ display:inline-flex; align-items:center; gap:10px; }
+.mobile-brand .brand-icon{
+  width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+  background:rgba(255,255,255,.12); color:#ffcf6e;
+}
+.mobile-menu{ padding:12px 12px 18px; }
+.mobile-link{
+  display:flex; align-items:center; gap:12px; padding:12px;
+  border-radius:12px; color:#e7efff; text-decoration:none; font-weight:600;
+}
+.mobile-link:hover{ background:rgba(255,255,255,.08) }
+
+/* Backdrop (tidak menutupi header) */
+.nav-backdrop{
+  position:fixed; top:56px; left:0; right:0; height:calc(100vh - 56px);
+  background:rgba(20,30,60,.35); backdrop-filter:blur(1px);
+  z-index:1035; opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s;
+}
+.nav-backdrop[data-show="true"]{ opacity:1; visibility:visible }
+
+/* Layout konten */
+.content{ padding:20px 16px }              /* normal di semua perangkat */
+
+/* Desktop: kalau kamu punya .sidebar on-canvas, atur di sini (opsional) */
+@media (min-width: 992px){
+  /* Biarkan header tetap tampil seperti GLPI */
+  /* Jika mau sidebar on-canvas: uncomment 3 baris di bawah */
+  /* .sidebar{ display:block !important; width:260px } */
+  /* .content{ margin-left:260px } */
+}
+
+/* Lock scroll saat drawer buka */
+.no-scroll{ overflow:hidden !important; }
+/* ====== GLPI preset ====== */
+:root{
+  --glpi-blue:#2f4671;         /* tone GLPI */
+  --glpi-blue-700:#253a61;
+  --glpi-blue-50:#eef3fb;
+  --glpi-header-h:64px;
+}
+
+/* ====== Flatten container supaya ga keliatan “kartu” di pinggir ====== */
+html,body{ background:#f5f7fb }
+body, .content, .container, .container-fluid{
+  border-radius:0 !important; box-shadow:none !important;
+  background:transparent;
+  padding-left:0; padding-right:0;
+}
+
+/* ====== Header GLPI: flat, full-bleed, sticky ====== */
+.glpi-header{
+  background:var(--glpi-blue);
+  color:#fff; height:var(--glpi-header-h);
+  display:grid; grid-template-columns:56px 1fr 56px; align-items:center;
+  position:sticky; top:0; z-index:1040; padding:0 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  /* full-bleed, selalu 100vw walau di dalam wrapper */
+  margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); width:100vw;
+}
+.glpi-brand{
+  justify-self:center; color:#fff; text-decoration:none;
+  font-weight:700; letter-spacing:.2px; font-size:18px;
+}
+.glpi-right{ justify-self:end }
+
+/* Burger */
+.glpi-burger{
+  width:40px; height:40px; border-radius:8px;
+  display:inline-grid; place-items:center; gap:4px; cursor:pointer;
+  background:transparent; border:1px solid rgba(255,255,255,.25);
+}
+.glpi-burger span{ width:20px; height:2px; background:#fff; border-radius:2px; display:block; transition:transform .2s,opacity .2s }
+.glpi-burger:hover{ background:rgba(255,255,255,.08) }
+.glpi-burger[data-open="true"] span:nth-child(1){ transform:translateY(6px) rotate(45deg) }
+.glpi-burger[data-open="true"] span:nth-child(2){ opacity:0 }
+.glpi-burger[data-open="true"] span:nth-child(3){ transform:translateY(-6px) rotate(-45deg) }
+
+/* ====== Drawer: muncul di bawah header (seperti GLPI) ====== */
+.glpi-drawer{
+  position:fixed; top:var(--glpi-header-h); left:0;
+  height:calc(100vh - var(--glpi-header-h));
+  width:360px; max-width:92vw;
+  transform:translateX(-100%);
+  background:var(--glpi-blue); color:#fff;
+  z-index:1038; transition:transform .22s ease-out;
+  box-shadow:6px 0 18px rgba(14,22,34,.25);
+}
+.glpi-drawer[data-open="true"]{ transform:translateX(0) }
+
+.glpi-drawer-head{
+  height:60px; display:grid; grid-template-columns:56px 1fr; align-items:center;
+  border-bottom:1px solid rgba(255,255,255,.12); padding:0 8px;
+}
+.glpi-close{
+  all:unset; width:40px; height:40px; border-radius:8px; cursor:pointer;
+  display:inline-grid; place-items:center; color:#fff;
+  border:1px solid rgba(255,255,255,.25);
+}
+.glpi-drawer-title{ font-weight:700; font-size:16px }
+
+.glpi-drawer-menu{ padding:12px }
+.glpi-item{
+  display:flex; align-items:center; gap:12px; padding:12px;
+  border-radius:10px; color:#e7efff; text-decoration:none; font-weight:600;
+}
+.glpi-item:hover{ background:rgba(255,255,255,.08) }
+
+/* Backdrop: tidak menutupi header */
+.glpi-backdrop{
+  position:fixed; top:var(--glpi-header-h); left:0; right:0;
+  height:calc(100vh - var(--glpi-header-h));
+  background:rgba(21,30,48,.35); backdrop-filter:blur(1px);
+  z-index:1035; opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s;
+}
+.glpi-backdrop[data-show="true"]{ opacity:1; visibility:visible }
+
+/* ====== Konten & spacing ====== */
+.content{
+  margin:0 auto; padding:20px 16px; max-width:1400px;
+}
+h1,h2{ color:#2d3a54 }
+.table thead th{ background:var(--glpi-blue-50) }
+
+/* Desktop: boleh tetap header tampil (GLPI juga begitu) */
+@media (min-width:992px){
+  /* jika ingin sidebar on-canvas, aktifkan sendiri:
+  .sidebar{display:block; width:260px}
+  .content{margin-left:260px}
+  */
+}
+
+/* Lock scroll saat drawer buka */
+.no-scroll{ overflow:hidden !important }

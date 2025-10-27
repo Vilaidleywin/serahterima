@@ -1,43 +1,28 @@
-<header class="appbar">
-  {{-- Kiri: tombol hamburger --}}
-  <button type="button" class="appbar-btn hamburger" data-toggle-mobile-nav aria-label="Toggle sidebar">
+<header class="glpi-header" role="banner" aria-label="Topbar">
+  <button id="btnMobileNav" class="glpi-burger" aria-label="Buka menu" aria-controls="mobileNav" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
 
-  {{-- Tengah: logo/brand --}}
-  <div class="appbar-brand">
-    <div class="brand-icon">📁</div>
-    <strong>Serah Terima</strong>
-  </div>
+  <a href="{{ url('/') }}" class="glpi-brand" aria-label="Beranda">Serah Terima</a>
 
-  {{-- Kanan: profil user --}}
-  <div class="user-dropdown">
-    <button type="button" class="user-chip" id="userToggle" aria-haspopup="true" aria-expanded="false">
-      <i class="ti ti-user"></i>
-      <span>Profil</span>
-      <i class="ti ti-chevron-down chev"></i>
-    </button>
-
-    <div class="user-menu" role="menu" aria-label="User menu">
-      <a href="#" class="user-item" role="menuitem"><i class="ti ti-settings"></i> Settings</a>
-      <div class="user-sep"></div>
-      <a href="#" class="user-item" role="menuitem"><i class="ti ti-logout"></i> Logout</a>
-    </div>
-  </div>
+  <div class="glpi-right"><!-- kosong (slot avatar kalau perlu) --></div>
 </header>
 
-{{-- Breadcrumb opsional --}}
-@if(isset($breadcrumb))
-  <div class="breadcrumb-wrap">
-    <nav class="breadcrumb-mini">
-      @foreach($breadcrumb as $i => $item)
-        @if(!empty($item['url']) && $i < count($breadcrumb)-1)
-          <a href="{{ $item['url'] }}">{{ $item['label'] }}</a>
-          <span class="sep">/</span>
-        @else
-          <span class="current">{{ $item['label'] }}</span>
-        @endif
-      @endforeach
-    </nav>
+<aside id="mobileNav" class="glpi-drawer" aria-hidden="true" tabindex="-1">
+  <div class="glpi-drawer-head">
+    <button id="btnCloseDrawer" class="glpi-close" aria-label="Tutup menu">✕</button>
+    <div class="glpi-drawer-title">Serah Terima</div>
   </div>
-@endif
+
+  <nav class="glpi-drawer-menu" role="navigation" aria-label="Menu">
+    <a href="{{ route('dashboard') }}" class="glpi-item"><i class="ti ti-home"></i> Home</a>
+    <a href="{{ route('documents.index') }}" class="glpi-item"><i class="ti ti-folders"></i> Data Dokumen</a>
+    <a href="{{ route('documents.create') }}" class="glpi-item"><i class="ti ti-plus"></i> Buat Dokumen</a>
+    <a href="#" class="glpi-item"><i class="ti ti-file-analytics"></i> Laporan</a>
+    <a href="#" class="glpi-item"><i class="ti ti-users"></i> Pengguna</a>
+    <form method="POST" action="{{ route('logout') }}" class="m-0">@csrf
+      <button type="submit" class="glpi-item"><i class="ti ti-logout"></i> Logout</button>
+    </form>
+  </nav>
+</aside>
+<div id="navBackdrop" class="glpi-backdrop" hidden></div>
