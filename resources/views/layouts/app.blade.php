@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 <body>
-
+  
   {{-- ===== SIDEBAR (desktop) ===== --}}
   <aside class="sidebar" id="appSidebar">
     {{-- Brand desktop --}}
