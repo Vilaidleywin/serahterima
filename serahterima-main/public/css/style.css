@@ -423,6 +423,7 @@ body.nav-open .nav-backdrop {
     background: var(--sidebar-bg);
     color: #fff;
     z-index: 1055; /* di atas overlay */
+    
     transform: translateY(-100%); /* hidden */
     transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
     display: none; /* desktop hide */
@@ -710,3 +711,168 @@ body.nav-open .mobile-nav {
 @media (max-width: 992px){
   .card-soft .table-responsive { overflow-x: auto; }
 }
+.action-bar{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.action-btn{--bd:#e5eaf2;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:10px;border:1px solid var(--bd);background:#fff;color:#334155;font-size:13px;line-height:1;text-decoration:none;transition:.15s}
+.action-btn i{font-size:16px;line-height:0}
+.action-btn:hover{background:#f3f6fd;border-color:#d8e0ee;box-shadow:0 2px 8px rgba(20,30,60,.06)}
+.action-btn .label{display:none}@media(min-width:1200px){.action-btn .label{display:inline}}
+.action-btn.is-view{color:#2e5aac;background:#e9f0fb}
+.action-btn.is-edit{color:#b76e00;background:#fff4e5}
+.action-btn.is-sign{color:#0f766e;background:#f1fbf6}
+.action-btn.is-del{color:#c92a2a;background:#fff5f5}
+.table-hover tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+.card-soft {
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20,30,60,0.06);
+}
+.pagination {
+  margin: 0;
+}
+.page-item.active .page-link {
+  background-color: #facc15 !important; /* warna kuning lembut */
+  border-color: #facc15 !important;
+  color: #1f2937 !important;
+}
+.page-link {
+  color: #374151;
+  border: none;
+  background: transparent;
+}
+.page-link:hover {
+  background-color: #f3f4f6;
+  border-radius: 6px;
+}
+.pagination {
+  margin: 0;
+  display: flex;
+  gap: 4px;
+}
+.page-item {
+  border-radius: 6px;
+}
+.page-item.active .page-link {
+  background-color: #facc15 !important; /* kuning lembut */
+  color: #1f2937 !important;
+  border: none;
+}
+.page-link {
+  color: #374151;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.page-link:hover {
+  background-color: #f3f4f6;
+}
+.page-item.disabled .page-link {
+  color: #9ca3af;
+  pointer-events: none;
+}
+/* Kebab button: simple, corporate */
+.btn-kebab{
+  width: 34px; height: 34px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1;
+  color: #475569; background: transparent; border: 1px solid #e5eaf2;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.btn-kebab:hover{ background: #f7f9fc; border-color: #d8e0ee; color:#1f2937; }
+
+/* Menu: rapih, tidak norak */
+.dropdown-menu{
+  border-radius: 10px; border: 1px solid #e5eaf2;
+  padding: .35rem; min-width: 190px;
+}
+.dropdown-item{
+  border-radius: 8px; padding: .45rem .6rem; font-weight: 500; color:#374151;
+}
+.dropdown-item:hover{ background: #f3f6fd; color:#111827; }
+.dropdown-divider{ margin:.35rem .25rem; }
+
+/* Pastikan menu tidak kepotong table/container */
+.card-soft, .card-soft .table-responsive{ overflow: visible; }
+/* ===== Modern Action Dropdown ===== */
+.btn-kebab {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e5eaf2;
+  transition: all 0.15s ease;
+}
+.btn-kebab:hover {
+  background: #f9fafc;
+  border-color: #d8e0ee;
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Dropdown menu positioning & style */
+.dropdown-menu {
+  border-radius: 10px;
+  border: 1px solid #e5eaf2;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  padding: 0.4rem;
+  min-width: 190px;
+  background: #fff;
+  transform: translate(-15%, -10%) !important; /* naik dikit biar sejajar tombol */
+}
+.dropdown-item {
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-weight: 500;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dropdown-item i {
+  font-size: 16px;
+  opacity: 0.7;
+}
+.dropdown-item:hover {
+  background: #f3f6fd;
+  color: #111827;
+}
+.dropdown-divider {
+  margin: 0.35rem 0.4rem;
+}
+.dropdown-item.text-danger {
+  color: #dc2626 !important;
+}
+.dropdown-item.text-danger:hover {
+  background: #fef2f2 !important;
+}
+
+/* Supaya dropdown gak ketutup table */
+.card-soft,
+.card-soft .table-responsive {
+  overflow: visible;
+}
+
+/* Responsif aman */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    transform: translate(0, 0) !important;
+  }
+}
+
+.td-ellipsis{ max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pagination{ margin:0; }
+.page-item.active .page-link{ background:#facc15 !important; border-color:#facc15 !important; color:#1f2937 !important; }
+.page-link{ color:#374151; border:none; background:transparent; }
+.page-link:hover{ background:#f3f4f6; border-radius:6px; }
+/* polish dashboard */
+.td-ellipsis{ max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-soft{ transition: box-shadow .2s ease, transform .2s ease; }
+.card-soft:hover{ box-shadow:0 8px 22px rgba(20,30,60,.08); transform:translateY(-2px); }
+.pagination{ margin:0; }
+.page-item.active .page-link{ background:#facc15 !important; border-color:#facc15 !important; color:#1f2937 !important; }

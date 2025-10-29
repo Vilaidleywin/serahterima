@@ -20,6 +20,6 @@ return new class extends Migration
     {
         Schema::table('documents', function (Blueprint $table) {
             $table->string('amount_idr')->nullable()->change();
-        });
+        });     
     }
 };

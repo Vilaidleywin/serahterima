@@ -10,28 +10,37 @@ class DocumentController extends Controller
 {
     public function index(Request $req)
     {
+        $per = (int) $req->integer('per_page', 15);
+        $per = in_array($per, [10,15,25,50]) ? $per : 15;
+
         $q = Document::query();
 
         if ($s = $req->input('search')) {
-            $q->where(fn($w) => $w
-                ->where('number', 'like', "%{$s}%")
-                ->orWhere('title', 'like', "%{$s}%")
-                ->orWhere('receiver', 'like', "%{$s}%"));
+            $q->where(function ($w) use ($s) {
+                $w->where('number','like',"%{$s}%")
+                  ->orWhere('title','like',"%{$s}%")
+                  ->orWhere('receiver','like',"%{$s}%")
+                  ->orWhere('destination','like',"%{$s}%");
+            });
         }
 
         if ($st = $req->input('status')) {
             $q->where('status', $st);
         }
 
-        $documents = $q->orderByDesc('date')->paginate(10)->withQueryString();
+        $documents = $q->orderByDesc('date')
+                       ->orderByDesc('id')
+                       ->paginate($per)
+                       ->withQueryString();
 
         return view('documents.index', [
-            'title' => 'Data Dokumen',
+            'title'      => 'Data Dokumen',
             'breadcrumb' => [
                 ['label' => 'Dashboard', 'url' => route('dashboard')],
                 ['label' => 'Data Dokumen'],
             ],
             'documents' => $documents,
+            'per_page'  => $per,
         ]);
     }
 
@@ -50,27 +59,22 @@ class DocumentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'number'      => ['required', 'string', 'max:50', 'unique:documents,number'],
-            'title'       => ['required', 'string', 'max:255'],
-            'receiver'    => ['required', 'string', 'max:100'],
-            'destination' => ['nullable', 'string', 'max:255'],
+            'number'      => ['required','string','max:50','unique:documents,number'],
+            'title'       => ['required','string','max:255'],
+            'receiver'    => ['required','string','max:100'],
+            'destination' => ['nullable','string','max:255'],
             'amount_idr'  => ['required'],
-            'date'        => ['required', 'date'],
-            'status'      => ['required', Rule::in(['PENDING', 'DONE', 'FAILED'])],
-            'description' => ['nullable', 'string'],
+            'date'        => ['required','date'],
+            'status'      => ['required', Rule::in(['PENDING','DONE','FAILED'])],
+            'description' => ['nullable','string'],
         ]);
 
-        // Bersihkan "Rp" atau titik
-        if (isset($data['amount_idr'])) {
-            $data['amount_idr'] = (float) preg_replace('/[^0-9]/', '', $data['amount_idr']);
-        }
+        $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
 
         Document::create($data);
 
-        return redirect()->route('documents.index')
-            ->with('ok', 'Dokumen berhasil ditambahkan.');
+        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil ditambahkan.');
     }
-
 
     public function edit(Document $document)
     {
@@ -88,18 +92,20 @@ class DocumentController extends Controller
     public function update(Request $request, Document $document)
     {
         $data = $request->validate([
-            'number'      => 'required|string|max:255',
-            'title'       => 'required|string|max:255',
-            'receiver'    => 'nullable|string|max:255',
-            'destination' => 'nullable|string|max:255',
-            'amount_idr'  => 'nullable',                  // jangan numeric dulu, kita bersihkan manual
-            'date'        => 'nullable|date',
-            'status'      => 'nullable|string',
-            'description' => 'nullable|string',
+            'number'      => ['required','string','max:50', Rule::unique('documents','number')->ignore($document->id)],
+            'title'       => ['required','string','max:255'],
+            'receiver'    => ['nullable','string','max:100'],
+            'destination' => ['nullable','string','max:255'],
+            'amount_idr'  => ['nullable'],
+            'date'        => ['nullable','date'],
+            'status'      => ['nullable', Rule::in(['PENDING','DONE','FAILED'])],
+            'description' => ['nullable','string'],
         ]);
 
-        if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== null) {
-            $data['amount_idr'] = (float) preg_replace('/[^0-9]/', '', (string) $data['amount_idr']);
+        if (array_key_exists('amount_idr',$data) && $data['amount_idr']!=='') {
+            $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
+        } else {
+            unset($data['amount_idr']);
         }
 
         $document->update($data);
@@ -107,13 +113,11 @@ class DocumentController extends Controller
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diperbarui!');
     }
 
-
     public function destroy(Document $document)
     {
         $document->delete();
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus!');
     }
-
 
     public function show(Document $document)
     {
@@ -129,5 +133,11 @@ class DocumentController extends Controller
             'title' => 'Tanda Tangan Dokumen',
             'document' => $document,
         ]);
+    }
+
+    private function sanitizeAmount($val): float
+    {
+        $num = preg_replace('/[^0-9]/', '', (string) $val);
+        return $num === '' ? 0.0 : (float) $num;
     }
 }

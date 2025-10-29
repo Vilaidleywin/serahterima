@@ -24,7 +24,8 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::get('/', fn()=>redirect()->route('dashboard'));
-
+// routes/web.php
+Route::post('/documents/bulk', [DocumentController::class, 'bulk'])->name('documents.bulk');
 Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
 Route::get('/documents/create', [DocumentController::class,'create'])->name('documents.create');
 Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
