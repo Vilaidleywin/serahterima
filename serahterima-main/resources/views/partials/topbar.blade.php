@@ -43,6 +43,32 @@
   </div>
 </header>
 
+<!-- ===== MOBILE NAV (untuk layar kecil) ===== -->
+<div class="mobile-nav" id="mobileNav" aria-hidden="true">
+  <div class="mobile-nav-header">
+    <button class="mobile-close" type="button" data-close-mobile-nav aria-label="Close">
+      <span></span><span></span>
+    </button>
+    <div class="mobile-brand">
+      <span class="brand-icon">📁</span>
+      <strong>Serah Terima</strong>
+    </div>
+  </div>
+
+  <nav class="mobile-menu">
+    <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard')?'active':'' }}">
+      <i class="ti ti-home"></i> Dashboard
+    </a>
+    <a href="{{ route('documents.index') }}" class="mobile-link {{ request()->routeIs('documents.*')?'active':'' }}">
+      <i class="ti ti-file-description"></i> Data Dokumen
+    </a>
+    <a class="mobile-link disabled"><i class="ti ti-file-plus"></i> Input Dokumen</a>
+    <a class="mobile-link disabled"><i class="ti ti-report"></i> Laporan</a>
+    <a class="mobile-link disabled"><i class="ti ti-users"></i> Pengguna</a>
+    <a class="mobile-link disabled"><i class="ti ti-logout"></i> Logout</a>
+  </nav>
+</div>
+
 <script>
   // === Dropdown profil ===
   const toggle = document.getElementById('userToggle');
@@ -61,19 +87,16 @@
   const mobileNav = document.getElementById('mobileNav');
   const mobileClose = document.querySelector('[data-close-mobile-nav]');
 
-  // Toggle buka/tutup mobile nav + animasi hamburger
   btnMobileNav?.addEventListener('click', () => {
-    btnMobileNav.classList.toggle('active'); // <- buat animasi jadi "X"
+    btnMobileNav.classList.toggle('active');
     mobileNav.classList.toggle('open');
   });
 
-  // Tombol close (X di header mobile nav)
   mobileClose?.addEventListener('click', () => {
     btnMobileNav.classList.remove('active');
     mobileNav.classList.remove('open');
   });
 
-  // Klik area luar = tutup menu
   mobileNav?.addEventListener('click', (e) => {
     if (e.target === mobileNav) {
       btnMobileNav.classList.remove('active');
@@ -81,7 +104,6 @@
     }
   });
 </script>
-
 
 <style>
 /* ===== TOPBAR ===== */
@@ -101,15 +123,9 @@
   height: 56px;
   transition: left 0.3s ease;
 }
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
 
-/* Left section */
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* ===== HAMBURGER BUTTON ===== */
+/* ===== HAMBURGER ===== */
 .hamburger {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.15);
@@ -125,7 +141,6 @@
   transition: all 0.3s ease;
   position: relative;
 }
-
 .hamburger span {
   display: block;
   width: 20px;
@@ -134,75 +149,15 @@
   border-radius: 2px;
   transition: all 0.3s ease;
 }
+.hamburger:hover { background: rgba(255,255,255,0.15); }
+.hamburger.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* Hover & Active */
-.hamburger:hover {
-  background: rgba(255,255,255,0.15);
-  box-shadow: 0 0 6px rgba(255,255,255,0.25);
-}
-.hamburger:active span {
-  transform: scaleX(0.9);
-}
-
-/* Animation: turn into X */
-.hamburger.active span:nth-child(1) {
-  transform: translateY(6px) rotate(45deg);
-}
-.hamburger.active span:nth-child(2) {
-  opacity: 0;
-}
-.hamburger.active span:nth-child(3) {
-  transform: translateY(-6px) rotate(-45deg);
-}
-
-/* ===== BRAND ===== */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
-  font-size: 1rem;
-}
-.brand-icon {
-  font-size: 1.2rem;
-}
-
-/* ===== BREADCRUMB ===== */
-.breadcrumb-mini {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-  color: #cbd5e1;
-  border-left: 1px solid #334155;
-  padding-left: 0.8rem;
-}
-.breadcrumb-mini a {
-  color: #f9fafb;
-  text-decoration: none;
-}
-.breadcrumb-mini a:hover {
-  text-decoration: underline;
-}
-
-/* ===== PROFIL KANAN ===== */
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.user-dropdown {
-  position: relative;
-}
-.user-chip {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+/* ===== PROFIL ===== */
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+.user-dropdown { position: relative; }
+.user-chip { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .user-menu {
   display: none;
   position: absolute;
@@ -213,83 +168,83 @@
   padding: 0.5rem 0;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-.user-item {
-  display: block;
-  padding: 6px 12px;
-  color: #fff;
-  text-decoration: none;
-}
-.user-item:hover {
-  background: #475569;
-}
-.user-sep {
-  height: 1px;
-  background: #475569;
-  margin: 4px 0;
-}
+.user-item { display: block; padding: 6px 12px; color: #fff; text-decoration: none; }
+.user-item:hover { background: #475569; }
+.user-sep { height: 1px; background: #475569; margin: 4px 0; }
 
-/* ===== MAIN CONTENT ===== */
-.content {
-  margin-left: 260px;
-  padding: 20px;
-  padding-top: 80px;
-  transition: margin-left 0.3s ease;
-}
+/* ===== MAIN ===== */
+.content { margin-left: 260px; padding: 20px; padding-top: 80px; transition: margin-left 0.3s ease; }
 
-/* ===== MOBILE RESPONSIVE ===== */
+/* ===== MOBILE ===== */
 @media (max-width: 1024px) {
-  .topbar {
-    left: 0;
-  }
+  .topbar { left: 0; }
+  .hamburger { display: flex; }
+  .content { margin-left: 0; }
 
-  .hamburger {
-    display: flex;
-  }
-
-  .content {
-    margin-left: 0;
-  }
-
-  /* === Mobile nav overlay === */
   .mobile-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(4px);
-    z-index: 1050;
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    z-index: 99999 !important;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-10px);
     transition: all 0.35s ease;
   }
-
-  .mobile-nav.open {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
+  .mobile-nav.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
   .mobile-nav-header {
-    background: #1e293b;
+    position: relative;
+    background: #111827;
     color: #fff;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    animation: fadeDown 0.3s ease;
+    justify-content: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
   }
 
+  /* Tombol close pindah ke kiri */
+  .mobile-close {
+    position: absolute;
+    left: 14px;
+    top: 10px;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000001;
+    transition: transform 0.25s ease, background 0.25s ease;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  }
+
+  /* Garis X */
+  .mobile-close span {
+    position: absolute;
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+  }
+  .mobile-close span:nth-child(1) { transform: rotate(45deg); }
+  .mobile-close span:nth-child(2) { transform: rotate(-45deg); }
+
+  .mobile-close:hover { background: #273244; transform: scale(1.1); }
+
   .mobile-menu {
-    background: #273244;
+    background: #1e293b;
     padding: 12px 0;
     height: calc(100% - 56px);
     overflow-y: auto;
     animation: fadeUp 0.4s ease;
   }
-
   .mobile-link {
     display: block;
     color: #fff;
@@ -299,15 +254,8 @@
     animation: fadeIn 0.4s forwards;
   }
   .mobile-link:hover,
-  .mobile-link.active {
-    background: #334155;
-  }
+  .mobile-link.active { background: #334155; }
 
-  /* === Animations === */
-  @keyframes fadeDown {
-    from {opacity: 0; transform: translateY(-10px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
   @keyframes fadeUp {
     from {opacity: 0; transform: translateY(10px);}
     to {opacity: 1; transform: translateY(0);}
@@ -317,5 +265,4 @@
     to {opacity: 1;}
   }
 }
-
 </style>

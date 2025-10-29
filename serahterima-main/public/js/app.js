@@ -3,7 +3,7 @@
  * app.js — drawer, user menu, flash, confirm delete (Final)
  * ================================
  */
-
+import "./bootstrap";
 import Swal from "sweetalert2";
 window.Swal = Swal;
 

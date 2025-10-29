@@ -15,8 +15,7 @@
   {{-- ===== Custom CSS ===== --}}
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 
-  {{-- ===== Vite (main entry point) ===== --}}
-  @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 
 </head>
 

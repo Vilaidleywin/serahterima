@@ -8,7 +8,7 @@
     </div>
     <div class="d-flex gap-2">
       <a href="{{ route('documents.create') }}" class="btn btn-primary"><i class="ti ti-plus"></i> Tambah</a>
-      <a href="{{ route('documents.index') }}" class="btn btn-ghost"><i class="ti ti-refresh"></i> Refresh</a>
+      <a href="{{ route('documents.index') }}" class="btn outline-secondary"><i class="ti ti-refresh"></i> Refresh</a>
     </div>
   </div>
 
@@ -58,7 +58,7 @@
             <td>@include('shared.status-badge', ['status' => $d->status])</td>
 
             <td class="text-end">
-              <div class="dropdown position-static">
+              <div class="dropdown">
                 <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown" aria-expanded="false">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
                     class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
