@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('receiver');           // Budi
             $table->bigInteger('amount')->default(0); // nominal dalam rupiah
             $table->date('date');                 // 2025-10-01
-            $table->enum('status', ['PENDING', 'DONE', 'FAILED'])->default('PENDING');
+            $table->enum('status', ['SUBMITTED', 'REJECTED'])->default('SUBMITTED');
             $table->timestamps();
         });
     }

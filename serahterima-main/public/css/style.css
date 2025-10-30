@@ -876,3 +876,36 @@ body.nav-open .mobile-nav {
 .card-soft:hover{ box-shadow:0 8px 22px rgba(20,30,60,.08); transform:translateY(-2px); }
 .pagination{ margin:0; }
 .page-item.active .page-link{ background:#facc15 !important; border-color:#facc15 !important; color:#1f2937 !important; }
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+}
+
+/* SUBMITTED = biru lembut elegan */
+.badge-submitted {
+  background: rgba(59,130,246,0.12);
+  color: #1e3a8a;
+  border-color: rgba(59,130,246,0.35);
+}
+
+/* REJECTED = merah lembut */
+.badge-rejected {
+  background: rgba(239,68,68,0.12);
+  color: #7f1d1d;
+  border-color: rgba(239,68,68,0.35);
+}
+
+/* Default jika ada status aneh */
+.badge-default {
+  background: rgba(156,163,175,0.15);
+  color: #374151;
+  border-color: rgba(156,163,175,0.35);
+}

@@ -65,7 +65,7 @@ class DocumentController extends Controller
             'destination' => ['nullable','string','max:255'],
             'amount_idr'  => ['required'],
             'date'        => ['required','date'],
-            'status'      => ['required', Rule::in(['PENDING','DONE','FAILED'])],
+            'status'      => ['required', Rule::in(['SUBMITED','REJECTED'])],
             'description' => ['nullable','string'],
         ]);
 
@@ -98,7 +98,7 @@ class DocumentController extends Controller
             'destination' => ['nullable','string','max:255'],
             'amount_idr'  => ['nullable'],
             'date'        => ['nullable','date'],
-            'status'      => ['nullable', Rule::in(['PENDING','DONE','FAILED'])],
+            'status'      => ['nullable', Rule::in(['SUBMITTED','REJECTED'])],
             'description' => ['nullable','string'],
         ]);
 

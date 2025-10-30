@@ -80,7 +80,7 @@
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Status</label>
                     <select name="status" class="form-select @error('status') is-invalid @enderror">
-                        @foreach(['PENDING', 'DONE', 'FAILED'] as $s)
+                        @foreach(['SUBMITTED', 'REJECTED'] as $s)
                             <option value="{{ $s }}" {{ old('status', $document->status) === $s ? 'selected' : '' }}>
                                 {{ $s }}
                             </option>

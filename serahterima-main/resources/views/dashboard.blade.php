@@ -12,14 +12,13 @@
   <div class="row g-3 mb-3">
     @php
       $tiles = [
-        ['label'=>'Total Dokumen', 'value'=>$total,   'url'=>route('documents.index')],
-        ['label'=>'Menunggu Persetujuan','value'=>$pending,'url'=>route('documents.index',['status'=>'PENDING'])],
-        ['label'=>'Selesai', 'value'=>$done, 'url'=>route('documents.index',['status'=>'DONE'])],
-        ['label'=>'Gagal',   'value'=>$failed, 'url'=>route('documents.index',['status'=>'FAILED'])],
+        ['label' => 'Total Dokumen', 'value' => $total, 'url' => route('documents.index')],
+        ['label' => 'SUBMITTED', 'value' => $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED'])],
+        ['label' => 'REJECTED', 'value' => $rejected, 'url' => route('documents.index', ['status' => 'REJECTED'])],
       ];
     @endphp
     @foreach($tiles as $t)
-      <div class="col-lg-3 col-md-6">
+      <div class="col-lg-4 col-md-6">
         <a href="{{ $t['url'] }}" class="text-decoration-none">
           <div class="card-soft p-3 h-100">
             <div class="text-muted small">{{ $t['label'] }}</div>
@@ -46,9 +45,8 @@
         </div>
         <div style="height:220px"><canvas id="barChart"></canvas></div>
         <div class="d-flex gap-2 mt-2 flex-wrap">
-          <a href="{{ route('documents.index',['status'=>'PENDING']) }}" class="btn btn-sm btn-ghost">Pending</a>
-          <a href="{{ route('documents.index',['status'=>'DONE']) }}" class="btn btn-sm btn-ghost">Done</a>
-          <a href="{{ route('documents.index',['status'=>'FAILED']) }}" class="btn btn-sm btn-ghost">Failed</a>
+          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm btn-ghost">SUBMITTED</a>
+          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm btn-ghost">REJECTED</a>
         </div>
       </div>
 
@@ -80,10 +78,12 @@
       </div>
     </div>
     <div class="col-md-3">
-      <a href="{{ route('documents.index',['status'=>'PENDING']) }}" class="text-decoration-none">
+      <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="text-decoration-none">
         <div class="card-soft p-3">
-          <div class="text-muted small">Pending &gt; {{ $overdueDays }} hari</div>
-          <div class="fs-4 fw-semibold {{ $pendingOverdue? 'text-danger':'text-success' }}">{{ $pendingOverdue }}</div>
+          <div class="text-muted small">SUBMITTED &gt; {{ $overdueDays }} hari</div>
+          <div class="fs-4 fw-semibold {{ ($submittedOverdue ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
+            {{ $submittedOverdue }}
+          </div>
         </div>
       </a>
     </div>
@@ -94,16 +94,28 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Line chart (12 bulan)
-      const lineCtx = document.getElementById('lineChart');
-      if (lineCtx && typeof Chart !== 'undefined') {
-        new Chart(lineCtx, {
+    // --- Helper: safe get arrays ---
+    const arr = (v) => Array.isArray(v) ? v : (v == null ? [] : [v]);
+
+    function initCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      // Register plugin sekali untuk Chart.js v4 (hindari error plugin)
+      if (typeof ChartDataLabels !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
+        Chart.register(ChartDataLabels);
+      }
+
+      // LINE (12 bulan)
+      const lineEl = document.getElementById('lineChart');
+      if (lineEl) {
+        const lineLabels = @json($lineLabels ?? []);
+        const lineData = @json($lineData ?? []);
+        new Chart(lineEl, {
           type: 'line',
           data: {
-            labels: @json($lineLabels),
+            labels: arr(lineLabels),
             datasets: [{
-              data: @json($lineData),
+              data: arr(lineData),
               borderColor: '#2e5aac',
               backgroundColor: 'rgba(46,90,172,0.10)',
               fill: true,
@@ -114,25 +126,26 @@
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend:{display:false}, tooltip:{mode:'index', intersect:false} },
-            scales: { x:{ grid:{display:false} }, y:{ beginAtZero:true, ticks:{precision:0} } }
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
           }
         });
       }
 
-      // Bar chart (bulan ini)
-      const barCtx = document.getElementById('barChart');
-      if (barCtx && typeof Chart !== 'undefined') {
-        const labels = @json($barLabels);
-        const data   = @json($barData);
-        new Chart(barCtx, {
+      // BAR (bulan ini)
+      const barEl = document.getElementById('barChart');
+      if (barEl) {
+        const labels = @json($barLabels ?? []);
+        const data = @json($barData ?? []);
+        new Chart(barEl, {
           type: 'bar',
           data: {
-            labels,
+            labels: arr(labels),
             datasets: [{
-              data,
-              backgroundColor: ['#FACC15CC', '#22C55ECC', '#EF4444CC'],
-              borderColor:     ['#FACC15',   '#22C55E',   '#EF4444'  ],
+              data: arr(data),
+              backgroundColor: ['#22C55ECC', '#EF4444CC'],
+              borderColor: ['#22C55E', '#EF4444'],
+
               borderWidth: 2,
               borderRadius: 10,
               hoverBorderWidth: 3
@@ -141,45 +154,64 @@
           options: {
             responsive: true, maintainAspectRatio: false,
             plugins: {
-              legend: { display:false },
+              legend: { display: false },
               datalabels: {
-                color:'#111827', anchor:'end', align:'start',
-                font:{weight:'600'}, formatter:v => v>0 ? v : ''
+                color: '#111827', anchor: 'end', align: 'start',
+                font: { weight: '600' },
+                formatter: v => (typeof v === 'number' && v > 0) ? v : ''
               },
               tooltip: {
-                backgroundColor:'#1F2937', titleColor:'#fff', bodyColor:'#fff', displayColors:false,
+                backgroundColor: '#1F2937', titleColor: '#fff', bodyColor: '#fff', displayColors: false,
                 callbacks: { label: ctx => `${ctx.parsed.y} dokumen` }
               }
             },
             onClick: (e, els) => {
               if (els.length) {
-                const status = labels[els[0].index];
-                window.location.href = `{{ route('documents.index') }}?status=${status}`;
+                const idx = els[0].index;
+                const status = arr(labels)[idx];
+                if (status) {
+                  const base = `{{ route('documents.index') }}`;
+                  window.location.href = `${base}?status=${encodeURIComponent(status)}`;
+                }
               }
             },
             scales: {
-              x: { grid:{display:false}, ticks:{ font:{weight:'600'} } },
-              y: { beginAtZero:true, ticks:{precision:0, stepSize:1}, grid:{color:'rgba(209,213,219,.35)'} }
+              x: { grid: { display: false }, ticks: { font: { weight: '600' } } },
+              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: 'rgba(209,213,219,.35)' } }
             },
             animation: { duration: 900, easing: 'easeOutQuart' }
-          },
-          plugins:[ChartDataLabels]
+          }
         });
       }
 
-      // Donut chart (share status)
-      const donutCtx = document.getElementById('donutChart');
-      if (donutCtx && typeof Chart !== 'undefined') {
-        new Chart(donutCtx, {
-          type:'doughnut',
-          data:{
-            labels: @json($donut['labels']),
-            datasets:[{ data:@json($donut['data']),
-              backgroundColor:['#FACC15','#22C55E','#EF4444'] }]
+      // DONUT (share status)
+      const donutEl = document.getElementById('donutChart');
+      if (donutEl) {
+        const labels = @json(($donut['labels'] ?? []) ?: []);
+        const data = @json(($donut['data'] ?? []) ?: []);
+        new Chart(donutEl, {
+          type: 'doughnut',
+          data: {
+            labels: arr(labels),
+            datasets: [{
+              data: arr(data),
+              backgroundColor: ['#22C55ECC', '#EF4444CC'],
+            }]
           },
-          options:{ plugins:{ legend:{ position:'bottom' } }, cutout:'60%' }
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } },
+            cutout: '60%'
+          }
         });
       }
-    });
+    }
+
+    // Panggil langsung kalau DOM sudah siap; kalau belum, tunggu
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCharts, { once: true });
+    } else {
+      initCharts();
+    }
   </script>
 @endpush
