@@ -61,9 +61,8 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold">Status</label>
           <select name="status" class="form-select search">
-            <option value="PENDING" {{ old('status') == 'PENDING' ? 'selected' : '' }}>PENDING</option>
-            <option value="DONE" {{ old('status') == 'DONE' ? 'selected' : '' }}>DONE</option>
-            <option value="FAILED" {{ old('status') == 'FAILED' ? 'selected' : '' }}>FAILED</option>
+            <option value="PENDING" {{ old('status') == 'PENDING' ? 'selected' : '' }}>SUBMITED</option>
+            <option value="DONE" {{ old('status') == 'DONE' ? 'selected' : '' }}>REJECTED</option>
           </select>
           @error('status') <div class="text-danger small">{{ $message }}</div> @enderror
         </div>

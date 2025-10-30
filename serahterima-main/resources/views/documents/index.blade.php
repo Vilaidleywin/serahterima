@@ -19,7 +19,7 @@
     <div class="col-md-3">
       <select name="status" class="form-select search">
         <option value="">Semua Status</option>
-        @foreach(['PENDING', 'DONE', 'FAILED'] as $s)
+        @foreach(['SUBMITED', 'REJECTED'] as $s)
           <option value="{{ $s }}" @selected(request('status') === $s)>{{ $s }}</option>
         @endforeach
       </select>
