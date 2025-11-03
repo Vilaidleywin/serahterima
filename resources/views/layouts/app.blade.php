@@ -39,8 +39,6 @@
         href="{{ route('documents.create') }}">
         Input Dokumen
       </a>
-
-      <a class="nav-link disabled">Laporan</a>
       <a class="nav-link disabled">Pengguna</a>
       <a class="nav-link disabled">Logout</a>
     </nav>

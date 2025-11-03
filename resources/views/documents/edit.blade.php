@@ -35,38 +35,56 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Nomor Dokumen</label>
                     <input type="text" name="number" value="{{ old('number', $document->number) }}"
-                        class="form-control @error('number') is-invalid @enderror" placeholder="Masukkan nomor dokumen"
-                        required>
+                        class="form-control @error('number') is-invalid @enderror" required>
                     @error('number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Judul</label>
                     <input type="text" name="title" value="{{ old('title', $document->title) }}"
-                        class="form-control @error('title') is-invalid @enderror" placeholder="Masukkan judul dokumen"
-                        required>
+                        class="form-control @error('title') is-invalid @enderror" required>
                     @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label fw-semibold">Pengirim</label>
+                    <input type="text" name="sender" class="form-control search"
+                        value="{{ old('sender', $document->sender) }}">
+                    @error('sender') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                </div>
+
+
+                <div class="col-md-6">
                     <label class="form-label fw-semibold">Penerima</label>
                     <input type="text" name="receiver" value="{{ old('receiver', $document->receiver) }}"
-                        class="form-control @error('receiver') is-invalid @enderror" placeholder="Nama penerima">
+                        class="form-control @error('receiver') is-invalid @enderror">
                     @error('receiver') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Tujuan</label>
-                    <input type="text" name="destination" class="form-control search" value="{{ old('destination') }}"
-                        placeholder="Masukkan tujuan dokumen">
+                    <input type="text" name="destination" class="form-control search" value="{{ old('destination') }}">
                     @error('destination') <div class="text-danger small">{{ $message }}</div> @enderror
                 </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Divisi</label>
+                    <select name="division" class="form-select">
+                        <option value="">— Pilih Divisi —</option>
+                        @foreach($divisions as $div)
+                            <option value="{{ $div }}" @selected(old('division', $document->division) === $div)>{{ $div }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('division') <div class="text-danger small">{{ $message }}</div> @enderror
+                </div>
+
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Nominal (Rp)</label>
                     <input type="number" name="amount_idr" step="1" min="0"
                         value="{{ old('amount_idr', $document->amount_idr) }}"
-                        class="form-control @error('amount_idr') is-invalid @enderror" placeholder="Masukkan nominal">
+                        class="form-control @error('amount_idr') is-invalid @enderror">
                     @error('amount_idr') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
@@ -97,8 +115,8 @@
 
                 <div class="col-12">
                     <label class="form-label fw-semibold">Deskripsi</label>
-                    <textarea name="description" rows="4" class="form-control @error('description') is-invalid @enderror"
-                        placeholder="Tambahkan deskripsi">{{ old('description', $document->description) }}</textarea>
+                    <textarea name="description" rows="4"
+                        class="form-control @error('description') is-invalid @enderror">{{ old('description', $document->description) }}</textarea>
                     @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>

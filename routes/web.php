@@ -39,9 +39,12 @@ Route::prefix('documents')->name('documents.')->group(function () {
     Route::get('/{document}/edit', [DocumentController::class,'edit'])->name('edit');
     Route::put('/{document}', [DocumentController::class,'update'])->name('update');
     Route::delete('/{document}', [DocumentController::class,'destroy'])->name('destroy');
+     Route::get('/{document}/sign', [DocumentController::class, 'sign'])->name('sign');
+    Route::post('/{document}/sign', [DocumentController::class, 'signStore'])->name('sign.store'); // 🆕
 });
 
 
 Route::prefix('serahterima')->group(function () {
     Route::resource('documents', DocumentController::class);
+    
 });

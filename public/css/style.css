@@ -909,3 +909,37 @@ body.nav-open .mobile-nav {
   color: #374151;
   border-color: rgba(156,163,175,0.35);
 }
+.card-soft {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: .2s;
+}
+.card-soft:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); }
+
+.btn-outline-secondary, .btn-outline-primary, .btn-outline-danger {
+  border-radius: 8px;
+  font-weight: 500;
+}
+.text-success { color: #22c55e !important; }
+td:nth-child(5) {
+  font-weight: 500;
+  color: #374151;
+}
+form .form-label {
+  font-weight: 600;
+  color: #4b5563;
+}
+form .form-select, form .form-control {
+  border-radius: 8px;
+  transition: all .2s ease;
+}
+form .form-select:focus, form .form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 0.15rem rgba(37,99,235,.25);
+}
+td, th {
+  vertical-align: middle;
+  white-space: nowrap;
+}

@@ -7,31 +7,53 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Document extends Model
 {
+    // protected $fillable = [
+    //     'number',
+    //     'title',
+    //     'receiver',
+    //     'destination',
+    //     'amount_idr',
+    //     'date',
+    //     'status',
+    //     'description',
+    //     'file_path'
+    // ];
+
     protected $fillable = [
         'number',
         'title',
+        'sender',
         'receiver',
         'destination',
+        'division',
         'amount_idr',
         'date',
         'status',
         'description',
-        'file_path'
+        'file',
+        'signature_path',
+        'signed_at',
+        'signed_by'
     ];
 
     protected $casts = [
-        'date' => 'date',
+         'date' => 'datetime',
+    'signed_at' => 'datetime',
         'amount_idr' => 'float', // <- pastikan kebaca sebagai angka
     ];
 
-    public function getAmountIdrFormattedAttribute()
-{
-    if ($this->amount_idr === null) {
-        return '-';
+    public function signer()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'signed_by');
     }
+    public function getAmountIdrFormattedAttribute()
+    {
+        if ($this->amount_idr === null) {
+            return '-';
+        }
 
-    return 'Rp. ' . number_format($this->amount_idr, 0, ',', '.');
-}
+        return 'Rp. ' . number_format($this->amount_idr, 0, ',', '.');
+    }
 
 
     // Mutator: apapun inputnya (“Rp 209.000”, “200000”), disimpan jadi angka murni

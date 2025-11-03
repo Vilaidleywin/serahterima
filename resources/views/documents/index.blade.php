@@ -13,21 +13,28 @@
   </div>
 
   <form class="row g-2 mb-3" method="get">
-    <div class="col-md-8">
+    <div class="col-md-7">
       <input name="search" value="{{ request('search') }}" class="form-control search" placeholder="Cari dokumen...">
     </div>
-    <div class="col-md-3">
+
+    <div class="col-md-4">
       <select name="status" class="form-select search">
         <option value="">Semua Status</option>
-        @foreach(['SUBMITED', 'REJECTED'] as $s)
-          <option value="{{ $s }}" @selected(request('status') === $s)>{{ $s }}</option>
+        @foreach(['SUBMITTED', 'REJECTED'] as $s)
+          <option value="{{ $s }}" @selected(request('status') === $s)>
+            {{ ucfirst(strtolower($s)) }}
+          </option>
         @endforeach
       </select>
     </div>
+
     <div class="col-md-1 d-grid">
-      <button class="btn btn-primary">Filter</button>
+      <button class="btn btn-primary">
+        <i class="ti ti-filter me-1"></i> Filter
+      </button>
     </div>
   </form>
+
 
   <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">
     <table class="table table-striped table-hover align-middle mb-0">
@@ -37,7 +44,9 @@
           <th class="text-center" style="width:60px">No</th>
           <th style="width:140px">No. Dokumen</th>
           <th>Perihal</th>
+          <th style="width:160px">Pengirim</th>
           <th style="width:160px">Penerima</th>
+          <th style="width:160px">Divisi</th>
           <th style="width:160px">Tujuan</th>
           <th style="width:140px">Nominal (Rp)</th>
           <th style="width:120px">Tanggal</th>
@@ -51,7 +60,9 @@
             <td class="text-center">{{ $documents->firstItem() + $i }}</td>
             <td>{{ $d->number }}</td>
             <td>{{ $d->title }}</td>
-            <td>{{ $d->receiver }}</td>
+            <td>{{ $d->sender ?? '-' }}</td>
+            <td>{{ $d->receiver ?? '-' }}</td>
+            <td>{{ $d->division ?? '-' }}</td>
             <td>{{ $d->destination ?? '-' }}</td>
             <td>{{ $d->amount_idr_formatted ?? 'Rp. ' . number_format((int) $d->amount_idr, 0, ',', '.') }}</td>
             <td>{{ $d->date?->format('Y-m-d') }}</td>
