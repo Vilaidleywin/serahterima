@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentController extends Controller
 {
@@ -17,6 +18,82 @@ class DocumentController extends Controller
     // {
     //     $this->middleware('auth')->except(['index','show']);
     // }
+
+    public function printPdf(\App\Models\Document $document)
+    {
+        return Pdf::loadView('documents.print-pdf', compact('document'))
+            ->setPaper('a4') // atau 'a4', 'portrait'
+            ->stream("SerahTerima-{$document->number}.pdf");
+    }
+
+    public function printTandaTerima(Document $document)
+    {
+        return view('documents.print-tandaterima', [
+            'document' => $document,
+
+        ]);
+        $pdf = Pdf::loadView('documents.print-tandaterima', compact('document'))
+            ->setPaper('a4', 'portrait');
+        return $pdf->stream('TandaTerima-' . $document->number . '.pdf');
+    }
+
+    public function photo(Document $document)
+    {
+        return view('documents.photo', [
+            'title'    => 'Ambil Foto',
+            'document' => $document,
+        ]);
+    }
+
+    public function photoStore(Request $request, Document $document)
+    {
+        // Terima 2 jalur: base64 (name="photo") atau file upload (name="photo_file")
+        $request->validate([
+            'photo'      => ['nullable', 'string'],            // base64 data URL
+            'photo_file' => ['nullable', 'image', 'max:5120'], // file < 5MB
+        ]);
+
+        $path = null;
+
+        // 1) Jika ada file upload
+        if ($request->hasFile('photo_file')) {
+            $path = $request->file('photo_file')->store('document-photos', 'public');
+        }
+        // 2) Jika ada base64 dari kamera
+        elseif ($dataUrl = $request->input('photo')) {
+            // Validasi header data URL
+            if (!preg_match('#^data:image/(png|jpe?g);base64,#i', $dataUrl)) {
+                return back()->withErrors(['photo' => 'Foto tidak valid.'])->withInput();
+            }
+
+            // Decode base64
+            $binary = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl), true);
+            if ($binary === false || strlen($binary) < 1000) {
+                return back()->withErrors(['photo' => 'Gagal memproses foto.'])->withInput();
+            }
+
+            // Simpan sebagai JPG
+            $filename = 'doc-' . $document->id . '-' . time() . '.jpg';
+            $path = 'document-photos/' . $filename;
+            \Storage::disk('public')->put($path, $binary);
+        }
+
+        if (!$path) {
+            return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
+        }
+
+        // Hapus foto lama (opsional)
+        if ($document->photo_path && \Storage::disk('public')->exists($document->photo_path)) {
+            \Storage::disk('public')->delete($document->photo_path);
+        }
+
+        $document->update(['photo_path' => $path]);
+
+        return redirect()
+            ->route('documents.show', $document)
+            ->with('success', 'Foto berhasil disimpan.');
+    }
+
 
     public function index(Request $req)
     {
@@ -69,7 +146,7 @@ class DocumentController extends Controller
         ]);
     }
 
-    private array $divisions = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+    private array $divisions = ['Pengadaan', 'Pembelian', 'Pergudangan', 'Pengawas internal', 'Pelayanan dan jasa', 'Pemeliharaan', 'IT komersial', 'Pemasaran', 'Pembekalan', 'Komersial asset', 'SDM & umum', 'IT internal', 'Perpajakan', 'Akutansi', 'Menajemen resiko', 'Manager treasury', 'Other'];
 
     public function create()
     {
@@ -97,9 +174,15 @@ class DocumentController extends Controller
             'date'        => ['required', 'date'],
             'status'      => ['required', Rule::in(['SUBMITTED', 'REJECTED'])],
             'description' => ['nullable', 'string'],
+            'file'        => ['nullable', 'file', 'max:5120'],
         ]);
 
         $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('documents', 'public'); // storage/app/public/documents/xxx
+            $data['file_path'] = $path;
+        }
 
         Document::create($data);
 
@@ -133,12 +216,22 @@ class DocumentController extends Controller
             'date'        => ['nullable', 'date'],
             'status'      => ['nullable', Rule::in(['SUBMITTED', 'REJECTED'])],
             'description' => ['nullable', 'string'],
+            'file'        => ['nullable', 'file', 'max:5120'],
         ]);
 
         if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '') {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
             unset($data['amount_idr']);
+        }
+
+        if ($request->hasFile('file')) {
+            // hapus lama
+            if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+            // simpan baru
+            $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
         $document->update($data);
@@ -166,6 +259,14 @@ class DocumentController extends Controller
     {
         return view('documents.sign', [
             'title' => 'Tanda Tangan Dokumen',
+            'document' => $document,
+        ]);
+    }
+
+    public function print(Document $document)
+    {
+        return view('documents.print', [
+            'title' => 'Cetak Dokumen',
             'document' => $document,
         ]);
     }

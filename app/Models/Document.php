@@ -7,17 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Document extends Model
 {
-    // protected $fillable = [
-    //     'number',
-    //     'title',
-    //     'receiver',
-    //     'destination',
-    //     'amount_idr',
-    //     'date',
-    //     'status',
-    //     'description',
-    //     'file_path'
-    // ];
 
     protected $fillable = [
         'number',
@@ -30,10 +19,11 @@ class Document extends Model
         'date',
         'status',
         'description',
-        'file',
+        'file_path',
         'signature_path',
         'signed_at',
-        'signed_by'
+        'signed_by',
+        'photo_path',
     ];
 
     protected $casts = [

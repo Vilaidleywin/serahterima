@@ -18,8 +18,7 @@
       ];
     @endphp
     @foreach($tiles as $t)
-      <div class="col-lg-4 col-md-6">
-        <a href="{{ $t['url'] }}" class="text-decoration-none">
+      <div class="tile col-6 col-sm-4 col-lg-3"> <a href="{{ $t['url'] }}" class="text-decoration-none">
           <div class="card-soft p-3 h-100">
             <div class="text-muted small">{{ $t['label'] }}</div>
             <div class="fs-3 fw-semibold text-dark">{{ $t['value'] }}</div>

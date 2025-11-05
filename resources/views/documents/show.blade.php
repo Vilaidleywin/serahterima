@@ -20,15 +20,12 @@
 
     {{-- Ringkasan --}}
     <div class="row g-3 mb-4">
-      {{-- Status --}}
       <div class="col-md-3">
         <div class="card-soft text-center p-3 h-100">
           <div class="text-muted small mb-1">Status</div>
           @include('shared.status-badge', ['status' => $document->status])
         </div>
       </div>
-
-      {{-- Tanggal --}}
       <div class="col-md-3">
         <div class="card-soft text-center p-3 h-100">
           <div class="text-muted small mb-1">Tanggal</div>
@@ -40,16 +37,12 @@
           </div>
         </div>
       </div>
-
-      {{-- Pengirim --}}
       <div class="col-md-3">
         <div class="card-soft text-center p-3 h-100">
           <div class="text-muted small mb-1">Pengirim</div>
           <div class="fw-semibold">{{ $document->sender ?? '-' }}</div>
         </div>
       </div>
-
-      {{-- Penerima --}}
       <div class="col-md-3">
         <div class="card-soft text-center p-3 h-100">
           <div class="text-muted small mb-1">Penerima</div>
@@ -62,13 +55,11 @@
     <div class="row g-3">
       <div class="col-lg-8">
         <div class="card-soft p-4">
-          {{-- Perihal --}}
           <div class="mb-3">
             <h6 class="fw-semibold text-uppercase text-muted small mb-1">Perihal</h6>
             <div class="fs-5">{{ $document->title }}</div>
           </div>
 
-          {{-- Tujuan --}}
           @if($document->destination)
             <div class="mb-3">
               <h6 class="fw-semibold text-uppercase text-muted small mb-1">Tujuan</h6>
@@ -76,7 +67,6 @@
             </div>
           @endif
 
-          {{-- Divisi --}}
           @if($document->division)
             <div class="mb-3">
               <h6 class="fw-semibold text-uppercase text-muted small mb-1">Divisi</h6>
@@ -84,7 +74,6 @@
             </div>
           @endif
 
-          {{-- Nominal --}}
           <div class="mb-3">
             <h6 class="fw-semibold text-uppercase text-muted small mb-1">Nominal</h6>
             <div class="fw-semibold text-success">
@@ -92,17 +81,15 @@
             </div>
           </div>
 
-          {{-- Catatan / Deskripsi --}}
           <div class="mb-3">
             <h6 class="fw-semibold text-uppercase text-muted small mb-1">Catatan</h6>
             <div style="white-space: pre-line;">{{ $document->description ?: '-' }}</div>
           </div>
 
-          {{-- Lampiran --}}
-          @if($document->file)
+          @if($document->file_path)
             <div class="mb-2">
               <h6 class="fw-semibold text-uppercase text-muted small mb-1">Lampiran</h6>
-              <a href="{{ asset('storage/' . $document->file) }}" target="_blank" class="btn btn-outline-primary">
+              <a href="{{ Storage::url($document->file_path) }}" target="_blank" class="btn btn-outline-primary">
                 <i class="ti ti-paperclip me-1"></i> Lihat Lampiran
               </a>
             </div>
@@ -110,7 +97,6 @@
         </div>
       </div>
 
-      {{-- Info Tambahan --}}
       <div class="col-lg-4">
         <div class="card-soft p-4">
           <h6 class="fw-semibold text-uppercase text-muted small mb-2">Info Tambahan</h6>
@@ -129,41 +115,76 @@
             </li>
           </ul>
           <hr>
-          <button onclick="window.print()" class="btn btn-outline-secondary w-100 mb-2">
-            <i class="ti ti-printer me-1"></i> Cetak Dokumen
-          </button>
+          <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
+            class="btn btn-outline-secondary w-100 mb-2">
+            <i class="ti ti-printer"></i> Cetak Tanda Terima
+          </a>
           <button class="btn btn-outline-danger w-100" onclick="confirmDelete({{ $document->id }})">
             <i class="ti ti-trash me-1"></i> Hapus Dokumen
           </button>
-
           <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
             class="d-none">
             @csrf
             @method('DELETE')
           </form>
-
         </div>
       </div>
+    </div>
 
+    {{-- ===== Tanda Tangan & Foto (SATU BLOK BERSIH) ===== --}}
+    <div class="card-soft p-3 mt-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-semibold">Tanda Tangan & Foto Dokumen</div>
+        
+      </div>
 
-      @if($document->signature_path)
-        <div class="card-soft p-3 mt-3">
-          <div class="text-muted small mb-1">Tanda Tangan</div>
-          <img src="{{ asset('storage/' . $document->signature_path) }}" alt="signature" style="max-height:120px">
-          <div class="text-muted small mt-1">
-            Ditandatangani {{ $document->signed_at?->translatedFormat('d M Y H:i') }}
-            @if($document->receiver)
-              oleh <strong>{{ $document->receiver }}</strong>
+      <div class="row g-3">
+        {{-- Tanda Tangan --}}
+        <div class="col-md-6">
+          <div class="border rounded p-3 text-center h-100">
+            <div class="fw-semibold mb-2">Tanda Tangan</div>
+            @if($document->signature_path)
+              <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
+                style="max-height:140px;object-fit:contain">
+              <div class="text-muted small mt-2">
+                Ditandatangani {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
+                @if($document->receiver)
+                  oleh <strong>{{ $document->receiver }}</strong>
+                @endif
+              </div>
+            @else
+              <div class="text-muted small">Belum ada tanda tangan.</div>
+              <a class="btn btn-outline-success btn-sm mt-2" href="{{ route('documents.sign', $document) }}">
+                <i class="ti ti-signature"></i> Tanda Tangani
+              </a>
             @endif
           </div>
         </div>
-      @else
-        <a href="{{ route('documents.sign', $document) }}" class="btn btn-success mt-2">
-          <i class="ti ti-signature"></i> Tanda Tangani Dokumen
-        </a>
-      @endif
 
+        {{-- Foto Dokumen --}}
+        <div class="col-md-6">
+          <div class="border rounded p-3 text-center h-100">
+            <div class="fw-semibold mb-2">Foto Dokumen</div>
+            @if($document->photo_path)
+              <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
+                style="max-height:140px;object-fit:contain">
+              <div class="text-muted small mt-2">
+                Telah difoto {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
+                @if($document->receiver)
+                  oleh <strong>{{ $document->sender }}</strong>
+                @endif
+            @else
+              <div class="text-muted small">Belum ada foto.</div>
+              <a class="btn btn-outline-primary btn-sm mt-2" href="{{ route('documents.photo', $document) }}">
+                <i class="ti ti-camera"></i> Ambil Foto
+              </a>
+            @endif
+          </div>
+        </div>
 
+      </div>
     </div>
+    {{-- ===== END: Tanda Tangan & Foto ===== --}}
+
   </div>
 @endsection

@@ -14,6 +14,7 @@
   <div class="card-soft p-4">
     <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data">
       @csrf
+      @method(isset($document) ? 'PUT' : 'POST')
       <div class="row g-3">
 
         <div class="col-md-4">
@@ -82,8 +83,17 @@
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Lampiran (Opsional)</label>
-          <input type="file" name="file" class="form-control @error('file') is-invalid @enderror">
+          <input type="file" name="file" class="form-control @error('file') is-invalid @enderror"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
           @error('file') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+          @isset($document->file_path)
+            @if($document->file_path)
+              <div class="small mt-2">
+                File saat ini: <a href="{{ Storage::url($document->file_path) }}" target="_blank">Lihat</a>
+              </div>
+            @endif
+          @endisset
         </div>
 
         {{-- 📝 Catatan / Deskripsi --}}

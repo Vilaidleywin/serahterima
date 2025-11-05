@@ -2,7 +2,7 @@
 <html lang="id">
 
 <head>
-  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   @if (session('success'))
     <meta name="flash-success" content="{{ session('success') }}">
   @endif

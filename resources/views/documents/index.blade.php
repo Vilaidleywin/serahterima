@@ -98,6 +98,13 @@
                   <li>
                     <hr class="dropdown-divider">
                   </li>
+
+                  <li>
+                    <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
+                      <i class="ti ti-camera me-2"></i> Ambil Foto
+                    </a>
+                  </li>
+
                   <li>
                     <button type="button" class="dropdown-item text-danger" onclick="confirmDelete({{ $d->id }})">
                       <i class="ti ti-trash me-2"></i> Hapus
