@@ -24,11 +24,13 @@ class Document extends Model
         'signed_at',
         'signed_by',
         'photo_path',
+        'photo_at',
     ];
 
     protected $casts = [
          'date' => 'datetime',
     'signed_at' => 'datetime',
+    'photo_at' => 'datetime',
         'amount_idr' => 'float', // <- pastikan kebaca sebagai angka
     ];
 

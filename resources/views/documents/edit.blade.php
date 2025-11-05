@@ -63,7 +63,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Tujuan</label>
-                    <input type="text" name="destination" class="form-control search" value="{{ old('destination') }}">
+                    <input type="text" name="destination" value="{{ old('destination', $document->destination) }}"class="form-control search" value="{{ old('destination') }}">
                     @error('destination') <div class="text-danger small">{{ $message }}</div> @enderror
                 </div>
 

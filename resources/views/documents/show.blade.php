@@ -135,22 +135,24 @@
     <div class="card-soft p-3 mt-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="fw-semibold">Tanda Tangan & Foto Dokumen</div>
-        
+
       </div>
 
       <div class="row g-3">
-        {{-- Tanda Tangan --}}
+        {{-- Kolom Tanda Tangan --}}
         <div class="col-md-6">
-          <div class="border rounded p-3 text-center h-100">
+          <div class="border rounded p-3 h-100 text-center">
             <div class="fw-semibold mb-2">Tanda Tangan</div>
+
             @if($document->signature_path)
-              <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
-                style="max-height:140px;object-fit:contain">
+              <div class="signature-box">
+                <img src="{{ Storage::url($document->signature_path) }}" alt="Signature" class="signature-img">
+              </div>
+
               <div class="text-muted small mt-2">
-                Ditandatangani {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
-                @if($document->receiver)
-                  oleh <strong>{{ $document->receiver }}</strong>
-                @endif
+                Ditandatangani
+                {{ optional($document->signed_at)->timezone('Asia/Jakarta')->translatedFormat('d M Y H:i') ?? '-' }}
+                @if($document->receiver) oleh <strong>{{ $document->receiver }}</strong> @endif
               </div>
             @else
               <div class="text-muted small">Belum ada tanda tangan.</div>
@@ -161,30 +163,30 @@
           </div>
         </div>
 
+
         {{-- Foto Dokumen --}}
         <div class="col-md-6">
           <div class="border rounded p-3 text-center h-100">
             <div class="fw-semibold mb-2">Foto Dokumen</div>
             @if($document->photo_path)
-              <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
-                style="max-height:140px;object-fit:contain">
+              <img src="{{ Storage::url($document->photo_path) }}" alt="Photo" style="max-height:140px;object-fit:contain">
               <div class="text-muted small mt-2">
-                Telah difoto {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
+                Telah difoto {{ optional($document->photo_at)->translatedFormat('d M Y H:i') ?? '-' }}
                 @if($document->receiver)
                   oleh <strong>{{ $document->sender }}</strong>
                 @endif
             @else
-              <div class="text-muted small">Belum ada foto.</div>
-              <a class="btn btn-outline-primary btn-sm mt-2" href="{{ route('documents.photo', $document) }}">
-                <i class="ti ti-camera"></i> Ambil Foto
-              </a>
-            @endif
+                <div class="text-muted small">Belum ada foto.</div>
+                <a class="btn btn-outline-primary btn-sm mt-2" href="{{ route('documents.photo', $document) }}">
+                  <i class="ti ti-camera"></i> Ambil Foto
+                </a>
+              @endif
+            </div>
           </div>
+
         </div>
-
       </div>
-    </div>
-    {{-- ===== END: Tanda Tangan & Foto ===== --}}
+      {{-- ===== END: Tanda Tangan & Foto ===== --}}
 
-  </div>
+    </div>
 @endsection

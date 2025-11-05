@@ -977,3 +977,21 @@ td, th {
   h2, .h2 { font-size: 1.25rem; }
   .text-muted.small { font-size: .8rem; }
 }
+/* Kotak tampilan tanda tangan agar tidak melebar */
+.signature-box{
+  height: 150px;                 /* tinggi area tampilan */
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;              /* cegah overflow ke kanan */
+  padding: 6px;
+}
+.signature-img{
+  max-width: 100%;               /* kunci lebar <= container */
+  max-height: 100%;              /* kunci tinggi <= container */
+  object-fit: contain;           /* jaga aspek rasio */
+  display: block;
+}
