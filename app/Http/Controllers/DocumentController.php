@@ -175,11 +175,16 @@ class DocumentController extends Controller
             'receiver'    => ['required', 'string', 'max:100'],
             'destination' => ['nullable', 'string', 'max:255'],
             'division'    => ['nullable', 'string', 'max:100'],
+            'division_other' => ['nullable', 'string', 'max:100'],
             'amount_idr'  => ['required'],
             'date'        => ['required', 'date'],
             'description' => ['nullable', 'string'],
             'file'        => ['nullable', 'file', 'max:5120'],
         ]);
+
+        if (strtoupper((string)$data['division']) === 'OTHER' && $request->filled('division_other')) {
+            $data['division'] = $request->input('division_other');
+        }
 
         $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         $data['status'] = 'DRAFT';

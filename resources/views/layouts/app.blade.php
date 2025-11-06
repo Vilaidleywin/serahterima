@@ -51,14 +51,14 @@
 
   {{-- MAIN --}}
   <main class="content">
-    @include('partials.topbar')
+    {{-- @include('partials.topbar') --}}
 
     {{-- Flash message (opsional, kalau masih mau versi tekstual) --}}
-    @if (session('success'))
+    {{-- @if (session('success'))
       <div class="alert-success" id="flashAlert">
         <i class="ti ti-check"></i> {{ session('success') }}
       </div>
-    @endif
+    @endif --}}
 
     @yield('content')
   </main>
