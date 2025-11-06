@@ -995,3 +995,8 @@ td, th {
   object-fit: contain;           /* jaga aspek rasio */
   display: block;
 }
+.badge-draft{
+  background: rgba(148,163,184,.18);
+  color:#334155;
+  border:1px solid rgba(148,163,184,.35);
+}

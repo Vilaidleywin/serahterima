@@ -17,20 +17,18 @@ class Document extends Model
         'division',
         'amount_idr',
         'date',
-        'status',
         'description',
         'file_path',
+        'status',
         'signature_path',
-        'signed_at',
-        'signed_by',
         'photo_path',
-        'photo_at',
+        'signed_at'
     ];
 
     protected $casts = [
-         'date' => 'datetime',
-    'signed_at' => 'datetime',
-    'photo_at' => 'datetime',
+        'date' => 'datetime',
+        'signed_at' => 'datetime',
+        'photo_at' => 'datetime',
         'amount_idr' => 'float', // <- pastikan kebaca sebagai angka
     ];
 

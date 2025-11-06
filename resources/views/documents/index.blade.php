@@ -20,11 +20,10 @@
     <div class="col-md-4">
       <select name="status" class="form-select search">
         <option value="">Semua Status</option>
-        @foreach(['SUBMITTED', 'REJECTED'] as $s)
-          <option value="{{ $s }}" @selected(request('status') === $s)>
-            {{ ucfirst(strtolower($s)) }}
-          </option>
+        @foreach(['DRAFT', 'SUBMITTED', 'REJECTED'] as $s)
+          <option value="{{ $s }}" @selected(request('status') === $s)>{{ $s }}</option>
         @endforeach
+
       </select>
     </div>
 

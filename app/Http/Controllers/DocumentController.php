@@ -47,6 +47,11 @@ class DocumentController extends Controller
 
     public function photoStore(Request $request, Document $document)
     {
+
+        if ($document->status === 'REJECTED') {
+            return back()->with('error', 'Dokumen ditolak dan tidak dapat diunggah foto.');
+        }
+
         // Terima 2 jalur: base64 (name="photo") atau file upload (name="photo_file")
         $request->validate([
             'photo'      => ['nullable', 'string'],            // base64 data URL
@@ -172,12 +177,12 @@ class DocumentController extends Controller
             'division'    => ['nullable', 'string', 'max:100'],
             'amount_idr'  => ['required'],
             'date'        => ['required', 'date'],
-            'status'      => ['required', Rule::in(['SUBMITTED', 'REJECTED'])],
             'description' => ['nullable', 'string'],
             'file'        => ['nullable', 'file', 'max:5120'],
         ]);
 
         $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
+        $data['status'] = 'DRAFT';
 
         if ($request->hasFile('file')) {
             $path = $request->file('file')->store('documents', 'public'); // storage/app/public/documents/xxx
@@ -203,8 +208,22 @@ class DocumentController extends Controller
         ]);
     }
 
+    public function reject(Request $request, Document $document)
+    {
+        // Kalau sudah SUBMITTED/DRAFT boleh ditolak. Kalau sudah REJECTED ya sudah.
+        if ($document->status !== 'REJECTED') {
+            $document->status = 'REJECTED';
+            $document->save();
+        }
+
+        return back()->with('success', 'Dokumen telah ditolak.');
+    }
+
     public function update(Request $request, Document $document)
     {
+        if ($document->status === 'REJECTED') {
+            return back()->with('error', 'Dokumen ditolak dan tidak dapat diedit.');
+        }
         $data = $request->validate([
             'number'      => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
             'title'       => ['required', 'string', 'max:255'],
@@ -214,7 +233,6 @@ class DocumentController extends Controller
             'division'    => 'nullable|string|max:100',
             'amount_idr'  => ['nullable'],
             'date'        => ['nullable', 'date'],
-            'status'      => ['nullable', Rule::in(['SUBMITTED', 'REJECTED'])],
             'description' => ['nullable', 'string'],
             'file'        => ['nullable', 'file', 'max:5120'],
         ]);
@@ -273,6 +291,10 @@ class DocumentController extends Controller
 
     public function signStore(Request $request, Document $document)
     {
+        if ($document->status === 'REJECTED') {
+            return back()->with('error', 'Dokumen ditolak dan tidak dapat ditandatangani.');
+        }
+
         $dataUrl = $request->input('signature'); // data:image/png;base64,AAAA...
         if (!$dataUrl || !str_starts_with($dataUrl, 'data:image/png;base64,')) {
             return back()->withErrors(['signature' => 'Tanda tangan tidak valid.'])->withInput();
@@ -293,6 +315,14 @@ class DocumentController extends Controller
         if ($document->signature_path && Storage::disk('public')->exists($document->signature_path)) {
             Storage::disk('public')->delete($document->signature_path);
         }
+
+        $document->signature_path = "$dir/$name";
+        $document->signed_at      = now('Asia/Jakarta');
+        // Kalau masih DRAFT, naikkan ke SUBMITTED
+        if ($document->status === 'DRAFT') {
+            $document->status = 'SUBMITTED';
+        }
+        $document->save();
 
         // kalau belum ada login, Auth::id() bakal null (aman karena kolom nullable)
         $userId = Auth::id();

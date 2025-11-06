@@ -30,7 +30,8 @@ Route::get('/documents/{document}/print-pdf', [DocumentController::class, 'print
 
 Route::get('/documents/{document}/tanda-terima', [DocumentController::class, 'printTandaTerima'])
     ->name('documents.print-tandaterima');
-
+Route::post('/documents/{document}/reject', [DocumentController::class, 'reject'])
+    ->name('documents.reject');
 // routes/web.php
 Route::get('/documents/{document}/photo', [DocumentController::class, 'photo'])->name('documents.photo');
 Route::post('/documents/{document}/photo', [DocumentController::class, 'photoStore'])->name('documents.photo.store');

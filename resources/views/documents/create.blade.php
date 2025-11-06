@@ -4,7 +4,10 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h2 class="fw-bold mb-0">Tambah Dokumen</h2>
-      <div class="text-muted small">Isi data dokumen baru</div>
+      <div class="text-muted small">
+        Status akan otomatis: <span class="fw-semibold">DRAFT</span> → <span class="fw-semibold">SUBMITTED</span> saat ditandatangani.
+        Penolakan dilakukan dari halaman detail.
+      </div>
     </div>
     <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
       <i class="ti ti-arrow-left"></i> Kembali
@@ -14,7 +17,6 @@
   <div class="card-soft p-4">
     <form method="POST" action="{{ route('documents.store') }}" enctype="multipart/form-data">
       @csrf
-      @method(isset($document) ? 'PUT' : 'POST')
       <div class="row g-3">
 
         <div class="col-md-4">
@@ -31,11 +33,9 @@
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Pengirim</label>
-          <input type="text" name="sender" class="form-control search" value="{{ old('sender') }}"
-            placeholder="Nama pengirim dokumen">
-          @error('sender') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+          <input type="text" name="sender" class="form-control search" value="{{ old('sender') }}">
+          @error('sender') <div class="text-danger small">{{ $message }}</div> @enderror
         </div>
-
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Penerima</label>
@@ -73,30 +73,11 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Status</label>
-          <select name="status" class="form-select search">
-            <option value="SUBMITTED" {{ old('status') == 'SUBMITTED' ? 'selected' : '' }}>SUBMITTED</option>
-            <option value="REJECTED" {{ old('status') == 'REJECTED' ? 'selected' : '' }}>REJECTED</option>
-          </select>
-          @error('status') <div class="text-danger small">{{ $message }}</div> @enderror
-        </div>
-
-        <div class="col-md-6">
           <label class="form-label fw-semibold">Lampiran (Opsional)</label>
-          <input type="file" name="file" class="form-control @error('file') is-invalid @enderror"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+          <input type="file" name="file" class="form-control @error('file') is-invalid @enderror">
           @error('file') <div class="invalid-feedback">{{ $message }}</div> @enderror
-
-          @isset($document->file_path)
-            @if($document->file_path)
-              <div class="small mt-2">
-                File saat ini: <a href="{{ Storage::url($document->file_path) }}" target="_blank">Lihat</a>
-              </div>
-            @endif
-          @endisset
         </div>
 
-        {{-- 📝 Catatan / Deskripsi --}}
         <div class="col-12">
           <label class="form-label fw-semibold">Catatan</label>
           <textarea name="description" rows="3" class="form-control search">{{ old('description') }}</textarea>

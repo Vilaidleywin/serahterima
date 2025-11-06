@@ -126,3 +126,30 @@ window.confirmDelete = function (id) {
         }
     });
 };
+// Fungsi untuk menyembunyikan notifikasi berdasarkan ID
+window.dismissAlert = function (alertId) {
+    const alertElement = document.getElementById(alertId);
+    if (alertElement) {
+        // Menggunakan display: none untuk menyembunyikan elemen
+        alertElement.style.display = "none";
+    }
+};
+
+// Pastikan SweetAlert2 (untuk confirmDelete) dan fungsi dismissAlert sudah terdefinisi
+window.confirmDelete = function (id) {
+    // ... (kode confirmDelete Anda tetap sama)
+    Swal.fire({
+        title: "Hapus dokumen ini?",
+        text: "Data akan hilang secara permanen!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Ya, hapus!",
+        cancelButtonText: "Batal",
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(`delete-form-${id}`).submit();
+        }
+    });
+};
