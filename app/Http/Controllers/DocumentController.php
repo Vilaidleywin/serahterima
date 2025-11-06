@@ -19,7 +19,7 @@ class DocumentController extends Controller
     //     $this->middleware('auth')->except(['index','show']);
     // }
 
-    public function printPdf(\App\Models\Document $document)
+    public function printPdf(Document $document)
     {
         return Pdf::loadView('documents.print-pdf', compact('document'))
             ->setPaper('a4') // atau 'a4', 'portrait'
@@ -260,7 +260,7 @@ class DocumentController extends Controller
     public function destroy(Document $document)
     {
         $document->delete();
-        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus!');
+        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihaaapus!');
     }
 
     public function show(Document $document)

@@ -889,11 +889,17 @@ body.nav-open .mobile-nav {
   text-transform: uppercase;
 }
 
+.badge-draft {
+  background: rgba(107, 114, 128, 0.12);   
+  color: #374151;                          
+  border-color: rgba(107, 114, 128, 0.35); 
+}
+
 /* SUBMITTED = biru lembut elegan */
 .badge-submitted {
-  background: rgba(59,130,246,0.12);
-  color: #1e3a8a;
-  border-color: rgba(59,130,246,0.35);
+  background: rgba(34, 197, 94, 0.12);   /* hijau muda transparan */
+  color: #166534;                        /* hijau tua untuk teks */
+  border-color: rgba(34, 197, 94, 0.35); /* garis hijau lembut */
 }
 
 /* REJECTED = merah lembut */

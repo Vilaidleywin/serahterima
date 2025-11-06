@@ -192,19 +192,8 @@
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
         <div class="d-flex gap-2">
-          {{-- Tanda Tangani: muncul hanya kalau belum signed & belum rejected --}}
-          @if(!$isSigned && !$isRejected)
-            <a class="btn btn-outline-success btn-sm" href="{{ route('documents.sign', $document) }}">
-              <i class="ti ti-signature"></i> Tanda Tangani
-            </a>
-          @endif
 
-          {{-- Ambil Foto: nonaktif kalau rejected --}}
-          <a class="btn btn-outline-primary btn-sm {{ $isRejected ? 'disabled' : '' }}"
-            href="{{ $isRejected ? 'javascript:void(0)' : route('documents.photo', $document) }}" @if($isRejected)
-            aria-disabled="true" @endif>
-            <i class="ti ti-camera"></i> Ambil Foto
-          </a>
+        
         </div>
       </div>
 

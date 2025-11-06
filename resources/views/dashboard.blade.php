@@ -13,12 +13,13 @@
     @php
       $tiles = [
         ['label' => 'Total Dokumen', 'value' => $total, 'url' => route('documents.index')],
+        ['label' => 'DRAFT', 'value' => $draft, 'url' => route('documents.index', ['status' => 'DRAFT'])],
         ['label' => 'SUBMITTED', 'value' => $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED'])],
         ['label' => 'REJECTED', 'value' => $rejected, 'url' => route('documents.index', ['status' => 'REJECTED'])],
       ];
     @endphp
     @foreach($tiles as $t)
-      <div class="col-lg-4 col-md-6">
+      <div class="col-lg-3 col-md-6">
         <a href="{{ $t['url'] }}" class="text-decoration-none">
           <div class="card-soft p-3 h-100">
             <div class="text-muted small">{{ $t['label'] }}</div>
@@ -45,14 +46,9 @@
         </div>
         <div style="height:220px"><canvas id="barChart"></canvas></div>
         <div class="d-flex gap-2 mt-2 flex-wrap">
-          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm text-white"
-            style="background-color: var(--success); border:none;">
-            SUBMITTED
-          </a>
-          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm text-white"
-            style="background-color: var(--danger); border:none;">
-            REJECTED
-          </a>
+          <a href="{{ route('documents.index', ['status' => 'DRAFT']) }}" class="btn btn-sm text-white" style="background-color: #6B7280; border:none;">DRAFT</a>
+          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm text-white" style="background-color: var(--success); border:none;">SUBMITTED</a>
+          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm text-white" style="background-color: var(--danger); border:none;">REJECTED</a>
         </div>
       </div>
 
@@ -100,18 +96,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <script>
-    // --- Helper: safe get arrays ---
     const arr = (v) => Array.isArray(v) ? v : (v == null ? [] : [v]);
 
     function initCharts() {
       if (typeof Chart === 'undefined') return;
-
-      // Register plugin sekali untuk Chart.js v4 (hindari error plugin)
       if (typeof ChartDataLabels !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
         Chart.register(ChartDataLabels);
       }
 
-      // LINE (12 bulan)
+      // LINE chart
       const lineEl = document.getElementById('lineChart');
       if (lineEl) {
         const lineLabels = @json($lineLabels ?? []);
@@ -131,14 +124,15 @@
             }]
           },
           options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
             scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
           }
         });
       }
 
-      // BAR (bulan ini)
+      // BAR chart (bulan ini)
       const barEl = document.getElementById('barChart');
       if (barEl) {
         const labels = @json($barLabels ?? []);
@@ -149,26 +143,24 @@
             labels: arr(labels),
             datasets: [{
               data: arr(data),
-              backgroundColor: ['#22C55ECC', '#EF4444CC'],
-              borderColor: ['#22C55E', '#EF4444'],
-
+              backgroundColor: ['#6B7280CC', '#22C55ECC', '#EF4444CC'],
+              borderColor: ['#6B7280', '#22C55E', '#EF4444'],
               borderWidth: 2,
               borderRadius: 10,
               hoverBorderWidth: 3
             }]
           },
           options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
               datalabels: {
-                color: '#111827', anchor: 'end', align: 'start',
+                color: '#111827',
+                anchor: 'end',
+                align: 'start',
                 font: { weight: '600' },
                 formatter: v => (typeof v === 'number' && v > 0) ? v : ''
-              },
-              tooltip: {
-                backgroundColor: '#1F2937', titleColor: '#fff', bodyColor: '#fff', displayColors: false,
-                callbacks: { label: ctx => `${ctx.parsed.y} dokumen` }
               }
             },
             onClick: (e, els) => {
@@ -181,16 +173,12 @@
                 }
               }
             },
-            scales: {
-              x: { grid: { display: false }, ticks: { font: { weight: '600' } } },
-              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: 'rgba(209,213,219,.35)' } }
-            },
-            animation: { duration: 900, easing: 'easeOutQuart' }
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } }
           }
         });
       }
 
-      // DONUT (share status)
+      // DONUT chart
       const donutEl = document.getElementById('donutChart');
       if (donutEl) {
         const labels = @json(($donut['labels'] ?? []) ?: []);
@@ -201,11 +189,12 @@
             labels: arr(labels),
             datasets: [{
               data: arr(data),
-              backgroundColor: ['#22C55ECC', '#EF4444CC'],
+              backgroundColor: ['#6B7280CC', '#22C55ECC', '#EF4444CC'],
             }]
           },
           options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { position: 'bottom' } },
             cutout: '60%'
           }
@@ -213,7 +202,6 @@
       }
     }
 
-    // Panggil langsung kalau DOM sudah siap; kalau belum, tunggu
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initCharts, { once: true });
     } else {

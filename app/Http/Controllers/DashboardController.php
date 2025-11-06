@@ -13,11 +13,13 @@ class DashboardController extends Controller
         // === Ringkasan status total ===
         $total     = Document::count();
 
+        $draft = Document::where('status', 'DRAFT')->count();
         // Kalau status di DB kadang "SUBMITED", aktifkan baris whereIn dan matikan where tunggal
         $submitted = Document::where('status', 'SUBMITTED')->count();
         // $submitted = Document::whereIn('status', ['SUBMITTED','SUBMITED'])->count();
 
         $rejected  = Document::where('status', 'REJECTED')->count();
+        $total = $draft + $submitted + $rejected;
 
         // === Range waktu ===
         $today = Carbon::today();
@@ -42,16 +44,19 @@ class DashboardController extends Controller
             ->where('date', '<', now()->subDays($overdueDays))
             ->count();
 
-        // === Donut & Bar chart data ===
-        $donut = [
-            'labels' => ['SUBMITTED', 'REJECTED'],
-            'data'   => [$submitted, $rejected],
-        ];
 
-        $barLabels = ['SUBMITTED', 'REJECTED'];
+
+        $barLabels = ['DRAFT', 'SUBMITTED', 'REJECTED'];
         $barData = [
+            Document::where('status', 'DRAFT')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
             Document::where('status', 'SUBMITTED')->whereDate('date', '>=', $month)->count(),
             Document::where('status', 'REJECTED')->whereDate('date', '>=', $month)->count(),
+        ];
+
+        // === Donut & Bar chart data ===
+        $donut = [
+            'labels' => $barLabels,
+            'data' => [$draft, $submitted, $rejected],
         ];
 
         // === Tabel terbaru + rows/page (10/15/25/50) ===
@@ -64,6 +69,7 @@ class DashboardController extends Controller
         return view('dashboard', [
             'title'            => 'Dashboard',
             'total'            => $total,
+            'draft'            => $draft,
             'submitted'        => $submitted,   // <= pakai lowercase
             'rejected'         => $rejected,    // <= pakai lowercase
             'createdToday'     => $createdToday,
