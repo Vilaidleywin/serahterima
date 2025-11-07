@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
 {
+    // Global middleware
     protected $middleware = [
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
@@ -15,6 +16,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
     ];
 
+    // Groups
     protected $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
@@ -32,7 +34,7 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * Di Laravel 11/12 gunakan $middlewareAliases untuk alias route middleware.
+     * Laravel 11/12: pakai $middlewareAliases (BUKAN $routeMiddleware).
      */
     protected $middlewareAliases = [
         'auth'             => \App\Http\Middleware\Authenticate::class,

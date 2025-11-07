@@ -10,85 +10,96 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $q = \App\Models\User::query();
+        $q = User::query();
 
         // admin hanya lihat user yang dia buat
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
-            $q->ownedBy(auth()->id());
+        if (in_array(auth()->user()->role, ['admin_internal','admin_komersial'], true)) {
+            $q->where('created_by', auth()->id());
         }
 
-        // search (opsional)
-        if ($s = $request->string('search')->toString()) {
-            $like = '%' . $s . '%';
-            $q->where(function ($w) use ($like) {
-                $w->where('name', 'like', $like)
-                    ->orWhere('username', 'like', $like)
-                    ->orWhere('email', 'like', $like)
-                    ->orWhere('role', 'like', $like);
+        if ($s = (string) $request->query('search', '')) {
+            $like = "%{$s}%";
+            $q->where(function($w) use($like){
+                $w->where('name','like',$like)
+                  ->orWhere('username','like',$like)
+                  ->orWhere('email','like',$like)
+                  ->orWhere('role','like',$like);
             });
         }
 
         $users = $q->orderBy('name')->paginate(15)->withQueryString();
+
         return view('admin.users.index', compact('users'));
+    }
+
+    public function create()
+    {
+        $roles = ['admin_internal','admin_komersial','user'];
+        return view('admin.users.create', compact('roles'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:100'],
-            'username' => ['required', 'alpha_dash', 'max:50', 'unique:users,username'],
-            'email'    => ['required', 'email', 'max:150', 'unique:users,email'],
-            'role'     => ['required', \Illuminate\Validation\Rule::in(['admin_internal', 'admin_komersial', 'user'])],
-            'password' => ['required', 'min:6'],
+            'name'     => ['required','string','max:100'],
+            'username' => ['required','alpha_dash','max:50','unique:users,username'],
+            'email'    => ['required','email','max:150','unique:users,email'],
+            'role'     => ['required', Rule::in(['admin_internal','admin_komersial','user'])],
+            'password' => ['required','min:6'],
         ]);
 
-        $data['created_by'] = auth()->id();   // <— tag pemilik
-        \App\Models\User::create($data);
+        $data['created_by'] = auth()->id();
 
-        return redirect()->route('admin.users.index')->with('ok', 'User dibuat');
+        User::create($data);
+
+        return redirect()->route('admin.users.index')->with('ok','User dibuat');
     }
 
-    public function edit(\App\Models\User $user)
+    public function edit(User $user)
     {
         // hanya pembuat yang boleh mengubah
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
+        if (in_array(auth()->user()->role, ['admin_internal','admin_komersial'], true)) {
             abort_unless($user->created_by === auth()->id(), 403);
         }
-        $roles = ['admin_internal', 'admin_komersial', 'user'];
-        return view('admin.users.edit', compact('user', 'roles'));
+
+        $roles = ['admin_internal','admin_komersial','user'];
+        return view('admin.users.edit', compact('user','roles'));
     }
 
-    public function update(Request $request, \App\Models\User $user)
+    public function update(Request $request, User $user)
     {
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
+        if (in_array(auth()->user()->role, ['admin_internal','admin_komersial'], true)) {
             abort_unless($user->created_by === auth()->id(), 403);
         }
 
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:100'],
-            'username' => ['required', 'alpha_dash', 'max:50', \Illuminate\Validation\Rule::unique('users', 'username')->ignore($user->id)],
-            'email'    => ['required', 'email', 'max:150', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id)],
-            'role'     => ['required', \Illuminate\Validation\Rule::in(['admin_internal', 'admin_komersial', 'user'])],
-            'password' => ['nullable', 'min:6'],
+            'name'     => ['required','string','max:100'],
+            'username' => ['required','alpha_dash','max:50', Rule::unique('users','username')->ignore($user->id)],
+            'email'    => ['required','email','max:150', Rule::unique('users','email')->ignore($user->id)],
+            'role'     => ['required', Rule::in(['admin_internal','admin_komersial','user'])],
+            'password' => ['nullable','min:6'],
         ]);
 
         if (empty($data['password'])) unset($data['password']);
-        // jangan izinkan ganti created_by via form
-        unset($data['created_by']);
+        unset($data['created_by']); // jangan boleh ubah kepemilikan
 
         $user->update($data);
-        return redirect()->route('admin.users.index')->with('ok', 'User diupdate');
+
+        return redirect()->route('admin.users.index')->with('ok','User diupdate');
     }
 
-    public function destroy(\App\Models\User $user)
+    public function destroy(User $user)
     {
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
+        if (in_array(auth()->user()->role, ['admin_internal','admin_komersial'], true)) {
             abort_unless($user->created_by === auth()->id(), 403);
         }
+
         if (auth()->id() === $user->id) {
-            return back()->with('err', 'Tidak bisa menghapus diri sendiri');
+            return back()->with('err','Tidak bisa menghapus diri sendiri');
         }
+
         $user->delete();
-        return back()->with('ok', 'User dihapus');
+
+        return back()->with('ok','User dihapus');
     }
 }

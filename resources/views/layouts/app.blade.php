@@ -1,155 +1,145 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>SerahTerima</title>
+  <title>{{ $title ?? 'SerahTerima' }}</title>
 
   {{-- Vendor --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tabler-icons@3.6.0/iconfont/tabler-icons.min.css" rel="stylesheet">
 
-  {{-- CSS hasil build (Tailwind v4/CLI) + custom --}}
+  {{-- Build CSS + custom kamu (tetap pakai jika ada) --}}
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+
+  <style>
+    :root{
+      --aside-w: 260px;
+      --topbar-h: 56px;
+      --aside-bg: #1f3350;
+      --aside-text: #e7efff;
+      --aside-active: #274368;
+    }
+
+    /* ========== ASIDE (fix, desktop) ========== */
+    .sidebar{
+      position: fixed; inset: 0 auto 0 0;
+      width: var(--aside-w);
+      background: var(--aside-bg); color: var(--aside-text);
+      display: flex; flex-direction: column; gap: 12px;
+      padding: 18px 16px; z-index: 1031; /* di bawah topbar (1032) */
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+    .sidebar .brand{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+    .sidebar .brand-icon{ width:36px; height:36px; display:grid; place-items:center; background:#2c4770; border-radius:10px; }
+    .sidebar .brand-text{ font-weight:800; letter-spacing:.2px; }
+
+    .sidebar .nav-link{
+      display:flex; align-items:center; gap:10px;
+      color: var(--aside-text); text-decoration:none;
+      border-radius:10px; padding:10px 12px; font-weight:600;
+      opacity:.92; transition: background .15s ease, opacity .15s ease;
+    }
+    .sidebar .nav-link:hover{ background: var(--aside-active); opacity:1; }
+    .sidebar .nav-link.active{ background: var(--aside-active); color:#fff; }
+    .sidebar .nav-link .ti{ font-size:18px; opacity:.95; }
+
+    /* ========== TOPBAR (fix, kanan dari aside) ========== */
+    .topbar{
+      position: fixed; top:0; right:0; left: var(--aside-w);
+      height: var(--topbar-h);
+      display:flex; align-items:center; justify-content:space-between;
+      background:#f8fafc; border-bottom:1px solid #e5e7eb;
+      padding: 0 .8rem; z-index:1032;
+    }
+    .topbar .topbar-left{ display:flex; align-items:center; gap:12px; }
+    .topbar .hamburger{ width:34px; height:34px; display:grid; place-items:center; border:0; background:transparent; }
+    .topbar .brand{ display:flex; align-items:center; gap:8px; }
+
+    /* Sembunyikan breadcrumb di topbar supaya gak dobel dengan breadcrumb di halaman */
+    .topbar .breadcrumb-mini{ display:none !important; }
+
+    /* ========== CONTENT (beri offset top & kiri) ========== */
+    main.app-content{
+      min-height: 100vh;
+      padding: calc(var(--topbar-h) + 16px) 20px 24px;
+      margin-left: var(--aside-w);
+      background: #f6f7fb;
+    }
+
+    /* ========== MOBILE ========== */
+    @media (max-width: 991px){
+      .sidebar{ display:none; }
+      body.nav-open .sidebar{
+        display:block; position: fixed; inset: var(--topbar-h) auto 0 0;
+        width: 84%; max-width: 320px; z-index:1040;
+      }
+      .topbar{ left: 0; }
+      main.app-content{ margin-left: 0; padding-top: calc(var(--topbar-h) + 12px); }
+
+      .nav-backdrop{
+        position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(0,0,0,.35); display:none; z-index:1039;
+      }
+      body.nav-open .nav-backdrop{ display:block; }
+    }
+  </style>
 </head>
-
 <body>
-  {{-- SIDEBAR (desktop) --}}
-<aside class="sidebar" id="appSidebar">
-    <div class="brand brand-desktop">
-      <span class="brand-icon">📁</span>
-      <span class="brand-text">Serah Terima</span>
-    </div>
 
-    <nav class="menu">
-      @auth
-        @php $role = auth()->user()->role ?? 'user'; @endphp
+  {{-- ASIDE & TOPBAR --}}
+  @includeIf('layouts.sidebar')
+  @includeIf('partials.topbar')
+  <div class="nav-backdrop"></div>
 
-        @if (in_array($role, ['admin_internal', 'admin_komersial']))
-          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
-          </a>
-          <a class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-            href="{{ route('admin.users.index') }}">
-            <i class="ti ti-users"></i> <span>Pengguna</span>
-          </a>
-          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
-            @csrf
-            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
-              <i class="ti ti-logout"></i> <span>Logout</span>
-            </button>
-          </form>
-        @else
-          {{-- Role user biasa: isi menu user di sini --}}
-          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
-          </a>
-          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
-            @csrf
-            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
-              <i class="ti ti-logout"></i> <span>Logout</span>
-            </button>
-          </form>
-        @endif
-      @endauth
-    </nav>
-  </aside>
-
-
-
-  {{-- MAIN --}}
-  <main class="content">
-    @include('partials.topbar')
-
+  {{-- CONTENT --}}
+  <main class="app-content container-fluid">
     @yield('content')
   </main>
 
-  {{-- Scripts --}}
+  {{-- Vendor JS --}}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  {{-- Fallback confirmDelete (global) --}}
+  {{-- Controller kecil: drawer & dropdown user --}}
   <script>
-    window.confirmDelete ??= function (id) {
-      Swal.fire({
-        title: 'Hapus dokumen ini?',
-        text: 'Data akan hilang secara permanen!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, hapus!',
-        cancelButtonText: 'Batal'
-      }).then((r) => {
-        if (r.isConfirmed) {
-          const f = document.getElementById(`delete-form-${id}`);
-          if (f) f.submit();
-        }
-      });
-    };
+  (function(){
+    const body = document.body;
+    const btn = document.getElementById('btnMobileNav');
+    const backdrop = document.querySelector('.nav-backdrop');
+    function toggle(open){
+      if(open===undefined){ body.classList.toggle('nav-open'); }
+      else { body.classList.toggle('nav-open', !!open); }
+    }
+    btn && btn.addEventListener('click', () => toggle());
+    backdrop && backdrop.addEventListener('click', () => toggle(false));
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') toggle(false); });
+
+    // dropdown user
+    const userToggle = document.getElementById('userToggle');
+    const userMenu = document.getElementById('userMenu');
+    function closeUser(){ userMenu?.classList.remove('open'); userToggle?.setAttribute('aria-expanded','false'); }
+    function toggleUser(){ userMenu?.classList.toggle('open'); userToggle?.setAttribute('aria-expanded', String(userMenu?.classList.contains('open'))); }
+    userToggle && userToggle.addEventListener('click', (e)=>{ e.stopPropagation(); toggleUser();});
+    document.addEventListener('click', (e)=> {
+      if(!userMenu) return;
+      const within = userMenu.contains(e.target) || userToggle.contains(e.target);
+      if(!within) closeUser();
+    });
+  })();
   </script>
 
-  {{-- Action menu (jangan di dalam @if) --}}
-  <script>
-    (function () {
-      const menu = document.createElement('div');
-      menu.id = 'rowActionMenu';
-      Object.assign(menu.style, {
-        position: 'fixed', minWidth: '180px', borderRadius: '12px',
-        background: '#fff', boxShadow: '0 12px 24px rgba(0,0,0,.12)',
-        padding: '6px', zIndex: '3000', display: 'none'
-      });
-      menu.innerHTML = `
-        <a id="am-detail" class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">👁️ Detail</a>
-        <a id="am-edit"   class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">✏️ Edit</a>
-        <a id="am-sign"   class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">✍️ Tanda Tangan</a>
-        <hr style="margin:6px 0">
-        <button id="am-del" class="dropdown-item" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;color:#dc2626;background:transparent;border:0">🗑️ Hapus</button>
-      `;
-      document.body.appendChild(menu);
-
-      function closeMenu() { menu.style.display = 'none'; }
-      document.addEventListener('click', (e) => { if (menu.style.display !== 'none' && !menu.contains(e.target)) closeMenu(); });
-      window.addEventListener('resize', closeMenu);
-      window.addEventListener('scroll', closeMenu, true);
-
-      window.openActionMenu = function (ev, urlShow, urlEdit, urlSign, id) {
-        ev.stopPropagation();
-        const rect = ev.currentTarget.getBoundingClientRect();
-        const x = Math.min(window.innerWidth - menu.offsetWidth - 8, rect.right - 180);
-        const y = rect.bottom + 6;
-        menu.style.left = `${Math.max(8, x)}px`;
-        menu.style.top = `${Math.min(window.innerHeight - 8, y)}px`;
-        document.getElementById('am-detail').href = urlShow;
-        document.getElementById('am-edit').href = urlEdit;
-        document.getElementById('am-sign').href = urlSign;
-        document.getElementById('am-del').onclick = function () {
-          closeMenu();
-          confirmDelete(id);
-        };
-        menu.style.display = 'block';
-      };
-    })();
-  </script>
-
-  {{-- Toast flash --}}
+  {{-- Flash fallback (kalau pakai session) --}}
   @if (session('success'))
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: @json(session('success')), showConfirmButton: false, timer: 2200, timerProgressBar: true });
-      });
-    </script>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:2000">
+      <div class="alert alert-success shadow mb-0">{{ session('success') }}</div>
+    </div>
   @endif
   @if (session('error'))
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: @json(session('error')), showConfirmButton: false, timer: 2600, timerProgressBar: true });
-      });
-    </script>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index:2000">
+      <div class="alert alert-danger shadow mb-0">{{ session('error') }}</div>
+    </div>
   @endif
 
   @stack('scripts')
 </body>
-
 </html>

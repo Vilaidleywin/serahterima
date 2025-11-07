@@ -1006,3 +1006,44 @@ td, th {
   color:#334155;
   border:1px solid rgba(148,163,184,.35);
 }
+/* ==== Aside polish (drop-in) ==== */
+.sidebar {
+  width: 260px;
+  background: var(--sidebar-bg, #1f3350);
+  color: var(--sidebar-text, #e7efff);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.sidebar .nav-link{
+  display:flex; align-items:center; gap:10px;
+  color: var(--sidebar-text, #e7efff);
+  text-decoration:none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  opacity: .92;
+  transition: background .15s ease, opacity .15s ease;
+}
+.sidebar .nav-link:hover{ background: var(--sidebar-active,#274368); opacity: 1; }
+.sidebar .nav-link.active{ background: var(--sidebar-active,#274368); color:#fff; }
+.sidebar .nav-link .ti{ font-size: 18px; opacity: .95; }
+.sidebar form .nav-link{ cursor:pointer; }
+.sidebar hr{ border-color: rgba(255,255,255,.12) !important; }
+
+/* Push content area */
+@media (min-width: 992px){
+  .content{ margin-left: 260px; }
+}
+@media (max-width: 991px){
+  .sidebar{ display:none; }
+}
+
+/* Topbar offset so it aligns with aside */
+.topbar{ left: 260px; }
+@media (max-width: 991px){
+  .topbar{ left: 0; }
+}

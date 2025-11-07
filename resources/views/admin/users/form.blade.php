@@ -23,7 +23,7 @@
 </div>
 
 <div class="mb-3">
-  <label class="form-label">Password {{ ($mode ?? '') === 'edit' ? '(biarkan kosong jika tidak diganti)' : '' }}</label>
+  <label class="form-label">Password {{ ($mode ?? '') === 'edit' ? '(kosongkan jika tidak diubah)' : '' }}</label>
   <input type="password" name="password" class="form-control" {{ ($mode ?? '') === 'create' ? 'required' : '' }}>
 </div>
 

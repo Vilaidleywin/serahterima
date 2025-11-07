@@ -57,9 +57,11 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth','role:admin_internal,admin_komersial'])
-    ->prefix('admin')->name('admin.')->group(function(){
-        Route::resource('users', UserController::class)->except(['show']);
+    ->prefix('admin')->name('admin.')
+    ->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class)->except(['show']);
     });
+
 
 
 /*

@@ -1,0 +1,38 @@
+/* === UI Hotfix pack === */
+
+/* Topbar: ensure fixed and proper offset */
+.topbar{
+  position: fixed;
+  top: 0; right: 0; left: 260px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #f8fafc; /* subtle */
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 1030;
+}
+@media (max-width: 991px){
+  .topbar{ left: 0; }
+}
+
+/* Content spacing (avoid topbar overlap) */
+main.app-content{ padding-top: 76px !important; }
+
+/* Hide topbar breadcrumb to avoid duplicate with page breadcrumb */
+.topbar .breadcrumb-mini{ display: none; }
+
+/* Headings + page breadcrumb inside content header */
+.page-title h2{ margin: 0 0 6px; line-height: 1.2; }
+.page-breadcrumb{ margin-top: -6px; color: #6b7280; }
+.page-breadcrumb a{ color: #1d4ed8; text-decoration: none; }
+.page-breadcrumb .sep{ margin: 0 .3rem; color: #9ca3af; }
+
+/* Sidebar footer username keep inside aside */
+.sidebar .mt-auto{ margin-top: auto !important; }
+.sidebar{ overflow: hidden; }
+@media (max-height: 680px){
+  .sidebar{ overflow-y: auto; }
+}
+
+/* Form fields comfortable spacing */
+.form-control{ border-radius: 10px; }
+.form-label{ font-weight: 600; color: #111827; }
