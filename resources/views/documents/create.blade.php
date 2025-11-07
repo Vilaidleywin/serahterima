@@ -4,10 +4,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h2 class="fw-bold mb-0">Tambah Dokumen</h2>
-      <div class="text-muted small">
-        Status akan otomatis: <span class="fw-semibold">DRAFT</span> → <span class="fw-semibold">SUBMITTED</span> saat ditandatangani.
-        Penolakan dilakukan dari halaman detail.
-      </div>
+      
     </div>
     <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
       <i class="ti ti-arrow-left"></i> Kembali
@@ -50,15 +47,61 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Divisi</label>
-          <select name="division" class="form-select search">
-            <option value="">— Pilih Divisi —</option>
-            @foreach($divisions as $div)
-              <option value="{{ $div }}" @selected(old('division') === $div)>{{ $div }}</option>
-            @endforeach
-          </select>
-          @error('division') <div class="text-danger small">{{ $message }}</div> @enderror
-        </div>
+  <label class="form-label fw-semibold">Divisi</label>
+  <select name="division" id="division" class="form-select search">
+    <option value="">— Pilih Divisi —</option>
+    @foreach($divisions as $div)
+      <option value="{{ $div }}" @selected(old('division', $document->division ?? '') === $div)>
+        {{ $div }}
+      </option>
+    @endforeach
+    @unless(collect($divisions)->contains('Other'))
+      <option value="Other" @selected(strtoupper(old('division', $document->division ?? '')) === 'OTHER')>Other</option>
+    @endunless
+  </select>
+  @error('division')
+    <div class="text-danger small">{{ $message }}</div>
+  @enderror
+
+  {{-- Input teks tambahan kalau pilih Other --}}
+  @php
+    $isOther = strtoupper(old('division', $document->division ?? '')) === 'OTHER';
+  @endphp
+  <input type="text"
+         name="division_other"
+         id="division_other"
+         class="form-control mt-2"
+         placeholder="Tulis nama divisi lainnya..."
+         value="{{ $isOther ? old('division_other', $document->division ?? '') : old('division_other') }}"
+         style="{{ $isOther ? '' : 'display:none;' }}">
+  @error('division_other')
+    <div class="text-danger small">{{ $message }}</div>
+  @enderror
+</div>
+
+@push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const sel = document.getElementById('division');
+    const other = document.getElementById('division_other');
+    if (!sel || !other) return;
+
+    function toggleOther() {
+      if ((sel.value || '').toUpperCase() === 'OTHER') {
+        other.style.display = '';
+        other.focus();
+      } else {
+        other.style.display = 'none';
+        other.value = '';
+      }
+    }
+
+    sel.addEventListener('change', toggleOther);
+    toggleOther();
+  });
+</script>
+@endpush
+
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Nominal (Rp)</label>

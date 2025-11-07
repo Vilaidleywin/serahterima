@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>SerahTerima</title>
@@ -12,53 +13,54 @@
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
+
 <body>
   {{-- SIDEBAR (desktop) --}}
-  <aside class="sidebar" id="appSidebar">
+<aside class="sidebar" id="appSidebar">
     <div class="brand brand-desktop">
       <span class="brand-icon">📁</span>
       <span class="brand-text">Serah Terima</span>
     </div>
-    <nav class="nav flex-column gap-1">
-      <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
-      <a class="nav-link {{ request()->routeIs('documents.index') ? 'active' : '' }}" href="{{ route('documents.index') }}">Data Dokumen</a>
-      <a class="nav-link {{ request()->routeIs('documents.create') ? 'active' : '' }}" href="{{ route('documents.create') }}">Input Dokumen</a>
-      <a class="nav-link disabled">Pengguna</a>
-      <a class="nav-link disabled">Logout</a>
+
+    <nav class="menu">
+      @auth
+        @php $role = auth()->user()->role ?? 'user'; @endphp
+
+        @if (in_array($role, ['admin_internal', 'admin_komersial']))
+          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
+          </a>
+          <a class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+            href="{{ route('admin.users.index') }}">
+            <i class="ti ti-users"></i> <span>Pengguna</span>
+          </a>
+          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
+            @csrf
+            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
+              <i class="ti ti-logout"></i> <span>Logout</span>
+            </button>
+          </form>
+        @else
+          {{-- Role user biasa: isi menu user di sini --}}
+          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
+          </a>
+          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
+            @csrf
+            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
+              <i class="ti ti-logout"></i> <span>Logout</span>
+            </button>
+          </form>
+        @endif
+      @endauth
     </nav>
   </aside>
 
-  {{-- MOBILE NAV --}}
-  <div class="mobile-nav" id="mobileNav" aria-hidden="true">
-    <div class="mobile-nav-header">
-      <button class="mobile-close" type="button" data-close-mobile-nav aria-label="Close">
-        <i class="ti ti-x"></i>
-      </button>
-      <div class="mobile-brand">
-        <span class="brand-icon">📁</span>
-        <strong>Serah Terima</strong>
-      </div>
-    </div>
-    <nav class="mobile-menu">
-      <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="ti ti-home"></i> Dashboard</a>
-      <a href="{{ route('documents.index') }}" class="mobile-link {{ request()->routeIs('documents.index') ? 'active' : '' }}"><i class="ti ti-file-description"></i> Data Dokumen</a>
-      <a href="{{ route('documents.create') }}" class="mobile-link {{ request()->routeIs('documents.create') ? 'active' : '' }}"><i class="ti ti-file-plus"></i> Input Dokumen</a>
-      <a class="mobile-link disabled"><i class="ti ti-report"></i> Laporan</a>
-      <a class="mobile-link disabled"><i class="ti ti-users"></i> Pengguna</a>
-      <a class="mobile-link disabled"><i class="ti ti-logout"></i> Logout</a>
-    </nav>
-  </div>
+
 
   {{-- MAIN --}}
   <main class="content">
-    {{-- @include('partials.topbar') --}}
-
-    {{-- Flash message (opsional, kalau masih mau versi tekstual) --}}
-    {{-- @if (session('success'))
-      <div class="alert-success" id="flashAlert">
-        <i class="ti ti-check"></i> {{ session('success') }}
-      </div>
-    @endif --}}
+    @include('partials.topbar')
 
     @yield('content')
   </main>
@@ -107,26 +109,26 @@
       `;
       document.body.appendChild(menu);
 
-      function closeMenu(){ menu.style.display = 'none'; }
-      document.addEventListener('click', (e)=>{ if (menu.style.display!=='none' && !menu.contains(e.target)) closeMenu(); });
+      function closeMenu() { menu.style.display = 'none'; }
+      document.addEventListener('click', (e) => { if (menu.style.display !== 'none' && !menu.contains(e.target)) closeMenu(); });
       window.addEventListener('resize', closeMenu);
       window.addEventListener('scroll', closeMenu, true);
 
-      window.openActionMenu = function(ev, urlShow, urlEdit, urlSign, id){
+      window.openActionMenu = function (ev, urlShow, urlEdit, urlSign, id) {
         ev.stopPropagation();
         const rect = ev.currentTarget.getBoundingClientRect();
         const x = Math.min(window.innerWidth - menu.offsetWidth - 8, rect.right - 180);
         const y = rect.bottom + 6;
         menu.style.left = `${Math.max(8, x)}px`;
-        menu.style.top  = `${Math.min(window.innerHeight - 8, y)}px`;
+        menu.style.top = `${Math.min(window.innerHeight - 8, y)}px`;
         document.getElementById('am-detail').href = urlShow;
-        document.getElementById('am-edit').href   = urlEdit;
-        document.getElementById('am-sign').href   = urlSign;
-        document.getElementById('am-del').onclick = function(){
+        document.getElementById('am-edit').href = urlEdit;
+        document.getElementById('am-sign').href = urlSign;
+        document.getElementById('am-del').onclick = function () {
           closeMenu();
           confirmDelete(id);
         };
-        menu.style.display='block';
+        menu.style.display = 'block';
       };
     })();
   </script>
@@ -135,18 +137,19 @@
   @if (session('success'))
     <script>
       window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast:true, position:'top-end', icon:'success', title:@json(session('success')), showConfirmButton:false, timer:2200, timerProgressBar:true });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: @json(session('success')), showConfirmButton: false, timer: 2200, timerProgressBar: true });
       });
     </script>
   @endif
   @if (session('error'))
     <script>
       window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast:true, position:'top-end', icon:'error', title:@json(session('error')), showConfirmButton:false, timer:2600, timerProgressBar:true });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: @json(session('error')), showConfirmButton: false, timer: 2600, timerProgressBar: true });
       });
     </script>
   @endif
 
   @stack('scripts')
 </body>
+
 </html>

@@ -19,25 +19,29 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'role',
+        'created_by',
     ];
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    public function createdUsers()
+    {
+        return $this->hasMany(User::class, 'created_by');
+    }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    // scope bantu: hanya milik pembuat tertentu
+    public function scopeOwnedBy($q, $userId)
+    {
+        return $q->where('created_by', $userId);
+    }
+    protected $hidden = ['password', 'remember_token'];
+
     protected function casts(): array
     {
         return [

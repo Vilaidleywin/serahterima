@@ -46,9 +46,12 @@
         </div>
         <div style="height:220px"><canvas id="barChart"></canvas></div>
         <div class="d-flex gap-2 mt-2 flex-wrap">
-          <a href="{{ route('documents.index', ['status' => 'DRAFT']) }}" class="btn btn-sm text-white" style="background-color: #6B7280; border:none;">DRAFT</a>
-          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm text-white" style="background-color: var(--success); border:none;">SUBMITTED</a>
-          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm text-white" style="background-color: var(--danger); border:none;">REJECTED</a>
+          <a href="{{ route('documents.index', ['status' => 'DRAFT']) }}" class="btn btn-sm text-white"
+            style="background-color: #6B7280; border:none;">DRAFT</a>
+          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm text-white"
+            style="background-color: var(--success); border:none;">SUBMITTED</a>
+          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm text-white"
+            style="background-color: var(--danger); border:none;">REJECTED</a>
         </div>
       </div>
 
@@ -62,23 +65,32 @@
   {{-- Row 3: KPI mini --}}
   <div class="row g-3">
     <div class="col-md-3">
-      <div class="card-soft p-3">
-        <div class="text-muted small">Dibuat hari ini</div>
-        <div class="fs-4 fw-semibold">{{ $createdToday }}</div>
-      </div>
+      <a href="{{ route('documents.index', ['period' => 'today']) }}" class="text-decoration-none">
+        <div class="card-soft p-3">
+          <div class="text-muted small">Dibuat hari ini</div>
+          <div class="fs-4 fw-semibold">{{ $createdToday }}</div>
+        </div>
+      </a>
     </div>
+
     <div class="col-md-3">
-      <div class="card-soft p-3">
-        <div class="text-muted small">Dibuat minggu ini</div>
-        <div class="fs-4 fw-semibold">{{ $createdWeek }}</div>
-      </div>
+      <a href="{{ route('documents.index', ['period' => 'week']) }}" class="text-decoration-none">
+        <div class="card-soft p-3">
+          <div class="text-muted small">Dibuat minggu ini</div>
+          <div class="fs-4 fw-semibold">{{ $createdWeek }}</div>
+        </div>
+      </a>
     </div>
+
     <div class="col-md-3">
-      <div class="card-soft p-3">
-        <div class="text-muted small">Dibuat bulan ini</div>
-        <div class="fs-4 fw-semibold">{{ $createdMonth }}</div>
-      </div>
+      <a href="{{ route('documents.index', ['period' => 'month']) }}" class="text-decoration-none">
+        <div class="card-soft p-3">
+          <div class="text-muted small">Dibuat bulan ini</div>
+          <div class="fs-4 fw-semibold">{{ $createdMonth }}</div>
+        </div>
+      </a>
     </div>
+
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="text-decoration-none">
         <div class="card-soft p-3">
@@ -90,6 +102,7 @@
       </a>
     </div>
   </div>
+
 @endsection
 
 @push('scripts')

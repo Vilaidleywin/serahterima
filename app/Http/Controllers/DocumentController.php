@@ -13,7 +13,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentController extends Controller
 {
-    // Kalau nanti sudah punya login, aktifkan ini:
     // public function __construct()
     // {
     //     $this->middleware('auth')->except(['index','show']);
@@ -22,19 +21,20 @@ class DocumentController extends Controller
     public function printPdf(Document $document)
     {
         return Pdf::loadView('documents.print-pdf', compact('document'))
-            ->setPaper('a4') // atau 'a4', 'portrait'
+            ->setPaper('a4')
             ->stream("SerahTerima-{$document->number}.pdf");
     }
 
     public function printTandaTerima(Document $document)
     {
+        // NOTE: saat ini menampilkan view. Kalau ingin langsung PDF, aktifkan blok di bawah dan hapus return view.
         return view('documents.print-tandaterima', [
             'document' => $document,
-
         ]);
-        $pdf = Pdf::loadView('documents.print-tandaterima', compact('document'))
-            ->setPaper('a4', 'portrait');
-        return $pdf->stream('TandaTerima-' . $document->number . '.pdf');
+
+        // $pdf = Pdf::loadView('documents.print-tandaterima', compact('document'))
+        //     ->setPaper('a4', 'portrait');
+        // return $pdf->stream('TandaTerima-' . $document->number . '.pdf');
     }
 
     public function photo(Document $document)
@@ -47,12 +47,10 @@ class DocumentController extends Controller
 
     public function photoStore(Request $request, Document $document)
     {
-
         if ($document->status === 'REJECTED') {
             return back()->with('error', 'Dokumen ditolak dan tidak dapat diunggah foto.');
         }
 
-        // Terima 2 jalur: base64 (name="photo") atau file upload (name="photo_file")
         $request->validate([
             'photo'      => ['nullable', 'string'],            // base64 data URL
             'photo_file' => ['nullable', 'image', 'max:5120'], // file < 5MB
@@ -60,24 +58,21 @@ class DocumentController extends Controller
 
         $path = null;
 
-        // 1) Jika ada file upload
+        // Upload file
         if ($request->hasFile('photo_file')) {
             $path = $request->file('photo_file')->store('document-photos', 'public');
         }
-        // 2) Jika ada base64 dari kamera
+        // Base64 kamera
         elseif ($dataUrl = $request->input('photo')) {
-            // Validasi header data URL
             if (!preg_match('#^data:image/(png|jpe?g);base64,#i', $dataUrl)) {
                 return back()->withErrors(['photo' => 'Foto tidak valid.'])->withInput();
             }
 
-            // Decode base64
             $binary = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl), true);
             if ($binary === false || strlen($binary) < 1000) {
                 return back()->withErrors(['photo' => 'Gagal memproses foto.'])->withInput();
             }
 
-            // Simpan sebagai JPG
             $filename = 'doc-' . $document->id . '-' . time() . '.jpg';
             $path = 'document-photos/' . $filename;
             \Storage::disk('public')->put($path, $binary);
@@ -87,7 +82,7 @@ class DocumentController extends Controller
             return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
         }
 
-        // Hapus foto lama (opsional)
+        // Hapus lama (opsional)
         if ($document->photo_path && \Storage::disk('public')->exists($document->photo_path)) {
             \Storage::disk('public')->delete($document->photo_path);
         }
@@ -99,15 +94,15 @@ class DocumentController extends Controller
             ->with('success', 'Foto berhasil disimpan.');
     }
 
-
     public function index(Request $req)
     {
+        // Per page aman (10/15/25/50)
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        // Search (number/title/receiver/destination)
+        // ====== Search (number/title/receiver/destination) ======
         if ($s = $req->input('search')) {
             $q->where(function ($w) use ($s) {
                 $w->where('number', 'like', "%{$s}%")
@@ -117,21 +112,77 @@ class DocumentController extends Controller
             });
         }
 
-        // Status (SUBMITTED/REJECTED)
+        // ====== Status (DRAFT/SUBMITTED/REJECTED) ======
         if ($st = $req->input('status')) {
             $q->where('status', $st);
         }
 
-        // Division
+        // ====== Division ======
         if ($div = $req->input('division')) {
             $q->where('division', $div);
         }
 
+        // ====== PERIOD (today|week|month) berdasarkan created_at ======
+        if ($period = $req->input('period')) {
+            $now = Carbon::now('Asia/Jakarta');
+            // Minggu mulai Senin (standar ID)
+            $now->locale('id_ID');
+            $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
+            $endWeek   = $now->copy()->endOfWeek(Carbon::SUNDAY);
+
+            if ($period === 'today') {
+                $q->whereDate('created_at', $now->toDateString());
+            } elseif ($period === 'week') {
+                $q->whereBetween('created_at', [$startWeek, $endWeek]);
+            } elseif ($period === 'month') {
+                $q->whereBetween('created_at', [
+                    $now->copy()->startOfMonth(),
+                    $now->copy()->endOfMonth(),
+                ]);
+            }
+        }
+
+        // ====== Rentang manual CREATED_AT (opsional) ======
+        if ($from = $req->input('created_from')) {
+            $q->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $req->input('created_to')) {
+            $q->whereDate('created_at', '<=', $to);
+        }
+
+        // ====== Rentang manual DATE (handover) - INKLUSIF ======
+        // Pakai param: date_from & date_to
+        if ($df = $req->input('date_from')) {
+            $q->whereDate('date', '>=', $df);
+        }
+        if ($dt = $req->input('date_to')) {
+            $q->whereDate('date', '<=', $dt);
+        }
+
+        // ====== OVERDUE SUBMITTED > N hari ======
+        // ?overdue_days=7 -> status SUBMITTED dengan (date <= now-7) ATAU (date null & created_at <= now-7)
+        if ($overdue = $req->integer('overdue_days')) {
+            $cutoff = Carbon::now('Asia/Jakarta')->subDays($overdue)->toDateString();
+            $q->where('status', 'SUBMITTED')
+                ->where(function ($w) use ($cutoff) {
+                    $w->where(function ($x) use ($cutoff) {
+                        $x->whereNotNull('date')
+                            ->whereDate('date', '<=', $cutoff);
+                    })
+                        ->orWhere(function ($x) use ($cutoff) {
+                            $x->whereNull('date')
+                                ->whereDate('created_at', '<=', $cutoff);
+                        });
+                });
+        }
+
+        // Urutan terbaru (date jika ada, fallback id)
         $documents = $q->orderByDesc('date')
             ->orderByDesc('id')
             ->paginate($per)
             ->withQueryString();
 
+        // Daftar division unik untuk dropdown
         $divisions = Document::query()
             ->select('division')
             ->distinct()
@@ -215,7 +266,6 @@ class DocumentController extends Controller
 
     public function reject(Request $request, Document $document)
     {
-        // Kalau sudah SUBMITTED/DRAFT boleh ditolak. Kalau sudah REJECTED ya sudah.
         if ($document->status !== 'REJECTED') {
             $document->status = 'REJECTED';
             $document->save();
@@ -323,20 +373,11 @@ class DocumentController extends Controller
 
         $document->signature_path = "$dir/$name";
         $document->signed_at      = now('Asia/Jakarta');
-        // Kalau masih DRAFT, naikkan ke SUBMITTED
         if ($document->status === 'DRAFT') {
             $document->status = 'SUBMITTED';
         }
+        $document->signed_by      = Auth::id(); // nullable
         $document->save();
-
-        // kalau belum ada login, Auth::id() bakal null (aman karena kolom nullable)
-        $userId = Auth::id();
-
-        $document->update([
-            'signature_path' => "$dir/$name",
-            'signed_at'      => Carbon::now(),
-            'signed_by'      => $userId, // nullable
-        ]);
 
         return redirect()
             ->route('documents.show', $document)

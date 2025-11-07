@@ -1,63 +1,111 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-
-    return redirect('/login');
-})->name('logout');
-
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+/*
+|--------------------------------------------------------------------------
+| AUTH (guest)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 });
 
-Route::get('/documents/{document}/print', [DocumentController::class, 'print'])->name('documents.print');
+/*
+|--------------------------------------------------------------------------
+| LOGOUT (auth)
+|--------------------------------------------------------------------------
+*/
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout')
+    ->middleware('auth');
 
-// routes/web.php
-Route::get('/documents/{document}/print-pdf', [DocumentController::class, 'printPdf'])
-    ->name('documents.print-pdf');
+/*
+|--------------------------------------------------------------------------
+| HOME REDIRECT
+|--------------------------------------------------------------------------
+| Kalau sudah login, arahkan sesuai logic di AuthController::homeRedirect.
+| (Hindari duplikasi route '/' yang lain.)
+*/
+Route::get('/', [AuthController::class, 'homeRedirect'])
+    ->name('home.redirect');
 
-Route::get('/documents/{document}/tanda-terima', [DocumentController::class, 'printTandaTerima'])
-    ->name('documents.print-tandaterima');
-Route::post('/documents/{document}/reject', [DocumentController::class, 'reject'])
-    ->name('documents.reject');
-// routes/web.php
-Route::get('/documents/{document}/photo', [DocumentController::class, 'photo'])->name('documents.photo');
-Route::post('/documents/{document}/photo', [DocumentController::class, 'photoStore'])->name('documents.photo.store');
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD & PROFILE (auth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-
-Route::get('/', fn() => redirect()->route('dashboard'));
-// routes/web.php
-Route::post('/documents/bulk', [DocumentController::class, 'bulk'])->name('documents.bulk');
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/documents/create', [DocumentController::class, 'create'])->name('documents.create');
-Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
-Route::get('/documents/{document}/sign', [DocumentController::class, 'sign'])->name('documents.sign');
-
-
-Route::prefix('documents')->name('documents.')->group(function () {
-    Route::get('/', [DocumentController::class, 'index'])->name('index');
-    Route::get('/create', [DocumentController::class, 'create'])->name('create');
-    Route::post('/', [DocumentController::class, 'store'])->name('store');
-    Route::get('/{document}/edit', [DocumentController::class, 'edit'])->name('edit');
-    Route::put('/{document}', [DocumentController::class, 'update'])->name('update');
-    Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy');
-    Route::get('/{document}/sign', [DocumentController::class, 'sign'])->name('sign');
-    Route::post('/{document}/sign', [DocumentController::class, 'signStore'])->name('sign.store'); // 🆕
+    Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
 });
 
+/*
+|--------------------------------------------------------------------------
+| ADMIN AREA (auth + role:admin)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth','role:admin_internal,admin_komersial'])
+    ->prefix('admin')->name('admin.')->group(function(){
+        Route::resource('users', UserController::class)->except(['show']);
+    });
 
-Route::prefix('serahterima')->group(function () {
-    Route::resource('documents', DocumentController::class);
-});
+
+/*
+|--------------------------------------------------------------------------
+| DOCUMENTS (auth + role:user)
+|--------------------------------------------------------------------------
+| Semua route dokumen dikelompokkan rapi dengan prefix "documents".
+*/
+Route::middleware(['auth','role:user'])
+    ->prefix('documents')
+    ->name('documents.')
+    ->group(function () {
+
+        // Aksi tambahan (letakkan lebih dulu agar jelas)
+        Route::post('bulk', [DocumentController::class, 'bulk'])->name('bulk');
+
+        Route::get('{document}/print',          [DocumentController::class, 'print'])->name('print');
+        Route::get('{document}/print-pdf',      [DocumentController::class, 'printPdf'])->name('print-pdf');
+        Route::get('{document}/tanda-terima',   [DocumentController::class, 'printTandaTerima'])->name('print-tandaterima');
+
+        Route::post('{document}/reject',        [DocumentController::class, 'reject'])->name('reject');
+
+        Route::get('{document}/photo',          [DocumentController::class, 'photo'])->name('photo');
+        Route::post('{document}/photo',         [DocumentController::class, 'photoStore'])->name('photo.store');
+
+        Route::get('{document}/sign',           [DocumentController::class, 'sign'])->name('sign');
+        Route::post('{document}/sign',          [DocumentController::class, 'signStore'])->name('sign.store');
+
+        // Resource CRUD utama
+        Route::resource('/', DocumentController::class)->parameters(['' => 'document'])->names([
+            'index'   => 'index',
+            'create'  => 'create',
+            'store'   => 'store',
+            'show'    => 'show',
+            'edit'    => 'edit',
+            'update'  => 'update',
+            'destroy' => 'destroy',
+        ]);
+        // Catatan: Dengan resource di atas, path jadi:
+        // GET     /documents            -> index
+        // GET     /documents/create     -> create
+        // POST    /documents            -> store
+        // GET     /documents/{document} -> show
+        // GET     /documents/{document}/edit -> edit
+        // PUT     /documents/{document} -> update
+        // DELETE  /documents/{document} -> destroy
+    });
+
+// HAPUS: prefix('serahterima')->resource('documents', ...) karena duplikat / bentrok

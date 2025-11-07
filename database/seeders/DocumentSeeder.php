@@ -4,6 +4,22 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+
+User::updateOrCreate(
+    ['email' => 'admin.internal@example.com'],
+    ['name' => 'Admin Internal', 'username' => 'admin_internal', 'role' => 'admin_internal', 'password' => 'password']
+);
+
+User::updateOrCreate(
+    ['email' => 'admin.komersial@example.com'],
+    ['name' => 'Admin Komersial', 'username' => 'admin_komersial', 'role' => 'admin_komersial', 'password' => 'password']
+);
+
+User::updateOrCreate(
+    ['email' => 'user@example.com'],
+    ['name' => 'User Biasa', 'username' => 'user_biasa', 'role' => 'user', 'password' => 'password']
+);
 
 class DocumentSeeder extends Seeder
 {

@@ -1,0 +1,119 @@
+:root {
+  --page-w: 210mm;
+  --page-h: 297mm;
+  --m-top: 45mm;
+  --m-btm: 30mm; /* dikurangi agar muat 1 halaman */
+}
+
+/* ==== BASE ==== */
+.page {
+  width: var(--page-w);
+  height: var(--page-h);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+/* ==== KOP ==== */
+.kop {
+  position: absolute;
+  top: 12mm;
+  left: 18mm;
+  right: 18mm;
+}
+.kop-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kop-left img, .kop-right img {
+  height: 22mm;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ==== CONTENT ==== */
+.content {
+  position: absolute;
+  top: var(--m-top);
+  left: 18mm;
+  right: 18mm;
+  bottom: var(--m-btm);
+  font-size: 12pt;
+  line-height: 1.5;
+}
+h2 {
+  text-align: center;
+  text-decoration: underline;
+  font-size: 16pt;
+  margin-bottom: 10mm;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12pt;
+  line-height: 1.6;
+}
+td:first-child {
+  width: 34%;
+  color: #555;
+  vertical-align: top;
+}
+td:last-child { padding-left: 6px; }
+
+/* ==== TTD ==== */
+.ttd-single {
+  margin-top: 26mm;
+  display: flex;
+  justify-content: flex-end;
+}
+.ttd-col {
+  width: 42%;
+  text-align: center;
+}
+.ttd-role {
+  margin-bottom: 18mm;
+  position: relative;
+}
+.ttd-role::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -6mm;
+  height: 1px;
+  background: #2b2b2b;
+  opacity: .7;
+}
+.ttd-sign {
+  height: 28mm;
+  margin-top: -10mm;
+  margin-bottom: 6mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ttd-sign img {
+  max-height: 28mm;
+  max-width: 90%;
+  object-fit: contain;
+  opacity: .95;
+}
+.ttd-name {
+  display: inline-block;
+  min-width: 70mm;
+  padding-top: 2mm;
+  border-top: 1px solid #000;
+}
+
+/* ==== FOOTER ==== */
+.footer-img {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+.footer-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
