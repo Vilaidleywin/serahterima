@@ -1,33 +1,45 @@
 <div class="mb-3">
   <label class="form-label">Nama</label>
-  <input name="name" class="form-control" required value="{{ old('name', $user->name ?? '') }}">
+  <input type="text" name="name" class="form-control" value="{{ old('name', $user->name ?? '') }}" required>
 </div>
 
 <div class="mb-3">
   <label class="form-label">Username</label>
-  <input name="username" class="form-control" required value="{{ old('username', $user->username ?? '') }}">
+  <input type="text" name="username" class="form-control" value="{{ old('username', $user->username ?? '') }}" required>
 </div>
 
 <div class="mb-3">
   <label class="form-label">Email</label>
-  <input type="email" name="email" class="form-control" required value="{{ old('email', $user->email ?? '') }}">
+  <input type="email" name="email" class="form-control" value="{{ old('email', $user->email ?? '') }}" required>
 </div>
 
 <div class="mb-3">
   <label class="form-label">Role</label>
-  <select name="role" class="form-select" required>
-    @foreach($roles as $r)
-      <option value="{{ $r }}" @selected(old('role', $user->role ?? 'user') === $r)>{{ $r }}</option>
-    @endforeach
-  </select>
+  <input type="text" name="role" class="form-control" value="user" readonly>
 </div>
 
 <div class="mb-3">
-  <label class="form-label">Password {{ ($mode ?? '') === 'edit' ? '(kosongkan jika tidak diubah)' : '' }}</label>
-  <input type="password" name="password" class="form-control" {{ ($mode ?? '') === 'create' ? 'required' : '' }}>
+  <label class="form-label">Divisi</label>
+  <select name="division" class="form-select" required>
+    <option value="">-- Pilih Divisi --</option>
+    <option value="HRD" {{ old('division', $user->division ?? '') == 'HRD' ? 'selected' : '' }}>HRD</option>
+    <option value="Keuangan" {{ old('division', $user->division ?? '') == 'Keuangan' ? 'selected' : '' }}>Keuangan</option>
+    <option value="Marketing" {{ old('division', $user->division ?? '') == 'Marketing' ? 'selected' : '' }}>Marketing</option>
+    <option value="IT" {{ old('division', $user->division ?? '') == 'IT' ? 'selected' : '' }}>IT</option>
+    <option value="Produksi" {{ old('division', $user->division ?? '') == 'Produksi' ? 'selected' : '' }}>Produksi</option>
+  </select>
 </div>
 
-<div class="d-flex gap-2">
-  <button class="btn btn-primary" type="submit">{{ ($mode ?? '') === 'edit' ? 'Update' : 'Simpan' }}</button>
-  <a class="btn btn-light" href="{{ route('admin.users.index') }}">Batal</a>
+@if($mode === 'create')
+  <div class="mb-3">
+    <label class="form-label">Password</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+@endif
+
+<div class="d-flex justify-content-between mt-4">
+  <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Kembali</a>
+  <button type="submit" class="btn btn-primary">
+    {{ $mode === 'create' ? 'Simpan' : 'Perbarui' }}
+  </button>
 </div>

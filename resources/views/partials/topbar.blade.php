@@ -1,19 +1,25 @@
-<header class="topbar">
+@php
+  $user = auth()->user();
+  $role = $user->role ?? 'user';
+  $avatar = 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
+@endphp
+
+<header class="topbar" role="banner">
   <div class="topbar-left">
-    {{-- Tombol hamburger (muncul di layar kecil & medium) --}}
-    <button type="button" class="hamburger" id="btnMobileNav" aria-label="Buka menu">
+    {{-- Hamburger (mobile) --}}
+    <button type="button" class="hamburger" id="btnMobileNav" aria-label="Buka menu" aria-controls="mobileNav" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
 
-    {{-- Logo / Brand --}}
-    <div class="brand">
+    {{-- Brand --}}
+    <a href="{{ route('dashboard') }}" class="brand" aria-label="Beranda">
       <div class="brand-icon">📁</div>
       <strong>Serah Terima</strong>
-    </div>
+    </a>
 
-    {{-- Breadcrumb opsional --}}
+    {{-- Breadcrumb (auto sembunyi di mobile) --}}
     @if(isset($breadcrumb))
-      <nav class="breadcrumb-mini">
+      <nav class="breadcrumb-mini" aria-label="Breadcrumb">
         @foreach($breadcrumb as $i => $item)
           @if(!empty($item['url']) && $i < count($breadcrumb)-1)
             <a href="{{ $item['url'] }}">{{ $item['label'] }}</a>
@@ -26,27 +32,46 @@
     @endif
   </div>
 
-  {{-- Profil user --}}
+  {{-- Profil / User dropdown --}}
   <div class="topbar-right">
     <div class="user-dropdown">
-      <button type="button" class="user-chip" id="userToggle">
-        <i class="ti ti-user"></i>
-        <span>Profil</span>
-        <i class="ti ti-chevron-down chev"></i>
+      <button type="button" class="user-avatar" id="userToggle" aria-haspopup="true" aria-expanded="false" aria-controls="userMenu">
+        <img src="{{ $avatar }}" alt="avatar" class="avatar-img">
+        <span class="user-name">{{ Str::limit($user->name ?? 'Pengguna', 20) }}</span>
+        <i class="ti ti-chevron-down chevron"></i>
       </button>
-      <div class="user-menu" id="userMenu">
-        <a href="#" class="user-item"><i class="ti ti-settings"></i> Settings</a>
+
+      <div class="user-menu" id="userMenu" role="menu" aria-hidden="true">
+        <div class="user-info">
+          <img src="{{ $avatar }}" alt="avatar" class="avatar-img-sm">
+          <div class="user-meta">
+            <div class="nm">{{ $user->name ?? 'Pengguna' }}</div>
+            <div class="em">{{ $user->email ?? '' }}</div>
+          </div>
+        </div>
+
+        <a href="{{ route('profile.edit') }}" class="user-item" role="menuitem">
+          <i class="ti ti-settings"></i> Profil
+        </a>
+
         <div class="user-sep"></div>
-        <a href="#" class="user-item"><i class="ti ti-logout"></i> Logout</a>
+
+        {{-- Button logout dibikin flat, no-border, tetap submit form --}}
+        <form action="{{ route('logout') }}" method="POST" role="none">
+          @csrf
+          <button type="submit" class="user-item btn-logout" role="menuitem">
+            <i class="ti ti-logout"></i> Logout
+          </button>
+        </form>
       </div>
     </div>
   </div>
 </header>
 
-<!-- ===== MOBILE NAV (untuk layar kecil) ===== -->
+<!-- ===== MOBILE NAV (drawer) ===== -->
 <div class="mobile-nav" id="mobileNav" aria-hidden="true">
   <div class="mobile-nav-header">
-    <button class="mobile-close" type="button" data-close-mobile-nav aria-label="Close">
+    <button class="mobile-close" type="button" data-close-mobile-nav aria-label="Tutup">
       <span></span><span></span>
     </button>
     <div class="mobile-brand">
@@ -59,210 +84,203 @@
     <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard')?'active':'' }}">
       <i class="ti ti-home"></i> Dashboard
     </a>
-    <a href="{{ route('documents.index') }}" class="mobile-link {{ request()->routeIs('documents.*')?'active':'' }}">
-      <i class="ti ti-file-description"></i> Data Dokumen
-    </a>
-    <a class="mobile-link disabled"><i class="ti ti-file-plus"></i> Input Dokumen</a>
-    <a class="mobile-link disabled"><i class="ti ti-report"></i> Laporan</a>
-    <a class="mobile-link disabled"><i class="ti ti-users"></i> Pengguna</a>
-    <a class="mobile-link disabled"><i class="ti ti-logout"></i> Logout</a>
+
+    @if (in_array($role, ['admin_internal','admin_komersial']))
+      <a href="{{ route('admin.users.index') }}" class="mobile-link {{ request()->routeIs('admin.users.*')?'active':'' }}">
+        <i class="ti ti-users"></i> Pengguna
+      </a>
+    @else
+      <a href="{{ route('documents.index') }}" class="mobile-link {{ request()->routeIs('documents.index')?'active':'' }}">
+        <i class="ti ti-file-description"></i> Data Dokumen
+      </a>
+      <a href="{{ route('documents.create') }}" class="mobile-link {{ request()->routeIs('documents.create')?'active':'' }}">
+        <i class="ti ti-file-plus"></i> Input Dokumen
+      </a>
+    @endif
+
+    <div class="mobile-sep"></div>
+
+    <form action="{{ route('logout') }}" method="POST">
+      @csrf
+      <button type="submit" class="mobile-link w-100 text-start">
+        <i class="ti ti-logout"></i> Logout
+      </button>
+    </form>
   </nav>
 </div>
 
+<div class="nav-backdrop" id="navBackdrop" hidden></div>
+
 <script>
-  // === Dropdown profil ===
+/* === Dropdown profil === */
+(function(){
   const toggle = document.getElementById('userToggle');
-  const menu = document.getElementById('userMenu');
-  toggle?.addEventListener('click', () => {
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-  });
-  window.addEventListener('click', (e) => {
-    if (!toggle.contains(e.target) && !menu.contains(e.target)) {
-      menu.style.display = 'none';
-    }
+  const menu   = document.getElementById('userMenu');
+
+  function closeMenu(){
+    if(!menu) return;
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden','true');
+    toggle?.setAttribute('aria-expanded','false');
+  }
+  function openMenu(){
+    if(!menu) return;
+    menu.classList.add('open');
+    menu.setAttribute('aria-hidden','false');
+    toggle?.setAttribute('aria-expanded','true');
+  }
+
+  toggle?.addEventListener('click', e=>{
+    e.stopPropagation();
+    menu?.classList.contains('open') ? closeMenu() : openMenu();
   });
 
-  // === Buka / Tutup Mobile Nav ===
-  const btnMobileNav = document.getElementById('btnMobileNav');
+  document.addEventListener('click', e=>{
+    if(!menu || !toggle) return;
+    const within = menu.contains(e.target) || toggle.contains(e.target);
+    if(!within) closeMenu();
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape') closeMenu();
+  });
+})();
+
+/* === Drawer mobile === */
+(function(){
+  const btn = document.getElementById('btnMobileNav');
   const mobileNav = document.getElementById('mobileNav');
-  const mobileClose = document.querySelector('[data-close-mobile-nav]');
+  const closeBtn = document.querySelector('[data-close-mobile-nav]');
+  const backdrop = document.getElementById('navBackdrop');
 
-  btnMobileNav?.addEventListener('click', () => {
-    btnMobileNav.classList.toggle('active');
-    mobileNav.classList.toggle('open');
-  });
+  function openNav(){
+    document.body.classList.add('nav-open');
+    btn?.classList.add('active');
+    btn?.setAttribute('aria-expanded','true');
+    mobileNav?.classList.add('open');
+    mobileNav?.setAttribute('aria-hidden','false');
+    backdrop.hidden = false;
+  }
+  function closeNav(){
+    document.body.classList.remove('nav-open');
+    btn?.classList.remove('active');
+    btn?.setAttribute('aria-expanded','false');
+    mobileNav?.classList.remove('open');
+    mobileNav?.setAttribute('aria-hidden','true');
+    backdrop.hidden = true;
+  }
 
-  mobileClose?.addEventListener('click', () => {
-    btnMobileNav.classList.remove('active');
-    mobileNav.classList.remove('open');
-  });
-
-  mobileNav?.addEventListener('click', (e) => {
-    if (e.target === mobileNav) {
-      btnMobileNav.classList.remove('active');
-      mobileNav.classList.remove('open');
-    }
-  });
+  btn?.addEventListener('click', ()=>document.body.classList.contains('nav-open')?closeNav():openNav());
+  closeBtn?.addEventListener('click', closeNav);
+  backdrop?.addEventListener('click', closeNav);
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeNav(); });
+})();
 </script>
 
 <style>
-/* ===== TOPBAR ===== */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #1e293b;
-  color: #fff;
-  padding: 0.6rem 1.2rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  position: fixed;
-  top: 0;
-  left: 260px;
-  right: 0;
-  z-index: 1030;
-  height: 56px;
-  transition: left 0.3s ease;
-}
-.topbar-left { display: flex; align-items: center; gap: 1rem; }
-
-/* ===== HAMBURGER ===== */
-.hamburger {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  border-radius: 6px;
-  width: 38px;
-  height: 34px;
-  transition: all 0.3s ease;
-  position: relative;
-}
-.hamburger span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: #fff;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-.hamburger:hover { background: rgba(255,255,255,0.15); }
-.hamburger.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-.hamburger.active span:nth-child(2) { opacity: 0; }
-.hamburger.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-/* ===== PROFIL ===== */
-.topbar-right { display: flex; align-items: center; gap: 1rem; }
-.user-dropdown { position: relative; }
-.user-chip { background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-.user-menu {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 110%;
-  background: #334155;
-  border-radius: 6px;
-  padding: 0.5rem 0;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-.user-item { display: block; padding: 6px 12px; color: #fff; text-decoration: none; }
-.user-item:hover { background: #475569; }
-.user-sep { height: 1px; background: #475569; margin: 4px 0; }
-
-/* ===== MAIN ===== */
-.content { margin-left: 260px; padding: 20px; padding-top: 80px; transition: margin-left 0.3s ease; }
-
-/* ===== MOBILE ===== */
-@media (max-width: 1024px) {
-  .topbar { left: 0; }
-  .hamburger { display: flex; }
-  .content { margin-left: 0; }
-
-  .mobile-nav {
-    position: fixed !important;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(6px);
-    z-index: 99999 !important;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-10px);
-    transition: all 0.35s ease;
-  }
-  .mobile-nav.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
-
-  .mobile-nav-header {
-    position: relative;
-    background: #111827;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  :root{
+    --aside-w:260px;
+    --topbar-h:60px;
+    --topbar-bg:#0f172a; /* slate-950 */
+    --topbar-fg:#e5e7eb; /* gray-200 */
+    --topbar-fg-dim:#cbd5e1; /* gray-300 */
+    --accent:#3b82f6; /* blue-500 */
   }
 
-  /* Tombol close pindah ke kiri */
-  .mobile-close {
-    position: absolute;
-    left: 14px;
-    top: 10px;
-    background: #1e293b;
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 1000001;
-    transition: transform 0.25s ease, background 0.25s ease;
-    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  /* ===== TOPBAR ===== */
+  .topbar{
+    position:fixed; top:0; left:var(--aside-w); right:0; z-index:1030;
+    height:var(--topbar-h);
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--topbar-bg); color:var(--topbar-fg);
+    padding:0 .75rem;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    transition:left .3s ease, box-shadow .2s ease;
+  }
+  .topbar-left{ display:flex; align-items:center; gap:.75rem; min-width:0; }
+  .brand{ display:flex; align-items:center; gap:.5rem; text-decoration:none; color:inherit; }
+  .brand-icon{ width:32px; height:32px; display:grid; place-items:center; background:#111827; border:1px solid rgba(255,255,255,.08); border-radius:8px; }
+
+  /* Breadcrumb */
+  .breadcrumb-mini{ margin-left:.5rem; display:flex; align-items:center; gap:.5rem; color:var(--topbar-fg-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .breadcrumb-mini a{ color:var(--topbar-fg); text-decoration:none; border-bottom:1px dashed transparent; }
+  .breadcrumb-mini a:hover{ border-bottom-color:var(--topbar-fg); }
+  .breadcrumb-mini .current{ opacity:.85; }
+
+  /* Hamburger */
+  .hamburger{
+    display:none; background:transparent; border:1px solid rgba(255,255,255,.14);
+    width:40px; height:36px; border-radius:8px; cursor:pointer; padding:0;
+  }
+  .hamburger span{ display:block; width:20px; height:2px; margin:4px auto; background:#fff; border-radius:2px; transition:.3s; }
+  .hamburger.active span:nth-child(1){ transform: translateY(6px) rotate(45deg); }
+  .hamburger.active span:nth-child(2){ opacity:0; }
+  .hamburger.active span:nth-child(3){ transform: translateY(-6px) rotate(-45deg); }
+
+  /* Right area */
+  .topbar-right{ display:flex; align-items:center; gap:8px; }
+  .user-dropdown{ position:relative; }
+  .user-avatar{
+    display:flex; align-items:center; gap:.5rem; background:rgba(255,255,255,.06); color:#fff;
+    border:1px solid rgba(255,255,255,.12); height:38px; border-radius:999px; padding:0 .6rem; cursor:pointer;
+  }
+  .avatar-img{ width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.2); }
+  .user-name{ max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.9rem; color:#fff; opacity:.95; }
+  .chevron{ font-size:14px; opacity:.8; }
+
+  /* Dropdown menu */
+  .user-menu{
+    display:none; position:absolute; right:0; top:120%;
+    min-width:230px; background:#111827; border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; overflow:hidden; box-shadow:0 12px 24px rgba(0,0,0,.35);
+  }
+  .user-menu.open{ display:block; }
+  .user-info{ display:flex; gap:.6rem; align-items:center; padding:.75rem; background:#0b1220; border-bottom:1px solid rgba(255,255,255,.08); }
+  .avatar-img-sm{ width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.18); object-fit:cover; }
+  .user-meta .nm{ color:#fff; font-weight:600; line-height:1.1; }
+  .user-meta .em{ color:#9ca3af; font-size:.85rem; }
+
+  .user-item{
+    width:100%; display:flex; align-items:center; gap:.5rem;
+    padding:.6rem .8rem; color:#e5e7eb; text-decoration:none; background:none; outline:none;
+    border:none; cursor:pointer; font:inherit; text-align:left;
+  }
+  .user-item:hover{ background:rgba(59,130,246,.12); color:#fff; }
+  .btn-logout{ color:#fca5a5; }
+  .btn-logout:hover{ background:rgba(239,68,68,.12); color:#fecaca; }
+  .user-sep{ height:1px; background:rgba(255,255,255,.08); margin:.25rem 0; }
+
+  /* MOBILE */
+  @media (max-width:1024px){
+    .topbar{ left:0; padding:0 .5rem; }
+    .hamburger{ display:block; }
+    .breadcrumb-mini{ display:none; }
+    .user-name{ max-width:96px; }
   }
 
-  /* Garis X */
-  .mobile-close span {
-    position: absolute;
-    width: 18px;
-    height: 2px;
-    background: #fff;
-    border-radius: 2px;
+  /* ===== MOBILE NAV (drawer) ===== */
+  .mobile-nav{
+    position:fixed; top:0; left:0; bottom:0; width:min(86vw, 320px); background:#0b1220; color:#e5e7eb;
+    transform:translateX(-100%); transition:transform .3s ease; z-index:1040; overflow:auto;
+    border-right:1px solid rgba(255,255,255,.12);
   }
-  .mobile-close span:nth-child(1) { transform: rotate(45deg); }
-  .mobile-close span:nth-child(2) { transform: rotate(-45deg); }
+  .mobile-nav.open{ transform:translateX(0); }
+  .mobile-nav-header{ display:flex; align-items:center; justify-content:space-between; padding:.8rem .9rem; border-bottom:1px solid rgba(255,255,255,.08); }
+  .mobile-close{ background:transparent; border:1px solid rgba(255,255,255,.14); width:36px; height:32px; border-radius:8px; cursor:pointer; }
+  .mobile-close span{ display:block; width:18px; height:2px; background:#fff; margin:4px auto; }
+  .mobile-brand{ display:flex; align-items:center; gap:.5rem; }
+  .mobile-menu{ padding:.6rem; display:flex; flex-direction:column; gap:.2rem; }
+  .mobile-link{ display:block; padding:.55rem .7rem; border-radius:10px; color:#e5e7eb; text-decoration:none; }
+  .mobile-link:hover,.mobile-link.active{ background:rgba(59,130,246,.14); color:#fff; }
+  .mobile-sep{ height:1px; background:rgba(255,255,255,.08); margin:.5rem 0; }
 
-  .mobile-close:hover { background: #273244; transform: scale(1.1); }
+  .nav-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:1035;
+  }
+  body.nav-open{ overflow:hidden; }
 
-  .mobile-menu {
-    background: #1e293b;
-    padding: 12px 0;
-    height: calc(100% - 56px);
-    overflow-y: auto;
-    animation: fadeUp 0.4s ease;
+  /* ===== CONTENT OFFSET (biar ga ketutup topbar) ===== */
+  main, .content, .page-wrapper, .container-page{
+    padding-top:calc(var(--topbar-h) + 12px) !important;
   }
-  .mobile-link {
-    display: block;
-    color: #fff;
-    text-decoration: none;
-    padding: 12px 18px;
-    opacity: 0;
-    animation: fadeIn 0.4s forwards;
-  }
-  .mobile-link:hover,
-  .mobile-link.active { background: #334155; }
-
-  @keyframes fadeUp {
-    from {opacity: 0; transform: translateY(10px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
-  @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
-  }
-}
 </style>

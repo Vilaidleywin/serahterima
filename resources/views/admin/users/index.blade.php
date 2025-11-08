@@ -9,15 +9,20 @@
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary">+ Tambah</a>
   </div>
 
-  @if(session('ok')) <div class="alert alert-success">{{ session('ok') }}</div> @endif
-  @if(session('err')) <div class="alert alert-danger">{{ session('err') }}</div> @endif
+  @if(session('ok')) 
+    <div class="alert alert-success">{{ session('ok') }}</div> 
+  @endif
+
+  @if(session('err')) 
+    <div class="alert alert-danger">{{ session('err') }}</div> 
+  @endif
 
   <form method="GET" class="mb-3">
-    <input name="search" class="form-control" placeholder="Cari nama/username/email/role" value="{{ request('search') }}">
+    <input name="search" class="form-control" placeholder="Cari nama/username/email/divisi/role" value="{{ request('search') }}">
   </form>
 
-  @if(method_exists($users,'isEmpty') ? $users->isEmpty() : ($users->count() === 0))
-    <p class="text-muted">Belum ada pengguna.</p>
+  @if($users->isEmpty())
+    <p class="text-muted">Anda belum mendaftarkan user sama sekali.</p>
   @else
     <div class="table-responsive">
       <table class="table table-striped align-middle">
@@ -26,6 +31,7 @@
             <th>Nama</th>
             <th>Username</th>
             <th>Email</th>
+            <th>Divisi</th>
             <th>Role</th>
             <th style="width:140px"></th>
           </tr>
@@ -36,6 +42,7 @@
               <td>{{ $u->name }}</td>
               <td>{{ $u->username }}</td>
               <td>{{ $u->email }}</td>
+              <td>{{ $u->division ?? '-' }}</td>
               <td><span class="badge bg-secondary">{{ $u->role }}</span></td>
               <td class="text-end">
                 <a href="{{ route('admin.users.edit', $u) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
