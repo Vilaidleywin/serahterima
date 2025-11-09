@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 
+
   <style>
     /* ========= VARIABEL & RESET ========= */
     :root{
