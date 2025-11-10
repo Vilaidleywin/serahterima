@@ -5,7 +5,7 @@
 
 <aside class="sidebar" role="navigation" aria-label="Sidebar">
   <div class="brand side">
-    <div class="brand-icon">📄</div>
+    <div class="brand-icon">📄dasd</div>
     <div class="brand-text">SerahTerima</div>
   </div>
 

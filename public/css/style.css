@@ -31,6 +31,8 @@
 html,
 body {
     height: 100%;
+     background: url('/images/backgroundindex.jpg') no-repeat center center fixed;
+  background-size: cover;
 }
 body {
     background: var(--bg);
@@ -38,6 +40,11 @@ body {
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
     margin: 0;
 }
+
+body.login-page {
+  background: #f9f9f9; /* bisa diganti warna lain kalau mau */
+}
+
 h1,
 h2,
 h3,

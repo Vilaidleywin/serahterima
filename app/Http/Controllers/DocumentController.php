@@ -110,20 +110,90 @@ class DocumentController extends Controller
 
     public function index(Request $req)
     {
+        // Per page aman (whitelist)
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        if ($s = $req->input('search')) {
-            $q->where(function ($w) use ($s) {
+        // ===========================
+        // SEARCH MENYELURUH (SUPER)
+        // ===========================
+        if ($raw = trim((string) $req->input('search'))) {
+            $s = Str::of($raw)->lower()->toString();
+
+            // 1) Deteksi status dari kata kunci
+            $statusMap = [
+                'draft'     => 'DRAFT',
+                'draf'      => 'DRAFT',
+                'submitted' => 'SUBMITTED',
+                'submit'    => 'SUBMITTED',
+                'terkirim'  => 'SUBMITTED',
+                'kirim'     => 'SUBMITTED',
+                'rejected'  => 'REJECTED',
+                'reject'    => 'REJECTED',
+                'tolak'     => 'REJECTED',
+                'ditolak'   => 'REJECTED',
+                'disetujui' => 'SUBMITTED', // jika butuh "approved" mapping ke SUBMITTED
+                'approved'  => 'SUBMITTED',
+            ];
+            $guessedStatus = null;
+            foreach ($statusMap as $needle => $mapped) {
+                if (Str::contains($s, $needle)) { $guessedStatus = $mapped; break; }
+            }
+
+            // 2) Deteksi nominal (ambil digit saja)
+            $digits = preg_replace('/\D+/', '', $s); // "1.250.000" => "1250000"
+            $guessedAmount = $digits !== '' ? (int) $digits : null;
+
+            // 3) Deteksi tanggal (support Y-m-d, d/m/Y, d-m-Y)
+            $guessedDate = null;
+            $dateCandidates = [];
+            if (preg_match('/\b\d{4}-\d{2}-\d{2}\b/', $s, $m)) $dateCandidates[] = $m[0];            // Y-m-d
+            if (preg_match('/\b\d{1,2}\/\d{1,2}\/\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];       // d/m/Y
+            if (preg_match('/\b\d{1,2}-\d{1,2}-\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];         // d-m-Y
+
+            foreach ($dateCandidates as $cand) {
+                $parsed = null;
+                foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $fmt) {
+                    try {
+                        $parsed = Carbon::createFromFormat($fmt, $cand);
+                        if ($parsed) { $guessedDate = $parsed->toDateString(); break 2; }
+                    } catch (\Throwable $e) {}
+                }
+            }
+
+            // 4) Terapkan ke query
+            $q->where(function ($w) use ($s, $guessedStatus, $guessedAmount, $guessedDate) {
+                // Kolom teks utama
                 $w->where('number', 'like', "%{$s}%")
-                    ->orWhere('title', 'like', "%{$s}%")
-                    ->orWhere('receiver', 'like', "%{$s}%")
-                    ->orWhere('destination', 'like', "%{$s}%");
+                  ->orWhere('title', 'like', "%{$s}%")
+                  ->orWhere('sender', 'like', "%{$s}%")
+                  ->orWhere('receiver', 'like', "%{$s}%")
+                  ->orWhere('division', 'like', "%{$s}%")
+                  ->orWhere('destination', 'like', "%{$s}%");
+
+                // Status dari kata kunci (opsional)
+                if ($guessedStatus) {
+                    $w->orWhere('status', $guessedStatus);
+                }
+
+                // Nominal: cocokan angka penuh atau substring (cast to char)
+                if (!is_null($guessedAmount) && $guessedAmount > 0) {
+                    $w->orWhere('amount_idr', $guessedAmount)
+                      ->orWhereRaw("CAST(amount_idr AS CHAR) LIKE ?", ['%'.$guessedAmount.'%']);
+                }
+
+                // Tanggal tepat (YYYY-MM-DD)
+                if ($guessedDate) {
+                    $w->orWhereDate('date', $guessedDate);
+                }
             });
         }
 
+        // ===========================
+        // FILTER KHUSUS TAMBAHAN
+        // ===========================
         if ($st = $req->input('status')) {
             $q->where('status', $st);
         }
@@ -132,6 +202,7 @@ class DocumentController extends Controller
             $q->where('division', $div);
         }
 
+        // Preset period berdasar created_at
         if ($period = $req->input('period')) {
             $now = Carbon::now('Asia/Jakarta');
             $now->locale('id_ID');
@@ -150,6 +221,7 @@ class DocumentController extends Controller
             }
         }
 
+        // Filter rentang created_at
         if ($from = $req->input('created_from')) {
             $q->whereDate('created_at', '>=', $from);
         }
@@ -157,6 +229,7 @@ class DocumentController extends Controller
             $q->whereDate('created_at', '<=', $to);
         }
 
+        // Filter rentang date (tanggal dokumen)
         if ($df = $req->input('date_from')) {
             $q->whereDate('date', '>=', $df);
         }
@@ -164,23 +237,26 @@ class DocumentController extends Controller
             $q->whereDate('date', '<=', $dt);
         }
 
+        // Overdue (contoh: SUBMITTED lebih lama dari N hari dihitung dari date/created_at)
         if ($overdue = $req->integer('overdue_days')) {
             $cutoff = Carbon::now('Asia/Jakarta')->subDays($overdue)->toDateString();
             $q->where('status', 'SUBMITTED')
-                ->where(function ($w) use ($cutoff) {
+              ->where(function ($w) use ($cutoff) {
                     $w->where(function ($x) use ($cutoff) {
                         $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
                     })->orWhere(function ($x) use ($cutoff) {
                         $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
                     });
-                });
+              });
         }
 
+        // Urutan & pagination
         $documents = $q->orderByDesc('date')
             ->orderByDesc('id')
             ->paginate($per)
             ->withQueryString();
 
+        // Daftar division untuk filter (ambil unik yang ada di DB)
         $divisions = Document::query()
             ->select('division')
             ->distinct()
@@ -199,8 +275,6 @@ class DocumentController extends Controller
             'divisions' => $divisions,
         ]);
     }
-
-    // private array $divisions = [...];  // ⬅️ DIHAPUS, diganti constant
 
     public function create()
     {
@@ -312,7 +386,7 @@ class DocumentController extends Controller
     public function destroy(Document $document)
     {
         $document->delete();
-        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihaaapus!');
+        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus!');
     }
 
     public function show(Document $document)

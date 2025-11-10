@@ -1,146 +1,244 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{{ $title ?? 'SerahTerima' }}</title>
+  <title>{{ $title ?? 'Serah Terima' }}</title>
 
   {{-- Vendor --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tabler-icons@3.6.0/iconfont/tabler-icons.min.css" rel="stylesheet">
 
-  {{-- CSS hasil build (Tailwind v4/CLI) + custom --}}
+  {{-- Build CSS (opsional) --}}
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-
+  @stack('styles')
 
   <style>
-    /* ========= VARIABEL & RESET ========= */
-    :root{
+    :root {
       --aside-w: 260px;
       --aside-bg: #1f3350;
       --aside-text: #e7efff;
       --aside-active: #274368;
-      --topbar-h: 56px;
+      --topbar-h: 60px;
     }
-    html,body{ height:100%; }
-    body{ background:#f6f7fb; overflow-x:hidden; } /* <-- cegah geser kanan */
 
-    /* ========= SIDEBAR ========= */
-    .sidebar{
-      position: fixed; inset: 0 auto 0 0;
-      width: var(--aside-w);
-      background: var(--aside-bg); color: var(--aside-text);
-      display:flex; flex-direction:column; gap:12px;
-      padding:18px 16px; z-index:1031; /* di bawah topbar */
-      border-right: 1px solid rgba(255,255,255,.08);
+    html,
+    body {
+      height: 100%
     }
-    .sidebar .brand{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-    .sidebar .brand-icon{ width:36px; height:36px; display:grid; place-items:center; background:#2c4770; border-radius:10px; }
-    .sidebar .brand-text{ font-weight:800; letter-spacing:.2px; }
 
-    .menu .menu-item{
-      display:flex; align-items:center; gap:10px;
-      color: var(--aside-text); text-decoration:none;
-      border-radius:10px; padding:10px 12px; font-weight:600;
-      opacity:.92; transition: background .15s ease, opacity .15s ease;
+    body {
+      background: #f6f7fb;
+      overflow-x: hidden
     }
-    .menu .menu-item:hover{ background: var(--aside-active); opacity:1; }
-    .menu .menu-item.active{ background: var(--aside-active); color:#fff; }
-    .menu .menu-item .ti{ font-size:18px; opacity:.95; }
 
-    /* ========= TOPBAR OVERRIDE (ambil alih style dari partial) ========= */
-    .topbar{
+    /* ===== SIDEBAR ===== */
+    .sidebar {
       position: fixed;
-      top:0; right:0; left: var(--aside-w);  /* <-- offset ikut aside */
+      inset: 0 auto 0 0;
+      width: var(--aside-w);
+      background: var(--aside-bg);
+      color: var(--aside-text);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px 16px;
+      z-index: 1031;
+      border-right: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .sidebar .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      background: #2c4770;
+      border-radius: 10px
+    }
+
+    .brand-text {
+      font-weight: 800;
+      letter-spacing: .2px
+    }
+
+    .menu .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--aside-text);
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 600;
+      opacity: .92;
+      transition: background .15s ease, opacity .15s ease
+    }
+
+    .menu .menu-item:hover {
+      background: var(--aside-active);
+      opacity: 1
+    }
+
+    .menu .menu-item.active {
+      background: var(--aside-active);
+      color: #fff
+    }
+
+    .menu .menu-item .ti {
+      font-size: 18px;
+      opacity: .95
+    }
+
+    /* ===== TOPBAR (didefinisikan di partial, tapi layout yang atur posisi) ===== */
+    .topbar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
       height: var(--topbar-h);
-      display:flex; align-items:center; justify-content:space-between;
-      background:#f8fafc; border-bottom:1px solid #e5e7eb;
-      padding: 0 .8rem; z-index:1032;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 .8rem;
+      z-index: 1032;
       transition: left .3s ease;
     }
-    /* Sembunyikan breadcrumb di topbar saat layar kecil supaya tidak dobel */
-    @media (max-width: 1024px){ .topbar .breadcrumb-mini{ display:none !important; } }
 
-    /* ========= CONTENT ========= */
-    .content{
-      min-height:100vh;
-      margin-left: var(--aside-w);
+    @media (min-width:1024px) {
+      body.has-aside .topbar {
+        left: var(--aside-w);
+      }
+    }
+
+    /* ===== CONTENT ===== */
+    .content {
+      min-height: 100vh;
+      margin-left: 0;
       padding: 20px;
-      padding-top: calc(var(--topbar-h) + 20px); /* <-- tidak ketiban judul */
+      padding-top: calc(var(--topbar-h) + 20px);
       transition: margin-left .3s ease;
     }
 
-    /* ========= MOBILE ========= */
-    @media (max-width: 1024px){
-      .sidebar{ display:none; }
-      body.nav-open .sidebar{
-        display:block; position: fixed; inset: var(--topbar-h) auto 0 0;
-        width: 84%; max-width: 320px; z-index:1040;
+    @media (min-width:1024px) {
+      body.has-aside .content {
+        margin-left: var(--aside-w);
       }
-      .topbar{ left: 0; }       /* <-- di HP, topbar full width */
-      .content{ margin-left: 0; } /* <-- konten full, ga geser kanan */
+    }
 
-      .nav-backdrop{
-        position: fixed; inset: var(--topbar-h) 0 0 0;
-        background: rgba(0,0,0,.45); display:none; z-index:1035;
+    /* ===== MOBILE: sidebar jadi drawer ===== */
+    @media (max-width:1024px) {
+      .sidebar {
+        inset: var(--topbar-h) auto 0 0;
+        width: 84%;
+        max-width: 320px;
+        transform: translateX(-100%);
+        transition: transform .28s ease;
+        display: block;
       }
-      body.nav-open .nav-backdrop{ display:block; }
+
+      body.nav-open .sidebar {
+        transform: translateX(0);
+      }
+
+      .topbar {
+        left: 0;
+      }
+
+      .content {
+        margin-left: 0;
+      }
+
+      .nav-backdrop {
+        position: fixed;
+        inset: var(--topbar-h) 0 0 0;
+        background: rgba(0, 0, 0, .45);
+        display: none;
+        z-index: 1030;
+      }
+
+      body.nav-open .nav-backdrop {
+        display: block;
+      }
     }
   </style>
 </head>
 
-<body>
-  {{-- SIDEBAR (desktop + drawer mobile) --}}
+<body class="has-aside">
+  {{-- SIDEBAR --}}
   <aside class="sidebar" id="appSidebar">
-    <div class="brand brand-desktop">
-      <span class="brand-icon">📁</span>
-      <span class="brand-text">Serah Terima</span>
+    <div class="brand d-flex align-items-center py-2">
+      <img src="{{ asset('images/Logo3.png') }}" alt="Logo Pelni Services" class="brand-img"
+        style="width:150px;object-fit:contain;display:block;">
     </div>
 
-    <nav class="menu">
-      @auth
-        @php $role = auth()->user()->role ?? 'user'; @endphp
 
-        @if (in_array($role, ['admin_internal', 'admin_komersial']))
-          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
-          </a>
+    <nav class="menu">
+      @php
+        $u = auth()->user();
+        $isAdmin = false;
+        if ($u) {
+          if (method_exists($u, 'hasRole')) {
+            try {
+              $isAdmin = $u->hasRole(['admin_internal', 'admin_komersial']);
+            } catch (\Throwable $e) {
+            }
+          }
+          if (!$isAdmin)
+            $isAdmin = in_array(($u->role ?? ''), ['admin_internal', 'admin_komersial'], true);
+        }
+      @endphp
+
+      @if ($isAdmin)
+        <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+          <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
+        </a>
+        @if (Route::has('admin.users.index'))
           <a class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-             href="{{ route('admin.users.index') }}">
+            href="{{ route('admin.users.index') }}">
             <i class="ti ti-users"></i> <span>Pengguna</span>
           </a>
-          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
-            @csrf
-            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
-              <i class="ti ti-logout"></i> <span>Logout</span>
-            </button>
-          </form>
-        @else
-          <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
-          </a>
+        @endif
+      @else
+        <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+          <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
+        </a>
+        @if (Route::has('documents.index'))
           <a class="menu-item {{ request()->routeIs('documents.index') ? 'active' : '' }}"
-             href="{{ route('documents.index') }}">
+            href="{{ route('documents.index') }}">
             <i class="ti ti-folder"></i> <span>Data Dokumen</span>
           </a>
+        @endif
+        @if (Route::has('documents.create'))
           <a class="menu-item {{ request()->routeIs('documents.create') ? 'active' : '' }}"
-             href="{{ route('documents.create') }}">
+            href="{{ route('documents.create') }}">
             <i class="ti ti-file-plus"></i> <span>Input Dokumen</span>
           </a>
-          <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
-            @csrf
-            <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
-              <i class="ti ti-logout"></i> <span>Logout</span>
-            </button>
-          </form>
         @endif
-      @endauth
+      @endif
+
+      {{-- Logout --}}
+      <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
+        @csrf
+        <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
+          <i class="ti ti-logout"></i> <span>Logout</span>
+        </button>
+      </form>
     </nav>
   </aside>
 
-  {{-- BACKDROP buat drawer mobile --}}
-  <div class="nav-backdrop" id="navBackdrop"></div>
+  {{-- BACKDROP drawer mobile --}}
+  <div class="nav-backdrop" id="navBackdrop" aria-hidden="true"></div>
 
   {{-- MAIN --}}
   <main class="content">
@@ -153,99 +251,54 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    // === Drawer mobile (klik hamburger di topbar) ===
-    (function(){
+    // Drawer mobile (sidebar)
+    (function () {
       const body = document.body;
-      const btn  = document.getElementById('btnMobileNav'); // tombol ada di topbar partial
-      const bd   = document.getElementById('navBackdrop');
+      const btn = document.getElementById('btnMobileNav'); 
+      const bd = document.getElementById('navBackdrop');
 
-      function openNav(){ body.classList.add('nav-open'); btn?.classList.add('active'); }
-      function closeNav(){ body.classList.remove('nav-open'); btn?.classList.remove('active'); }
-      function toggleNav(){ body.classList.toggle('nav-open'); btn?.classList.toggle('active'); }
+      function openNav() { body.classList.add('nav-open'); btn?.classList.add('active'); btn?.setAttribute('aria-expanded', 'true'); }
+      function closeNav() { body.classList.remove('nav-open'); btn?.classList.remove('active'); btn?.setAttribute('aria-expanded', 'false'); }
+      function toggleNav() { body.classList.contains('nav-open') ? closeNav() : openNav(); }
 
       btn && btn.addEventListener('click', toggleNav);
       bd && bd.addEventListener('click', closeNav);
-      document.addEventListener('keydown', e => { if(e.key === 'Escape') closeNav(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
+
+      // Auto-close saat klik link di sidebar
+      document.querySelectorAll('.menu a').forEach(a => a.addEventListener('click', closeNav));
+
+      // Auto-close pada navigasi SPA / bfcache
+      window.addEventListener('pageshow', closeNav);
+      window.addEventListener('turbo:visit', closeNav);
+      window.addEventListener('turbo:load', closeNav);
+      document.addEventListener('inertia:visit', closeNav);
+      document.addEventListener('inertia:navigate', closeNav);
+      document.addEventListener('livewire:navigated', closeNav);
+
+      // Tutup jika masuk desktop
+      window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeNav(); });
     })();
 
-    // === Fallback confirmDelete (global) ===
+    // Global confirmDelete
     window.confirmDelete ??= function (id) {
       Swal.fire({
-        title: 'Hapus dokumen ini?',
-        text: 'Data akan hilang secara permanen!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, hapus!',
-        cancelButtonText: 'Batal'
-      }).then((r) => {
-        if (r.isConfirmed) {
-          const f = document.getElementById(`delete-form-${id}`);
-          if (f) f.submit();
-        }
-      });
+        title: 'Hapus dokumen ini?', text: 'Data akan hilang secara permanen!', icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, hapus!', cancelButtonText: 'Batal'
+      }).then((r) => { if (r.isConfirmed) { const f = document.getElementById(`delete-form-${id}`); if (f) f.submit(); } });
     };
-
-    // === Context menu baris (tetap) ===
-    (function () {
-      const menu = document.createElement('div');
-      menu.id = 'rowActionMenu';
-      Object.assign(menu.style, {
-        position: 'fixed', minWidth: '180px', borderRadius: '12px',
-        background: '#fff', boxShadow: '0 12px 24px rgba(0,0,0,.12)',
-        padding: '6px', zIndex: '3000', display: 'none'
-      });
-      menu.innerHTML = `
-        <a id="am-detail" class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">👁️ Detail</a>
-        <a id="am-edit"   class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">✏️ Edit</a>
-        <a id="am-sign"   class="dropdown-item" style="display:block;padding:8px 12px;border-radius:8px;color:#111827;text-decoration:none">✍️ Tanda Tangan</a>
-        <hr style="margin:6px 0">
-        <button id="am-del" class="dropdown-item" style="width:100%;text-align:left;padding:8px 12px;border-radius:8px;color:#dc2626;background:transparent;border:0">🗑️ Hapus</button>
-      `;
-      document.body.appendChild(menu);
-
-      function closeMenu() { menu.style.display = 'none'; }
-      document.addEventListener('click', (e) => { if (menu.style.display !== 'none' && !menu.contains(e.target)) closeMenu(); });
-      window.addEventListener('resize', closeMenu);
-      window.addEventListener('scroll', closeMenu, true);
-
-      window.openActionMenu = function (ev, urlShow, urlEdit, urlSign, id) {
-        ev.stopPropagation();
-        const rect = ev.currentTarget.getBoundingClientRect();
-        const x = Math.min(window.innerWidth - menu.offsetWidth - 8, rect.right - 180);
-        const y = rect.bottom + 6;
-        menu.style.left = `${Math.max(8, x)}px`;
-        menu.style.top = `${Math.min(window.innerHeight - 8, y)}px`;
-        document.getElementById('am-detail').href = urlShow;
-        document.getElementById('am-edit').href = urlEdit;
-        document.getElementById('am-sign').href = urlSign;
-        document.getElementById('am-del').onclick = function () {
-          closeMenu();
-          confirmDelete(id);
-        };
-        menu.style.display = 'block';
-      };
-    })();
   </script>
 
-  {{-- Toast flash --}}
+  {{-- Flash toast --}}
   @if (session('success'))
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: @json(session('success')), showConfirmButton: false, timer: 2200, timerProgressBar: true });
-      });
-    </script>
+    <script>window.addEventListener('DOMContentLoaded', () => { Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: @json(session('success')), showConfirmButton: false, timer: 2200, timerProgressBar: true }); });</script>
   @endif
   @if (session('error'))
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: @json(session('error')), showConfirmButton: false, timer: 2600, timerProgressBar: true });
-      });
-    </script>
+    <script>window.addEventListener('DOMContentLoaded', () => { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: @json(session('error')), showConfirmButton: false, timer: 2600, timerProgressBar: true }); });</script>
   @endif
 
   @stack('scripts')
-  @stack('styles')
 </body>
+
 </html>
