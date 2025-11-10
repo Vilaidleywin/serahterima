@@ -13,10 +13,35 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware('auth')->except(['index','show']);
-    // }
+    // --- TAMBAHAN: jadikan constant + getter statis ---
+    public const DIVISIONS = [
+        'Pengadaan',
+        'Pembelian',
+        'Pergudangan',
+        'Pengawas Internal',
+        'Pelayanan dan Jasa',
+        'Pemeliharaan',
+        'IT Komersial',
+        'Pemasaran',
+        'Pembekalan',
+        'Komersial Asset',
+        'SDM & Umum',
+        'IT Internal',
+        'Perpajakan',
+        'Akutansi',
+        'Menajemen Resiko',
+        'Manager Treasury',
+        'Security',
+        'Other'
+    ];
+
+    public static function divisions(): array
+    {
+        return self::DIVISIONS;
+    }
+    // ---------------------------------------------------
+
+    // public function __construct() { ... }
 
     public function printPdf(Document $document)
     {
@@ -27,14 +52,9 @@ class DocumentController extends Controller
 
     public function printTandaTerima(Document $document)
     {
-        // NOTE: saat ini menampilkan view. Kalau ingin langsung PDF, aktifkan blok di bawah dan hapus return view.
         return view('documents.print-tandaterima', [
             'document' => $document,
         ]);
-
-        // $pdf = Pdf::loadView('documents.print-tandaterima', compact('document'))
-        //     ->setPaper('a4', 'portrait');
-        // return $pdf->stream('TandaTerima-' . $document->number . '.pdf');
     }
 
     public function photo(Document $document)
@@ -52,27 +72,22 @@ class DocumentController extends Controller
         }
 
         $request->validate([
-            'photo'      => ['nullable', 'string'],            // base64 data URL
-            'photo_file' => ['nullable', 'image', 'max:5120'], // file < 5MB
+            'photo'      => ['nullable', 'string'],
+            'photo_file' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $path = null;
 
-        // Upload file
         if ($request->hasFile('photo_file')) {
             $path = $request->file('photo_file')->store('document-photos', 'public');
-        }
-        // Base64 kamera
-        elseif ($dataUrl = $request->input('photo')) {
+        } elseif ($dataUrl = $request->input('photo')) {
             if (!preg_match('#^data:image/(png|jpe?g);base64,#i', $dataUrl)) {
                 return back()->withErrors(['photo' => 'Foto tidak valid.'])->withInput();
             }
-
             $binary = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl), true);
             if ($binary === false || strlen($binary) < 1000) {
                 return back()->withErrors(['photo' => 'Gagal memproses foto.'])->withInput();
             }
-
             $filename = 'doc-' . $document->id . '-' . time() . '.jpg';
             $path = 'document-photos/' . $filename;
             \Storage::disk('public')->put($path, $binary);
@@ -82,7 +97,6 @@ class DocumentController extends Controller
             return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
         }
 
-        // Hapus lama (opsional)
         if ($document->photo_path && \Storage::disk('public')->exists($document->photo_path)) {
             \Storage::disk('public')->delete($document->photo_path);
         }
@@ -96,13 +110,11 @@ class DocumentController extends Controller
 
     public function index(Request $req)
     {
-        // Per page aman (10/15/25/50)
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        // ====== Search (number/title/receiver/destination) ======
         if ($s = $req->input('search')) {
             $q->where(function ($w) use ($s) {
                 $w->where('number', 'like', "%{$s}%")
@@ -112,20 +124,16 @@ class DocumentController extends Controller
             });
         }
 
-        // ====== Status (DRAFT/SUBMITTED/REJECTED) ======
         if ($st = $req->input('status')) {
             $q->where('status', $st);
         }
 
-        // ====== Division ======
         if ($div = $req->input('division')) {
             $q->where('division', $div);
         }
 
-        // ====== PERIOD (today|week|month) berdasarkan created_at ======
         if ($period = $req->input('period')) {
             $now = Carbon::now('Asia/Jakarta');
-            // Minggu mulai Senin (standar ID)
             $now->locale('id_ID');
             $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
             $endWeek   = $now->copy()->endOfWeek(Carbon::SUNDAY);
@@ -142,7 +150,6 @@ class DocumentController extends Controller
             }
         }
 
-        // ====== Rentang manual CREATED_AT (opsional) ======
         if ($from = $req->input('created_from')) {
             $q->whereDate('created_at', '>=', $from);
         }
@@ -150,8 +157,6 @@ class DocumentController extends Controller
             $q->whereDate('created_at', '<=', $to);
         }
 
-        // ====== Rentang manual DATE (handover) - INKLUSIF ======
-        // Pakai param: date_from & date_to
         if ($df = $req->input('date_from')) {
             $q->whereDate('date', '>=', $df);
         }
@@ -159,30 +164,23 @@ class DocumentController extends Controller
             $q->whereDate('date', '<=', $dt);
         }
 
-        // ====== OVERDUE SUBMITTED > N hari ======
-        // ?overdue_days=7 -> status SUBMITTED dengan (date <= now-7) ATAU (date null & created_at <= now-7)
         if ($overdue = $req->integer('overdue_days')) {
             $cutoff = Carbon::now('Asia/Jakarta')->subDays($overdue)->toDateString();
             $q->where('status', 'SUBMITTED')
                 ->where(function ($w) use ($cutoff) {
                     $w->where(function ($x) use ($cutoff) {
-                        $x->whereNotNull('date')
-                            ->whereDate('date', '<=', $cutoff);
-                    })
-                        ->orWhere(function ($x) use ($cutoff) {
-                            $x->whereNull('date')
-                                ->whereDate('created_at', '<=', $cutoff);
-                        });
+                        $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
+                    })->orWhere(function ($x) use ($cutoff) {
+                        $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
+                    });
                 });
         }
 
-        // Urutan terbaru (date jika ada, fallback id)
         $documents = $q->orderByDesc('date')
             ->orderByDesc('id')
             ->paginate($per)
             ->withQueryString();
 
-        // Daftar division unik untuk dropdown
         $divisions = Document::query()
             ->select('division')
             ->distinct()
@@ -202,7 +200,7 @@ class DocumentController extends Controller
         ]);
     }
 
-    private array $divisions = ['Pengadaan', 'Pembelian', 'Pergudangan', 'Pengawas internal', 'Pelayanan dan jasa', 'Pemeliharaan', 'IT komersial', 'Pemasaran', 'Pembekalan', 'Komersial asset', 'SDM & umum', 'IT internal', 'Perpajakan', 'Akutansi', 'Menajemen resiko', 'Manager treasury', 'Other'];
+    // private array $divisions = [...];  // ⬅️ DIHAPUS, diganti constant
 
     public function create()
     {
@@ -213,24 +211,24 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Tambah Dokumen'],
             ],
-            'divisions' => $this->divisions,
+            'divisions' => self::DIVISIONS, // ⬅️ ganti dari $this->divisions
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'number'      => ['required', 'string', 'max:50', 'unique:documents,number'],
-            'title'       => ['required', 'string', 'max:255'],
-            'sender'      => ['required', 'string', 'max:100'],
-            'receiver'    => ['required', 'string', 'max:100'],
-            'destination' => ['nullable', 'string', 'max:255'],
-            'division'    => ['nullable', 'string', 'max:100'],
+            'number'         => ['required', 'string', 'max:50', 'unique:documents,number'],
+            'title'          => ['required', 'string', 'max:255'],
+            'sender'         => ['required', 'string', 'max:100'],
+            'receiver'       => ['required', 'string', 'max:100'],
+            'destination'    => ['nullable', 'string', 'max:255'],
+            'division'       => ['nullable', 'string', 'max:100'],
             'division_other' => ['nullable', 'string', 'max:100'],
-            'amount_idr'  => ['required'],
-            'date'        => ['required', 'date'],
-            'description' => ['nullable', 'string'],
-            'file'        => ['nullable', 'file', 'max:5120'],
+            'amount_idr'     => ['required'],
+            'date'           => ['required', 'date'],
+            'description'    => ['nullable', 'string'],
+            'file'           => ['nullable', 'file', 'max:5120'],
         ]);
 
         if (strtoupper((string)$data['division']) === 'OTHER' && $request->filled('division_other')) {
@@ -238,10 +236,10 @@ class DocumentController extends Controller
         }
 
         $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
-        $data['status'] = 'DRAFT';
+        $data['status']     = 'DRAFT';
 
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('documents', 'public'); // storage/app/public/documents/xxx
+            $path = $request->file('file')->store('documents', 'public');
             $data['file_path'] = $path;
         }
 
@@ -259,8 +257,8 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Edit Dokumen'],
             ],
-            'document' => $document,
-            'divisions' => $this->divisions,
+            'document'  => $document,
+            'divisions' => self::DIVISIONS, // ⬅️ ganti dari $this->divisions
         ]);
     }
 
@@ -279,6 +277,7 @@ class DocumentController extends Controller
         if ($document->status === 'REJECTED') {
             return back()->with('error', 'Dokumen ditolak dan tidak dapat diedit.');
         }
+
         $data = $request->validate([
             'number'      => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
             'title'       => ['required', 'string', 'max:255'],
@@ -299,11 +298,9 @@ class DocumentController extends Controller
         }
 
         if ($request->hasFile('file')) {
-            // hapus lama
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
             }
-            // simpan baru
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
@@ -321,17 +318,15 @@ class DocumentController extends Controller
     public function show(Document $document)
     {
         return view('documents.show', [
-            'title' => 'Detail Dokumen',
+            'title'    => 'Detail Dokumen',
             'document' => $document,
         ]);
     }
 
-    // ====== TANDA TANGAN ======
-
     public function sign(Document $document)
     {
         return view('documents.sign', [
-            'title' => 'Tanda Tangan Dokumen',
+            'title'    => 'Tanda Tangan Dokumen',
             'document' => $document,
         ]);
     }
@@ -339,7 +334,7 @@ class DocumentController extends Controller
     public function print(Document $document)
     {
         return view('documents.print', [
-            'title' => 'Cetak Dokumen',
+            'title'    => 'Cetak Dokumen',
             'document' => $document,
         ]);
     }
@@ -350,23 +345,20 @@ class DocumentController extends Controller
             return back()->with('error', 'Dokumen ditolak dan tidak dapat ditandatangani.');
         }
 
-        $dataUrl = $request->input('signature'); // data:image/png;base64,AAAA...
+        $dataUrl = $request->input('signature');
         if (!$dataUrl || !str_starts_with($dataUrl, 'data:image/png;base64,')) {
             return back()->withErrors(['signature' => 'Tanda tangan tidak valid.'])->withInput();
         }
 
-        // decode base64
         $png = base64_decode(Str::after($dataUrl, 'data:image/png;base64,'));
         if ($png === false || strlen($png) < 100) {
             return back()->withErrors(['signature' => 'Gagal memproses tanda tangan.'])->withInput();
         }
 
-        // simpan file
-        $dir = 'signatures';
+        $dir  = 'signatures';
         $name = 'sign-' . $document->id . '-' . time() . '.png';
         Storage::disk('public')->put("$dir/$name", $png);
 
-        // hapus file lama (opsional)
         if ($document->signature_path && Storage::disk('public')->exists($document->signature_path)) {
             Storage::disk('public')->delete($document->signature_path);
         }
@@ -376,7 +368,7 @@ class DocumentController extends Controller
         if ($document->status === 'DRAFT') {
             $document->status = 'SUBMITTED';
         }
-        $document->signed_by      = Auth::id(); // nullable
+        $document->signed_by = Auth::id();
         $document->save();
 
         return redirect()
@@ -384,7 +376,6 @@ class DocumentController extends Controller
             ->with('success', 'Tanda tangan berhasil disimpan.');
     }
 
-    // ====== UTIL ======
     private function sanitizeAmount($val): float
     {
         $num = preg_replace('/[^0-9]/', '', (string) $val);

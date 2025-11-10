@@ -11,23 +11,16 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         // Pastikan kolom role & division SUDAH ada (sudah migrate add_role_and_division_to_users_table)
+        
         User::updateOrCreate(
-            ['email' => 'admin.internal@company.test'],
+            ['email' => 'fitogantengaja@gmail.com'],
             [
-                'name' => 'Admin IT Internal',
+                'name' => 'Fito Ganteng',
+                'username'   => 'fito-ganteng',
                 'password' => Hash::make('password123'),
-                'role' => 'admin',
+                'role' => 'admin_internal',
                 'division' => 'IT Internal',
-            ]
-        );
-
-        User::updateOrCreate(
-            ['email' => 'admin.komersial@company.test'],
-            [
-                'name' => 'Admin IT Komersial',
-                'password' => Hash::make('password123'),
-                'role' => 'admin',
-                'division' => 'IT Komersial',
+                'created_by' => 1,
             ]
         );
     }
