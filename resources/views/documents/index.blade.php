@@ -29,11 +29,11 @@
 
     {{-- Preset periode cepat berdasarkan created_at --}}
     <div class="col-md-2">
-      <select name="period" class="form-select">
+      <select name="period" id="datePreset" class="form-select">
         <option value="">Semua Periode</option>
-        <option value="today" @selected(request('period') === 'today')>Hari ini</option>
-        <option value="week" @selected(request('period') === 'week')>Minggu ini</option>
-        <option value="month" @selected(request('period') === 'month')>Bulan ini</option>
+        <option value="yesterday" @selected(request('period') === 'yesterday')>Kemarin</option>
+        <option value="last_week" @selected(request('period') === 'last_week')>Minggu lalu</option>
+        <option value="last_month" @selected(request('period') === 'last_month')>Bulan lalu</option>
       </select>
     </div>
 
@@ -164,8 +164,8 @@
       {{-- bawa seluruh filter agar saat ganti per_page tidak hilang --}}
       <input type="hidden" name="search" value="{{ request('search') }}">
       <input type="hidden" name="status" value="{{ request('status') }}">
-      <input type="hidden" name="from_date" value="{{ request('from_date') }}">
-      <input type="hidden" name="to_date" value="{{ request('to_date') }}">
+      <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+      <input type="hidden" name="date_to" value="{{ request('date_to') }}">
 
       <select name="per_page" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
         @foreach([10, 15, 25, 50] as $n)
@@ -215,8 +215,8 @@
   <script>
     (function () {
       const preset = document.getElementById('datePreset');
-      const fromInput = document.querySelector('input[name="from_date"]');
-      const toInput = document.querySelector('input[name="to_date"]');
+      const fromInput = document.querySelector('input[name="date_from"]');
+      const toInput = document.querySelector('input[name="date_to"]');
 
       function pad(n) { return String(n).padStart(2, '0'); }
       function fmt(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
@@ -227,27 +227,25 @@
         const s = new Date(d); s.setDate(d.getDate() + diff);
         return s;
       }
-      function endOfWeek(d) {
-        const s = startOfWeek(d);
-        const e = new Date(s); e.setDate(s.getDate() + 6);
-        return e;
-      }
 
       preset?.addEventListener('change', () => {
         const today = new Date();
         let from = '', to = '';
         switch (preset.value) {
-          case 'today':
-            from = to = fmt(today);
+          case 'yesterday': {
+            const y = new Date(today);
+            y.setDate(today.getDate() - 1);
+            from = to = fmt(y);
             break;
-          case 'this_week':
-            from = fmt(startOfWeek(today));
-            to = fmt(endOfWeek(today));
-            break;
-          case 'this_month': {
-            const f = new Date(today.getFullYear(), today.getMonth(), 1);
-            const l = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            from = fmt(f); to = fmt(l);
+          }
+          case 'last_week': {
+            const thisWeekStart = startOfWeek(today);
+            const lastWeekStart = new Date(thisWeekStart);
+            lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+            const lastWeekEnd = new Date(lastWeekStart);
+            lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+            from = fmt(lastWeekStart);
+            to = fmt(lastWeekEnd);
             break;
           }
           case 'last_month': {
@@ -259,9 +257,9 @@
           default:
             from = ''; to = '';
         }
-        fromInput.value = from;
-        toInput.value = to;
+        if (fromInput) fromInput.value = from;
+        if (toInput) toInput.value = to;
       });
     })();
   </script>
-@endpush
+@endpush  

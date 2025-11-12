@@ -206,13 +206,14 @@ class DocumentController extends Controller
             });
         }
 
-        // ------------------------------ PAGINATION -----------------------------
-        $documents = $q->orderByDesc('date')->orderByDesc('id')->paginate($per)->withQueryString();
+        $documents = $q->reorder()             
+            ->latest('created_at')     
+            ->orderByDesc('id')        
+            ->paginate($per)
+            ->withQueryString();
 
-        // ---------------------------- FILTER OPTIONS ---------------------------
         $divisions = Document::query()->select('division')->distinct()->pluck('division')->filter()->values();
 
-        // --------------------------- STATUS SUMMARY ----------------------------
         $counts = Document::query()
             ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
             ->groupBy('s')
@@ -232,7 +233,6 @@ class DocumentController extends Controller
 
         $donut = ['labels' => ['SUBMITTED', 'REJECTED', 'DRAFT'], 'data' => [$submitted, $rejected, $draft]];
 
-        // ------------------------------ BAR (bulan ini) ------------------------
         $startMonth = $now->copy()->startOfMonth();
         $endMonth   = $now->copy()->endOfMonth();
         $monthCounts = Document::query()
@@ -247,7 +247,6 @@ class DocumentController extends Controller
         $barLabels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
         $barData   = [$mNorm['SUBMITTED'], $mNorm['REJECTED'], $mNorm['DRAFT']];
 
-        // ------------------------------ LINE (12 bulan) ------------------------
         $start = $now->copy()->subMonthsNoOverflow(11)->startOfMonth();
         $end   = $now->copy()->endOfMonth();
         $perMonth = Document::query()
@@ -264,7 +263,6 @@ class DocumentController extends Controller
             $cursor->addMonth();
         }
 
-        // ---------------------------- KPI MINI ---------------------------------
         $createdToday = Document::whereDate('created_at', $now->toDateString())->count();
         $createdWeek  = Document::whereBetween('created_at', [$now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)])->count();
         $createdMonth = Document::whereBetween('created_at', [$startMonth, $endMonth])->count();
@@ -280,7 +278,6 @@ class DocumentController extends Controller
                 });
         })->count();
 
-        // ----------------------------- RENDER VIEW -----------------------------
         return view('documents.index', [
             'title'      => 'Data Dokumen',
             'breadcrumb' => [
@@ -302,7 +299,6 @@ class DocumentController extends Controller
             'lineLabels' => $lineLabels,
             'lineData'  => $lineData,
 
-            // KPI mini
             'createdToday'     => $createdToday,
             'createdWeek'      => $createdWeek,
             'createdMonth'     => $createdMonth,
@@ -311,7 +307,6 @@ class DocumentController extends Controller
         ]);
     }
 
-    // =============================== CRUD LAINNYA =============================
     public function create()
     {
         return view('documents.create', [

@@ -228,9 +228,9 @@
       @endif
 
       {{-- Logout --}}
-      <form class="menu-item" action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Keluar?')">
+      <form id="logout-form" action="{{ route('logout') }}" method="POST" class="mt-auto">
         @csrf
-        <button type="submit" style="all:unset;display:flex;gap:8px;align-items:center;cursor:pointer">
+        <button type="button" id="btn-logout" class="menu-item w-100 border-0 bg-transparent text-start ">
           <i class="ti ti-logout"></i> <span>Logout</span>
         </button>
       </form>
@@ -254,7 +254,7 @@
     // Drawer mobile (sidebar)
     (function () {
       const body = document.body;
-      const btn = document.getElementById('btnMobileNav'); 
+      const btn = document.getElementById('btnMobileNav');
       const bd = document.getElementById('navBackdrop');
 
       function openNav() { body.classList.add('nav-open'); btn?.classList.add('active'); btn?.setAttribute('aria-expanded', 'true'); }
@@ -288,6 +288,27 @@
         confirmButtonText: 'Ya, hapus!', cancelButtonText: 'Batal'
       }).then((r) => { if (r.isConfirmed) { const f = document.getElementById(`delete-form-${id}`); if (f) f.submit(); } });
     };
+    document.getElementById('btn-logout')?.addEventListener('click', function () {
+      Swal.fire({
+        title: 'Keluar sekarang?',
+        text: 'Sesi kamu akan diakhiri.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Logout',
+        cancelButtonText: 'Batal'
+      }).then((r) => {
+        if (r.isConfirmed) {
+          // (opsional) tampilkan loading sebentar
+          Swal.fire({
+            title: 'Logout...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+          });
+          document.getElementById('logout-form')?.submit();
+        }
+      });
+    });
   </script>
 
   {{-- Flash toast --}}

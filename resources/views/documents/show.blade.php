@@ -1,40 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-  {{-- ==== CSS ANTI NABRAK ==== --}}
-  <style>
-    /* Matikan semua efek sticky di kolom kanan pada layar ≥ lg */
-    @media (min-width: 992px) {
 
-      .col-lg-4 .position-sticky,
-      .col-lg-4 .sticky-top,
-      .col-lg-4 .card-soft.position-sticky,
-      .col-lg-4 .card-soft.sticky-top,
-      .sidebar-card.position-sticky,
-      .sidebar-card.sticky-top {
-        position: static !important;
-        top: auto !important;
-      }
 
-      /* Pastikan kartu kanan ikut flow normal & tidak bikin stacking aneh */
-      .col-lg-4>.card-soft,
-      .sidebar-card {
-        position: static !important;
-        z-index: 1 !important;
-        transform: none !important;
-      }
-    }
-
-    /* Blok tanda tangan & foto mulai baris baru + di atas layer sidebar */
-    #sign-photo-block {
-      clear: both;
-      margin-top: 2.5rem;
-      position: relative;
-      z-index: 2;
-    }
-  </style>
-
-  <div class="container-fluid">
+  <div class="container-fluid document-show bg-transparent px-0">
 
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -43,6 +12,7 @@
         <div class="text-muted small">No. Dokumen: {{ $document->number }}</div>
       </div>
 
+      {{-- Logika baru untuk tombol Edit di bagian ini. --}}
       @php
         $isRejected = strtoupper($document->status) === 'REJECTED';
       @endphp
@@ -51,6 +21,7 @@
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
+        {{-- Tombol Edit dikunci bila REJECTED --}}
         <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary {{ $isRejected ? 'disabled' : '' }}"
           @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
           <i class="ti ti-edit"></i> Edit
@@ -60,10 +31,11 @@
 
     {{-- Banner jika REJECTED --}}
     @if($isRejected)
-      <div class="alert alert-warning" role="alert" style="border-radius:10px;">
+      <div class="alert alert-warning mb-4" role="alert" style="border-radius:10px;">
         <strong>Dokumen Ditolak.</strong> Edit, tanda tangan, dan pengambilan foto dinonaktifkan.
       </div>
     @endif
+
 
     {{-- Ringkasan --}}
     <div class="row g-3 mb-4">
@@ -102,7 +74,7 @@
     </div>
 
     {{-- Detail & Info --}}
-    <div class="row g-3">
+    <div class="row g-3 mb-4">
       <div class="col-lg-8">
         <div class="card-soft p-4">
           <div class="mb-3">
@@ -147,11 +119,15 @@
         </div>
       </div>
 
-      {{-- === KARTU INFO & AKSI (fixed: no sticky) === --}}
-      @php $isSigned = filled($document->signature_path); @endphp
+      {{-- === KARTU INFO & AKSI (DIREVISI) === --}}
+      @php
+        $isSigned = filled($document->signature_path);
+        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
+      @endphp
       <div class="col-lg-4">
-        <div class="card-soft p-4 sidebar-card"><!-- class khusus untuk override -->
+        <div class="card-soft p-4 mb-4 mb-lg-0">
 
+          {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
               style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
@@ -165,31 +141,23 @@
           @endif
 
           <h6 class="fw-semibold text-uppercase text-muted small mb-2">Info Tambahan</h6>
-          <ul class="list-unstyled mb-3">
-            <li class="mb-2">
-              <i class="ti ti-user text-muted me-2"></i> Dibuat oleh:
-              <span class="fw-semibold">{{ $document->user->name ?? '-' }}</span>
-            </li>
-            <li class="mb-2">
-              <i class="ti ti-clock text-muted me-2"></i> Diperbarui:
-              <span class="text-muted small">{{ $document->updated_at->diffForHumans() }}</span>
-            </li>
-            <li class="mb-2">
-              <i class="ti ti-folder text-muted me-2"></i> Nomor Dokumen:
-              <span class="fw-semibold">{{ $document->number }}</span>
-            </li>
-          </ul>
+          {{-- ... (bagian lain tetap) --}}
           <hr>
 
+          {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
             class="btn btn-outline-secondary w-100 mb-2">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
-          <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
-            <i class="ti ti-trash me-1"></i> Hapus Dokumen
-          </button>
+          {{-- Hapus Dokumen: disembunyikan jika sudah signed atau submitted --}}
+          @if(!$isSigned && !$isSubmitted)
+            <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
+              <i class="ti ti-trash me-1"></i> Hapus Dokumen
+            </button>
+          @endif
 
+          {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
             <form action="{{ route('documents.reject', $document) }}" method="POST"
               onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
@@ -200,6 +168,7 @@
             </form>
           @endif
 
+          {{-- Form hapus (boleh tetap ada/tersembunyi) --}}
           <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
             class="d-none">
             @csrf
@@ -208,13 +177,16 @@
 
         </div>
       </div>
+
+
     </div>
 
-    {{-- === BLOK TANDA TANGAN & FOTO (tidak nabrak) === --}}
-    <div id="sign-photo-block" class="card-soft p-3 mt-5">
-      <div class="d-flex justify-content-between align-items-center mb-2">
+    {{-- === BLOK TANDA TANGAN & FOTO (DIREVISI) === --}}
+    <div class="card-soft p-3 mt-5">
+      <div class="d-flex justify-content-between align-items-center m">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
-        <div class="d-flex gap-2"></div>
+        <div class="d-flex gap-2">
+        </div>
       </div>
 
       <div class="row g-3">
@@ -258,6 +230,5 @@
         </div>
       </div>
     </div>
-
   </div>
 @endsection

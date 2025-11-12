@@ -5,17 +5,52 @@
 
 <header class="topbar" role="banner" aria-label="Topbar">
   <div class="d-flex align-items-center gap-2">
-    {{-- Hamburger (mobile) --}}
-    <button type="button" id="btnMobileNav" class="btn btn-light d-lg-none" aria-label="Buka menu samping"
-      aria-controls="appSidebar" aria-expanded="false" style="border-radius:10px">
-      <i class="ti ti-menu-2"></i>
-    </button>
+    {{-- Overflow (mobile) → NAV PANEL DARK --}}
+    <div class="dropdown d-lg-none">
+      <button
+        type="button"
+        id="btnOverflow"
+        class="btn btn-light"
+        aria-label="Buka menu cepat"
+        data-bs-toggle="dropdown"
+        data-bs-auto-close="outside"
+        aria-expanded="false"
+        style="border-radius:10px"
+      >
+        <i class="ti ti-dots-vertical"></i>
+      </button>
 
-    {{-- Overflow (mobile) --}}
-    <button type="button" id="btnOverflow" class="btn btn-light d-lg-none" aria-label="Buka menu cepat"
-      aria-controls="topbarMenu" aria-expanded="false" style="border-radius:10px">
-      <i class="ti ti-dots-vertical"></i>
-    </button>
+      <div class="dropdown-menu dropdown-menu-start dropdown-menu-sheet" aria-labelledby="btnOverflow">
+        <div class="sheet-head">
+          <strong class="brand">
+            <img src="{{ asset('images/logo2.png') }}" alt="Logo" class="brand-logo"> Menu
+          </strong>
+          <button class="sheet-close" data-bs-toggle="dropdown" aria-label="Tutup">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+
+        <div class="sheet-body">
+          <a class="sheet-item" href="{{ route('dashboard') }}"><i class="ti ti-home me-2"></i>Dashboard</a>
+          @if (Route::has('documents.index'))
+            <a class="sheet-item" href="{{ route('documents.index') }}"><i class="ti ti-folder me-2"></i>Data Dokumen</a>
+          @endif
+          @if (Route::has('documents.create'))
+            <a class="sheet-item" href="{{ route('documents.create') }}"><i class="ti ti-file-plus me-2"></i>Input Dokumen</a>
+          @endif
+
+          <div class="sheet-sep"></div>
+
+          @if (Route::has('profile.edit'))
+            <a class="sheet-item" href="{{ route('profile.edit') }}"><i class="ti ti-settings me-2"></i>Profil</a>
+          @endif
+          <form action="{{ route('logout') }}" method="POST" class="mt-1">
+            @csrf
+            <button type="submit" class="sheet-item text-danger"><i class="ti ti-logout me-2"></i>Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>
 
     {{-- Brand / breadcrumb --}}
     <a href="{{ route('dashboard') }}" class="text-decoration-none d-flex align-items-center gap-2">
@@ -41,9 +76,16 @@
   <div class="d-flex align-items-center gap-2">
     {{-- User dropdown --}}
     <div class="dropdown">
-      <button class="btn btn-light btn-user d-flex align-items-center gap-2 px-2 py-1" type="button"
-        data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,8" aria-expanded="false"
-        style="border-radius:999px">
+      <button
+        class="btn btn-light btn-user d-flex align-items-center gap-2 px-2 py-1"
+        type="button"
+        data-bs-toggle="dropdown"
+        data-bs-display="static"
+        data-bs-offset="0,8"
+        data-bs-auto-close="outside"
+        aria-expanded="false"
+        style="border-radius:999px"
+      >
         <img src="{{ $avatar }}" alt="avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover">
         <span class="d-none d-md-inline text-truncate" style="max-width:160px">
           {{ \Illuminate\Support\Str::limit($user->name ?? 'Pengguna', 22) }}
@@ -51,23 +93,15 @@
         <i class="ti ti-chevron-down d-none d-md-inline"></i>
       </button>
 
-      <ul class="dropdown-menu dropdown-menu-end shadow">
+      <ul class="dropdown-menu dropdown-menu-end shadow menu-compact">
         @if (Route::has('profile.edit'))
-          <li>
-            <a class="dropdown-item" href="{{ route('profile.edit') }}">
-              <i class="ti ti-settings me-2"></i>Profil
-            </a>
-          </li>
+          <li><a class="dropdown-item" href="{{ route('profile.edit') }}"><i class="ti ti-settings me-2"></i>Profil</a></li>
         @endif
-        <li>
-          <hr class="dropdown-divider">
-        </li>
+        <li><hr class="dropdown-divider"></li>
         <li>
           <form action="{{ route('logout') }}" method="POST">
             @csrf
-            <button class="dropdown-item text-danger" type="submit">
-              <i class="ti ti-logout me-2"></i>Logout
-            </button>
+            <button class="dropdown-item text-danger" type="submit"><i class="ti ti-logout me-2"></i>Logout</button>
           </form>
         </li>
       </ul>
@@ -75,201 +109,107 @@
   </div>
 </header>
 
-{{-- === OVERFLOW SHEET (mobile) === --}}
-<div id="topbarMenuBackdrop" class="tbmenu-backdrop" aria-hidden="true" hidden></div>
-
-<div id="topbarMenu" class="topbar-sheet" role="menu" aria-hidden="true" aria-labelledby="btnOverflow" hidden>
-  <div class="sheet-head">
-    <strong>Menu</strong>
-    <button type="button" class="sheet-close" aria-label="Tutup menu" data-close-topbar-menu>
-      <i class="ti ti-x"></i>
-    </button>
-  </div>
-  <div class="sheet-body">
-    <a href="{{ route('dashboard') }}" class="sheet-item"><i class="ti ti-home me-2"></i>Dashboard</a>
-    @if (Route::has('documents.index'))
-      <a href="{{ route('documents.index') }}" class="sheet-item"><i class="ti ti-folder me-2"></i>Data Dokumen</a>
-    @endif
-    @if (Route::has('documents.create'))
-      <a href="{{ route('documents.create') }}" class="sheet-item"><i class="ti ti-file-plus me-2"></i>Input Dokumen</a>
-    @endif
-    <div class="sheet-sep"></div>
-    @if (Route::has('profile.edit'))
-      <a href="{{ route('profile.edit') }}" class="sheet-item"><i class="ti ti-settings me-2"></i>Profil</a>
-    @endif
-    <form action="{{ route('logout') }}" method="POST" class="mt-1">
-      @csrf
-      <button type="submit" class="sheet-item text-danger"><i class="ti ti-logout me-2"></i>Logout</button>
-    </form>
-  </div>
-</div>
+{{-- Backdrop untuk panel (membuat panel “terpisah” dari halaman) --}}
+<div id="menuBackdrop" class="menu-backdrop" hidden></div>
 
 <style>
-  
   :root {
     --topbar-h: 72px;
+    --nav-bg: #1f3555;
+    --nav-bg-2: #192c49;
+    --nav-text: #e8eef7;
+    --nav-hover: #2a476f;
   }
 
   .topbar {
-    position: fixed;
-    inset: 0 0 auto 0;
-    height: var(--topbar-h);
-    z-index: 1200;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 8px 16px;
+    position: fixed; inset: 0 0 auto 0; height: var(--topbar-h);
+    z-index: 1200; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 8px 16px;
+    backdrop-filter: saturate(140%) blur(6px);
   }
+  .app-main { padding-top: var(--topbar-h); }
+  .topbar .btn-user { padding: 6px 10px; border-radius: 999px; }
 
-  .app-main {
-    padding-top: var(--topbar-h);
+  .dropdown-menu { border-radius: 14px; padding: 8px; min-width: 220px; }
+  .dropdown-item { padding: .65rem .85rem; border-radius: 10px; }
+  .dropdown-item:hover { background: #f3f4f6; }
+  .menu-compact { min-width: 220px; }
+
+  /* === NAV PANEL DARK (terpisah, ada border & shadow) === */
+  .dropdown-menu-sheet{
+    padding:0; border:1px solid rgba(255,255,255,.08);
+    overflow:hidden; width:92vw; max-width:520px;
+    background:var(--nav-bg); color:var(--nav-text);
+    border-radius:22px;
+    box-shadow:0 28px 60px rgba(0,0,0,.35);
+    transform-origin:top left; transform:translateY(-10px) scale(.98);
+    opacity:0; transition:transform .22s ease, opacity .22s ease;
   }
+  .dropdown-menu-sheet.show{ transform:translateY(0) scale(1); opacity:1; }
 
-  .topbar .btn-user {
-    padding: 6px 10px;
-    border-radius: 999px;
+  .dropdown-menu-sheet .sheet-head{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--nav-bg-2); padding:.95rem 1rem;
+    border-bottom:1px solid rgba(255,255,255,.08);
   }
+  .dropdown-menu-sheet .brand{ color:#fff; display:inline-flex; align-items:center; gap:.6rem; font-weight:700; }
+  .dropdown-menu-sheet .brand-logo{ width:22px; height:22px; object-fit:contain; filter:brightness(0) invert(1); }
+  .dropdown-menu-sheet .sheet-close{ border:0; background:transparent; width:36px; height:36px; border-radius:10px; color:#fff; }
+  .dropdown-menu-sheet .sheet-close:hover{ background:rgba(255,255,255,.08); }
 
-  .dropdown-menu {
-    min-width: 220px;
-    border-radius: 14px;
-    padding: 8px;
+  .dropdown-menu-sheet .sheet-body{ padding:.6rem; display:flex; flex-direction:column; }
+  .dropdown-menu-sheet .sheet-item{
+    display:flex; align-items:center; gap:.65rem;
+    padding:.9rem 1.1rem; color:var(--nav-text);
+    text-decoration:none; border-radius:12px; font-weight:600;
   }
+  .dropdown-menu-sheet .sheet-item i{ width:20px; text-align:center; opacity:.9; }
+  .dropdown-menu-sheet .sheet-item:hover{ background:var(--nav-hover); }
+  .dropdown-menu-sheet .sheet-sep{ height:1px; margin:.4rem 0; background:rgba(255,255,255,.14); }
 
-  /* default hidden */
-  .topbar-sheet,
-  .tbmenu-backdrop {
-    display: none;
-  }
-
-  /* mobile sheet */
-  @media (max-width:992px) {
-    .topbar-sheet {
-      position: fixed;
-      left: 0;
-      right: 0;
-      top: var(--topbar-h);
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
-      transform: translateY(-110%);
-      transition: transform .28s ease;
-      z-index: 1045;
-      box-shadow: 0 12px 24px rgba(0, 0, 0, .08);
-      border-bottom-left-radius: 14px;
-      border-bottom-right-radius: 14px;
-      overflow: hidden;
-      display: block;
-    }
-
-    body.tbmenu-open .topbar-sheet {
-      transform: translateY(0);
-    }
-
-    .tbmenu-backdrop {
-      position: fixed;
-      inset: var(--topbar-h) 0 0 0;
-      background: rgba(0, 0, 0, .35);
-      z-index: 1040;
-    }
-
-    body.tbmenu-open .tbmenu-backdrop {
-      display: block;
-    }
-
-    .sheet-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .8rem 1rem;
-      background: #f8fafc;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .sheet-close {
-      border: 0;
-      background: transparent;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-    }
-
-    .sheet-close:hover {
-      background: #eef2f7;
-    }
-
-    .sheet-body {
-      padding: .4rem;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sheet-item {
-      display: flex;
-      align-items: center;
-      padding: .65rem .85rem;
-      border-radius: 10px;
-      text-decoration: none;
-      color: #111827;
-    }
-
-    .sheet-item:hover {
-      background: #f3f4f6;
-    }
-
-    .sheet-sep {
-      height: 1px;
-      background: #e5e7eb;
-      margin: .4rem 0;
+  /* posisi aman & ada jarak dari tepi/topbar */
+  @media (max-width: 992px){
+    .dropdown-menu-sheet{
+      margin-top:10px;          /* jarak dari topbar */
+      margin-left:12px;         /* jarak dari tepi kiri */
+      left:0 !important; right:auto !important;
     }
   }
 
-  .topbar-sheet[hidden],
-  .tbmenu-backdrop[hidden] {
-    display: none !important;
+  /* Backdrop: bikin panel berasa melayang & terpisah */
+  .menu-backdrop{
+    position:fixed; inset:var(--topbar-h) 0 0 0;
+    background:rgba(0,0,0,.35);
+    backdrop-filter: blur(1px);
+    z-index:1199;  /* di bawah panel (1200+ dropdown) */
+  }
+  .menu-backdrop[hidden]{ display:none !important; }
+
+  /* Kill sidebar di mobile */
+  @media (max-width: 992px){
+    .sidebar, .sidebar.open, .sidebar-backdrop{ display:none !important; visibility:hidden !important; pointer-events:none !important; }
+    .sidebar{ transform:translateX(-200%) !important; }
   }
 </style>
 
 <script>
+  // Tampilkan backdrop ketika dropdown panel dibuka
   (function () {
-    const body = document.body;
-    const btnOverflow = document.getElementById('btnOverflow');
-    const sheet = document.getElementById('topbarMenu');
-    const backdrop = document.getElementById('topbarMenuBackdrop');
-    const closeBtns = document.querySelectorAll('[data-close-topbar-menu]');
-    const btnMobile = document.getElementById('btnMobileNav');
+    const backdrop = document.getElementById('menuBackdrop');
+    const dd = document.getElementById('btnOverflow')?.closest('.dropdown');
 
-    function openSheet() {
-      body.classList.add('tbmenu-open'); btnOverflow?.setAttribute('aria-expanded', 'true');
-      sheet?.setAttribute('aria-hidden', 'false'); sheet?.removeAttribute('hidden'); backdrop?.removeAttribute('hidden');
-    }
-    function closeSheet() {
-      body.classList.remove('tbmenu-open'); btnOverflow?.setAttribute('aria-expanded', 'false');
-      sheet?.setAttribute('aria-hidden', 'true'); sheet?.setAttribute('hidden', ''); backdrop?.setAttribute('hidden', '');
-    }
-    function toggleSheet() { body.classList.contains('tbmenu-open') ? closeSheet() : openSheet(); }
+    if (!dd || !backdrop) return;
 
-    btnOverflow?.addEventListener('click', toggleSheet);
-    closeBtns.forEach(btn => btn.addEventListener('click', closeSheet));
-    backdrop?.addEventListener('click', closeSheet);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
-    sheet?.querySelectorAll('a').forEach(a => a.addEventListener('click', closeSheet));
-    window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeSheet(); });
-
-    /* Toggle sidebar (mobile) → butuh .sidebar di layout */
-    btnMobile?.addEventListener('click', () => {
-      const sb = document.querySelector('.sidebar');
-      if (!sb) return;
-      sb.classList.toggle('open');
-      // kalau ada backdrop sidebar, atur tampil/hidden-nya
-      const sbb = document.querySelector('.sidebar-backdrop');
-      if (sbb) {
-        if (sb.classList.contains('open')) sbb.classList.add('show');
-        else sbb.classList.remove('show');
-      }
-      closeSheet(); // tutup sheet kalau kebuka
+    dd.addEventListener('show.bs.dropdown', () => {
+      backdrop.removeAttribute('hidden');
+    });
+    dd.addEventListener('hide.bs.dropdown', () => {
+      backdrop.setAttribute('hidden', '');
     });
 
-    // Tutup saat navigasi
-    ['pageshow', 'turbo:visit', 'turbo:load', 'inertia:visit', 'inertia:navigate', 'livewire:navigated']
-      .forEach(ev => window.addEventListener(ev, closeSheet));
+    // klik backdrop menutup dropdown
+    backdrop.addEventListener('click', () => {
+      const trigger = document.getElementById('btnOverflow');
+      if (trigger) trigger.click();
+    });
   })();
 </script>
