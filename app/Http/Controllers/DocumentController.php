@@ -31,7 +31,7 @@ class DocumentController extends Controller
         'Akutansi',
         'Menajemen Resiko',
         'Manager Treasury',
-        'Security',
+        'Resepsionis',
         'Other'
     ];
     public static function divisions(): array

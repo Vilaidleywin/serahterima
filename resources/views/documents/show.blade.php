@@ -1,6 +1,39 @@
 @extends('layouts.app')
 
 @section('content')
+  {{-- ==== CSS ANTI NABRAK ==== --}}
+  <style>
+    /* Matikan semua efek sticky di kolom kanan pada layar ≥ lg */
+    @media (min-width: 992px) {
+
+      .col-lg-4 .position-sticky,
+      .col-lg-4 .sticky-top,
+      .col-lg-4 .card-soft.position-sticky,
+      .col-lg-4 .card-soft.sticky-top,
+      .sidebar-card.position-sticky,
+      .sidebar-card.sticky-top {
+        position: static !important;
+        top: auto !important;
+      }
+
+      /* Pastikan kartu kanan ikut flow normal & tidak bikin stacking aneh */
+      .col-lg-4>.card-soft,
+      .sidebar-card {
+        position: static !important;
+        z-index: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    /* Blok tanda tangan & foto mulai baris baru + di atas layer sidebar */
+    #sign-photo-block {
+      clear: both;
+      margin-top: 2.5rem;
+      position: relative;
+      z-index: 2;
+    }
+  </style>
+
   <div class="container-fluid">
 
     {{-- Header --}}
@@ -10,7 +43,6 @@
         <div class="text-muted small">No. Dokumen: {{ $document->number }}</div>
       </div>
 
-      {{-- Logika baru untuk tombol Edit di bagian ini. --}}
       @php
         $isRejected = strtoupper($document->status) === 'REJECTED';
       @endphp
@@ -19,7 +51,6 @@
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
-        {{-- Tombol Edit dikunci bila REJECTED --}}
         <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary {{ $isRejected ? 'disabled' : '' }}"
           @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
           <i class="ti ti-edit"></i> Edit
@@ -116,14 +147,11 @@
         </div>
       </div>
 
-      {{-- === KARTU INFO & AKSI (DIREVISI) === --}}
-      @php
-        $isSigned = filled($document->signature_path);
-      @endphp
+      {{-- === KARTU INFO & AKSI (fixed: no sticky) === --}}
+      @php $isSigned = filled($document->signature_path); @endphp
       <div class="col-lg-4">
-        <div class="card-soft p-4">
+        <div class="card-soft p-4 sidebar-card"><!-- class khusus untuk override -->
 
-          {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
               style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
@@ -153,18 +181,15 @@
           </ul>
           <hr>
 
-          {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
             class="btn btn-outline-secondary w-100 mb-2">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
-          {{-- Hapus Dokumen (selalu ada) --}}
           <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
             <i class="ti ti-trash me-1"></i> Hapus Dokumen
           </button>
 
-          {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
             <form action="{{ route('documents.reject', $document) }}" method="POST"
               onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
@@ -175,7 +200,6 @@
             </form>
           @endif
 
-          {{-- Form hapus (tetap di sini) --}}
           <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
             class="d-none">
             @csrf
@@ -184,17 +208,13 @@
 
         </div>
       </div>
-
     </div>
 
-    {{-- === BLOK TANDA TANGAN & FOTO (DIREVISI) === --}}
-    <div class="card-soft p-3 mt-3">
+    {{-- === BLOK TANDA TANGAN & FOTO (tidak nabrak) === --}}
+    <div id="sign-photo-block" class="card-soft p-3 mt-5">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
-        <div class="d-flex gap-2">
-
-
-        </div>
+        <div class="d-flex gap-2"></div>
       </div>
 
       <div class="row g-3">
