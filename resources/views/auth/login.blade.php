@@ -119,8 +119,8 @@
     @endif
 
     <div class="mb-3">
-      <label for="email" class="form-label">Username</label>
-      <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" required autofocus placeholder="Masukkan Email">
+      <label for="username" class="form-label">Username</label>
+      <input type="text" class="form-control" id="username" name="login" value="{{ old('email') || old('username') }}" required autofocus placeholder="Masukkan Email atau Username">
       
 
     </div>
