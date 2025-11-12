@@ -125,8 +125,8 @@
 
           {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
-  <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
-    style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
+            <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
+              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
               <i class="ti ti-badge-check"></i>
               <div class="small">
                 Dokumen <strong>telah ditandatangani</strong>
@@ -140,7 +140,7 @@
           <ul class="list-unstyled mb-3">
             <li class="mb-2">
               <i class="ti ti-user text-muted me-2"></i> Dibuat oleh:
-              <span class="fw-semibold">{{ $document->created_by->name ?? '-' }}</span>
+              <span class="fw-semibold">{{ $document->user->name ?? '-' }}</span>
             </li>
             <li class="mb-2">
               <i class="ti ti-clock text-muted me-2"></i> Diperbarui:
@@ -193,7 +193,7 @@
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
         <div class="d-flex gap-2">
 
-        
+
         </div>
       </div>
 

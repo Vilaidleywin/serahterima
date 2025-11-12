@@ -22,8 +22,11 @@ class Document extends Model
         'status',
         'signature_path',
         'photo_path',
-        'signed_at'
+        'signed_at',
+        'user_id',
+        'signed_by',
     ];
+
 
     protected $casts = [
         'date' => 'datetime',
@@ -31,6 +34,12 @@ class Document extends Model
         'photo_at' => 'datetime',
         'amount_idr' => 'float', // <- pastikan kebaca sebagai angka
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
 
     public function signer()
     {

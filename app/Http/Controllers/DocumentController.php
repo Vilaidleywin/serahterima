@@ -13,7 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentController extends Controller
 {
-    // --- TAMBAHAN: jadikan constant + getter statis ---
+    // --- DIVISION LIST ---
     public const DIVISIONS = [
         'Pengadaan',
         'Pembelian',
@@ -34,15 +34,12 @@ class DocumentController extends Controller
         'Security',
         'Other'
     ];
-
     public static function divisions(): array
     {
         return self::DIVISIONS;
     }
-    // ---------------------------------------------------
 
-    // public function __construct() { ... }
-
+    // ============================== PRINTS/PHOTO ==============================
     public function printPdf(Document $document)
     {
         return Pdf::loadView('documents.print-pdf', compact('document'))
@@ -52,17 +49,12 @@ class DocumentController extends Controller
 
     public function printTandaTerima(Document $document)
     {
-        return view('documents.print-tandaterima', [
-            'document' => $document,
-        ]);
+        return view('documents.print-tandaterima', ['document' => $document]);
     }
 
     public function photo(Document $document)
     {
-        return view('documents.photo', [
-            'title'    => 'Ambil Foto',
-            'document' => $document,
-        ]);
+        return view('documents.photo', ['title' => 'Ambil Foto', 'document' => $document]);
     }
 
     public function photoStore(Request $request, Document $document)
@@ -77,7 +69,6 @@ class DocumentController extends Controller
         ]);
 
         $path = null;
-
         if ($request->hasFile('photo_file')) {
             $path = $request->file('photo_file')->store('document-photos', 'public');
         } elseif ($dataUrl = $request->input('photo')) {
@@ -90,180 +81,206 @@ class DocumentController extends Controller
             }
             $filename = 'doc-' . $document->id . '-' . time() . '.jpg';
             $path = 'document-photos/' . $filename;
-            \Storage::disk('public')->put($path, $binary);
+            Storage::disk('public')->put($path, $binary);
         }
 
-        if (!$path) {
-            return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
-        }
+        if (!$path) return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
 
-        if ($document->photo_path && \Storage::disk('public')->exists($document->photo_path)) {
-            \Storage::disk('public')->delete($document->photo_path);
+        if ($document->photo_path && Storage::disk('public')->exists($document->photo_path)) {
+            Storage::disk('public')->delete($document->photo_path);
         }
 
         $document->update(['photo_path' => $path]);
-
-        return redirect()
-            ->route('documents.show', $document)
-            ->with('success', 'Foto berhasil disimpan.');
+        return redirect()->route('documents.show', $document)->with('success', 'Foto berhasil disimpan.');
     }
 
+    // ================================= INDEX =================================
     public function index(Request $req)
     {
-        // Per page aman (whitelist)
+        $tz  = 'Asia/Jakarta';
+        $now = Carbon::now($tz);
+
+        // Per page whitelist
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        // ===========================
-        // SEARCH MENYELURUH (SUPER)
-        // ===========================
+        // --------------------------- FULL TEXT SEARCH --------------------------
         if ($raw = trim((string) $req->input('search'))) {
             $s = Str::of($raw)->lower()->toString();
 
-            // 1) Deteksi status dari kata kunci
             $statusMap = [
-                'draft'     => 'DRAFT',
-                'draf'      => 'DRAFT',
+                'draft' => 'DRAFT',
+                'draf' => 'DRAFT',
                 'submitted' => 'SUBMITTED',
-                'submit'    => 'SUBMITTED',
-                'terkirim'  => 'SUBMITTED',
-                'kirim'     => 'SUBMITTED',
-                'rejected'  => 'REJECTED',
-                'reject'    => 'REJECTED',
-                'tolak'     => 'REJECTED',
-                'ditolak'   => 'REJECTED',
-                'disetujui' => 'SUBMITTED', // jika butuh "approved" mapping ke SUBMITTED
-                'approved'  => 'SUBMITTED',
+                'submit' => 'SUBMITTED',
+                'terkirim' => 'SUBMITTED',
+                'kirim' => 'SUBMITTED',
+                'rejected' => 'REJECTED',
+                'reject' => 'REJECTED',
+                'tolak' => 'REJECTED',
+                'ditolak' => 'REJECTED',
+                'disetujui' => 'SUBMITTED',
+                'approved' => 'SUBMITTED',
             ];
             $guessedStatus = null;
             foreach ($statusMap as $needle => $mapped) {
-                if (Str::contains($s, $needle)) { $guessedStatus = $mapped; break; }
+                if (Str::contains($s, $needle)) {
+                    $guessedStatus = $mapped;
+                    break;
+                }
             }
 
-            // 2) Deteksi nominal (ambil digit saja)
-            $digits = preg_replace('/\D+/', '', $s); // "1.250.000" => "1250000"
-            $guessedAmount = $digits !== '' ? (int) $digits : null;
+            $digits = preg_replace('/\D+/', '', $s);
+            $guessedAmount = $digits !== '' ? (int)$digits : null;
 
-            // 3) Deteksi tanggal (support Y-m-d, d/m/Y, d-m-Y)
             $guessedDate = null;
             $dateCandidates = [];
-            if (preg_match('/\b\d{4}-\d{2}-\d{2}\b/', $s, $m)) $dateCandidates[] = $m[0];            // Y-m-d
-            if (preg_match('/\b\d{1,2}\/\d{1,2}\/\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];       // d/m/Y
-            if (preg_match('/\b\d{1,2}-\d{1,2}-\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];         // d-m-Y
-
+            if (preg_match('/\b\d{4}-\d{2}-\d{2}\b/', $s, $m)) $dateCandidates[] = $m[0];
+            if (preg_match('/\b\d{1,2}\/\d{1,2}\/\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];
+            if (preg_match('/\b\d{1,2}-\d{1,2}-\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];
             foreach ($dateCandidates as $cand) {
-                $parsed = null;
                 foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $fmt) {
                     try {
                         $parsed = Carbon::createFromFormat($fmt, $cand);
-                        if ($parsed) { $guessedDate = $parsed->toDateString(); break 2; }
-                    } catch (\Throwable $e) {}
+                        if ($parsed) {
+                            $guessedDate = $parsed->toDateString();
+                            break 2;
+                        }
+                    } catch (\Throwable $e) {
+                    }
                 }
             }
 
-            // 4) Terapkan ke query
             $q->where(function ($w) use ($s, $guessedStatus, $guessedAmount, $guessedDate) {
-                // Kolom teks utama
                 $w->where('number', 'like', "%{$s}%")
-                  ->orWhere('title', 'like', "%{$s}%")
-                  ->orWhere('sender', 'like', "%{$s}%")
-                  ->orWhere('receiver', 'like', "%{$s}%")
-                  ->orWhere('division', 'like', "%{$s}%")
-                  ->orWhere('destination', 'like', "%{$s}%");
+                    ->orWhere('title', 'like', "%{$s}%")
+                    ->orWhere('sender', 'like', "%{$s}%")
+                    ->orWhere('receiver', 'like', "%{$s}%")
+                    ->orWhere('division', 'like', "%{$s}%")
+                    ->orWhere('destination', 'like', "%{$s}%");
 
-                // Status dari kata kunci (opsional)
-                if ($guessedStatus) {
-                    $w->orWhere('status', $guessedStatus);
-                }
+                if ($guessedStatus) $w->orWhere('status', $guessedStatus);
 
-                // Nominal: cocokan angka penuh atau substring (cast to char)
                 if (!is_null($guessedAmount) && $guessedAmount > 0) {
                     $w->orWhere('amount_idr', $guessedAmount)
-                      ->orWhereRaw("CAST(amount_idr AS CHAR) LIKE ?", ['%'.$guessedAmount.'%']);
+                        ->orWhereRaw("CAST(amount_idr AS CHAR) LIKE ?", ['%' . $guessedAmount . '%']);
                 }
 
-                // Tanggal tepat (YYYY-MM-DD)
-                if ($guessedDate) {
-                    $w->orWhereDate('date', $guessedDate);
-                }
+                if ($guessedDate) $w->orWhereDate('date', $guessedDate);
             });
         }
 
-        // ===========================
-        // FILTER KHUSUS TAMBAHAN
-        // ===========================
-        if ($st = $req->input('status')) {
-            $q->where('status', $st);
-        }
+        // ------------------------------ FILTERS --------------------------------
+        if ($st = $req->input('status'))   $q->where('status', $st);
+        if ($div = $req->input('division')) $q->where('division', $div);
 
-        if ($div = $req->input('division')) {
-            $q->where('division', $div);
-        }
-
-        // Preset period berdasar created_at
         if ($period = $req->input('period')) {
-            $now = Carbon::now('Asia/Jakarta');
-            $now->locale('id_ID');
             $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
             $endWeek   = $now->copy()->endOfWeek(Carbon::SUNDAY);
-
             if ($period === 'today') {
                 $q->whereDate('created_at', $now->toDateString());
             } elseif ($period === 'week') {
                 $q->whereBetween('created_at', [$startWeek, $endWeek]);
             } elseif ($period === 'month') {
-                $q->whereBetween('created_at', [
-                    $now->copy()->startOfMonth(),
-                    $now->copy()->endOfMonth(),
-                ]);
+                $q->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()]);
             }
         }
 
-        // Filter rentang created_at
-        if ($from = $req->input('created_from')) {
-            $q->whereDate('created_at', '>=', $from);
-        }
-        if ($to = $req->input('created_to')) {
-            $q->whereDate('created_at', '<=', $to);
-        }
+        if ($from = $req->input('created_from')) $q->whereDate('created_at', '>=', $from);
+        if ($to   = $req->input('created_to'))   $q->whereDate('created_at', '<=', $to);
 
-        // Filter rentang date (tanggal dokumen)
-        if ($df = $req->input('date_from')) {
-            $q->whereDate('date', '>=', $df);
-        }
-        if ($dt = $req->input('date_to')) {
-            $q->whereDate('date', '<=', $dt);
-        }
+        if ($df = $req->input('date_from')) $q->whereDate('date', '>=', $df);
+        if ($dt = $req->input('date_to'))   $q->whereDate('date', '<=', $dt);
 
-        // Overdue (contoh: SUBMITTED lebih lama dari N hari dihitung dari date/created_at)
         if ($overdue = $req->integer('overdue_days')) {
-            $cutoff = Carbon::now('Asia/Jakarta')->subDays($overdue)->toDateString();
-            $q->where('status', 'SUBMITTED')
-              ->where(function ($w) use ($cutoff) {
-                    $w->where(function ($x) use ($cutoff) {
-                        $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
-                    })->orWhere(function ($x) use ($cutoff) {
+            $cutoff = $now->copy()->subDays($overdue)->toDateString();
+            $q->where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
+                $w->where(function ($x) use ($cutoff) {
+                    $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
+                })
+                    ->orWhere(function ($x) use ($cutoff) {
                         $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
                     });
-              });
+            });
         }
 
-        // Urutan & pagination
-        $documents = $q->orderByDesc('date')
-            ->orderByDesc('id')
-            ->paginate($per)
-            ->withQueryString();
+        // ------------------------------ PAGINATION -----------------------------
+        $documents = $q->orderByDesc('date')->orderByDesc('id')->paginate($per)->withQueryString();
 
-        // Daftar division untuk filter (ambil unik yang ada di DB)
-        $divisions = Document::query()
-            ->select('division')
-            ->distinct()
-            ->pluck('division')
-            ->filter()
-            ->values();
+        // ---------------------------- FILTER OPTIONS ---------------------------
+        $divisions = Document::query()->select('division')->distinct()->pluck('division')->filter()->values();
 
+        // --------------------------- STATUS SUMMARY ----------------------------
+        $counts = Document::query()
+            ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
+            ->groupBy('s')
+            ->pluck('c', 's'); // e.g. ['SUBMITTED'=>x, 'REJECTED'=>y, 'DRAFT'=>z]
+
+        $alias = ['SUBMITTED' => 'SUBMITTED', 'APPROVED' => 'SUBMITTED', 'REJECT' => 'REJECTED', 'REJECTED' => 'REJECTED', 'DRAFT' => 'DRAFT'];
+        $normalized = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
+        foreach ($counts as $k => $v) {
+            $key = $alias[$k] ?? $k;
+            if (isset($normalized[$key])) $normalized[$key] += (int)$v;
+        }
+
+        $submitted = (int)$normalized['SUBMITTED'];
+        $rejected  = (int)$normalized['REJECTED'];
+        $draft     = (int)$normalized['DRAFT'];
+        $total     = $submitted + $rejected + $draft;
+
+        $donut = ['labels' => ['SUBMITTED', 'REJECTED', 'DRAFT'], 'data' => [$submitted, $rejected, $draft]];
+
+        // ------------------------------ BAR (bulan ini) ------------------------
+        $startMonth = $now->copy()->startOfMonth();
+        $endMonth   = $now->copy()->endOfMonth();
+        $monthCounts = Document::query()
+            ->whereBetween('created_at', [$startMonth, $endMonth])
+            ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
+            ->groupBy('s')->pluck('c', 's');
+        $mNorm = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
+        foreach ($monthCounts as $k => $v) {
+            $key = $alias[$k] ?? $k;
+            if (isset($mNorm[$key])) $mNorm[$key] += (int)$v;
+        }
+        $barLabels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+        $barData   = [$mNorm['SUBMITTED'], $mNorm['REJECTED'], $mNorm['DRAFT']];
+
+        // ------------------------------ LINE (12 bulan) ------------------------
+        $start = $now->copy()->subMonthsNoOverflow(11)->startOfMonth();
+        $end   = $now->copy()->endOfMonth();
+        $perMonth = Document::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as c")
+            ->groupBy('ym')->pluck('c', 'ym'); // ['2025-01'=>n, ...]
+        $lineLabels = [];
+        $lineData   = [];
+        $cursor = $start->copy();
+        while ($cursor <= $end) {
+            $ym = $cursor->format('Y-m');
+            $lineLabels[] = $ym;
+            $lineData[]   = (int)($perMonth[$ym] ?? 0);
+            $cursor->addMonth();
+        }
+
+        // ---------------------------- KPI MINI ---------------------------------
+        $createdToday = Document::whereDate('created_at', $now->toDateString())->count();
+        $createdWeek  = Document::whereBetween('created_at', [$now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)])->count();
+        $createdMonth = Document::whereBetween('created_at', [$startMonth, $endMonth])->count();
+
+        $overdueDays = (int) $req->integer('overdue_days', 7); // default 7 hari
+        $cutoff = $now->copy()->subDays($overdueDays)->toDateString();
+        $submittedOverdue = Document::where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
+            $w->where(function ($x) use ($cutoff) {
+                $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
+            })
+                ->orWhere(function ($x) use ($cutoff) {
+                    $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
+                });
+        })->count();
+
+        // ----------------------------- RENDER VIEW -----------------------------
         return view('documents.index', [
             'title'      => 'Data Dokumen',
             'breadcrumb' => [
@@ -273,9 +290,28 @@ class DocumentController extends Controller
             'documents' => $documents,
             'per_page'  => $per,
             'divisions' => $divisions,
+
+            // Ringkasan & chart data
+            'total'     => $total,
+            'submitted' => $submitted,
+            'rejected'  => $rejected,
+            'draft'     => $draft,
+            'donut'     => $donut,
+            'barLabels' => $barLabels,
+            'barData'   => $barData,
+            'lineLabels' => $lineLabels,
+            'lineData'  => $lineData,
+
+            // KPI mini
+            'createdToday'     => $createdToday,
+            'createdWeek'      => $createdWeek,
+            'createdMonth'     => $createdMonth,
+            'overdueDays'      => $overdueDays,
+            'submittedOverdue' => $submittedOverdue,
         ]);
     }
 
+    // =============================== CRUD LAINNYA =============================
     public function create()
     {
         return view('documents.create', [
@@ -285,7 +321,7 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Tambah Dokumen'],
             ],
-            'divisions' => self::DIVISIONS, // ⬅️ ganti dari $this->divisions
+            'divisions' => self::DIVISIONS,
         ]);
     }
 
@@ -313,12 +349,11 @@ class DocumentController extends Controller
         $data['status']     = 'DRAFT';
 
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('documents', 'public');
-            $data['file_path'] = $path;
+            $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
+        $data['user_id'] = Auth::id() ?? null;
         Document::create($data);
-
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil ditambahkan.');
     }
 
@@ -332,7 +367,7 @@ class DocumentController extends Controller
                 ['label' => 'Edit Dokumen'],
             ],
             'document'  => $document,
-            'divisions' => self::DIVISIONS, // ⬅️ ganti dari $this->divisions
+            'divisions' => self::DIVISIONS,
         ]);
     }
 
@@ -342,7 +377,6 @@ class DocumentController extends Controller
             $document->status = 'REJECTED';
             $document->save();
         }
-
         return back()->with('success', 'Dokumen telah ditolak.');
     }
 
@@ -379,7 +413,6 @@ class DocumentController extends Controller
         }
 
         $document->update($data);
-
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diperbarui!');
     }
 
@@ -391,26 +424,21 @@ class DocumentController extends Controller
 
     public function show(Document $document)
     {
+        $document->load('user'); // ✅ tambahin ini
         return view('documents.show', [
-            'title'    => 'Detail Dokumen',
+            'title' => 'Detail Dokumen',
             'document' => $document,
         ]);
     }
 
     public function sign(Document $document)
     {
-        return view('documents.sign', [
-            'title'    => 'Tanda Tangan Dokumen',
-            'document' => $document,
-        ]);
+        return view('documents.sign', ['title' => 'Tanda Tangan Dokumen', 'document' => $document]);
     }
 
     public function print(Document $document)
     {
-        return view('documents.print', [
-            'title'    => 'Cetak Dokumen',
-            'document' => $document,
-        ]);
+        return view('documents.print', ['title' => 'Cetak Dokumen', 'document' => $document]);
     }
 
     public function signStore(Request $request, Document $document)
@@ -439,20 +467,16 @@ class DocumentController extends Controller
 
         $document->signature_path = "$dir/$name";
         $document->signed_at      = now('Asia/Jakarta');
-        if ($document->status === 'DRAFT') {
-            $document->status = 'SUBMITTED';
-        }
+        if ($document->status === 'DRAFT') $document->status = 'SUBMITTED';
         $document->signed_by = Auth::id();
         $document->save();
 
-        return redirect()
-            ->route('documents.show', $document)
-            ->with('success', 'Tanda tangan berhasil disimpan.');
+        return redirect()->route('documents.show', $document)->with('success', 'Tanda tangan berhasil disimpan.');
     }
 
     private function sanitizeAmount($val): float
     {
-        $num = preg_replace('/[^0-9]/', '', (string) $val);
-        return $num === '' ? 0.0 : (float) $num;
+        $num = preg_replace('/[^0-9]/', '', (string)$val);
+        return $num === '' ? 0.0 : (float)$num;
     }
 }

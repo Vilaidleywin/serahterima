@@ -13,23 +13,13 @@
   </div>
 
   {{-- FILTER BAR --}}
-  <form class="row g-2 mb-3 align-items-end" method="get">
-    {{-- bawa per_page agar konsisten saat submit filter --}}
-    <input type="hidden" name="per_page" value="{{ request('per_page', $per_page ?? 15) }}"/>
-
-    {{-- Search (bisa cari nomor, judul, pengirim, penerima, divisi, tujuan, status, nominal, tanggal) --}}
-    <div class="col-lg-4">
-      <label class="form-label small text-muted mb-1">Pencarian</label>
-      <div class="input-group">
-        <span class="input-group-text"><i class="ti ti-search"></i></span>
-        <input name="search" value="{{ request('search') }}" class="form-control" placeholder="Cari Dokumen">
-      </div>
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-md-3">
+      <input name="search" value="{{ request('search') }}" class="form-control search" placeholder="Cari dokumen...">
     </div>
 
-    {{-- Status --}}
-    <div class="col-lg-2">
-      <label class="form-label small text-muted mb-1">Status</label>
-      <select name="status" class="form-select">
+    <div class="col-md-2">
+      <select name="status" class="form-select search">
         <option value="">Semua Status</option>
         @foreach(['DRAFT', 'SUBMITTED', 'REJECTED'] as $s)
           <option value="{{ $s }}" @selected(request('status') === $s)>{{ $s }}</option>
@@ -37,40 +27,43 @@
       </select>
     </div>
 
-    {{-- Preset Tanggal Cepat --}}
-    <div class="col-lg-2">
-      <label class="form-label small text-muted mb-1">Rentang Cepat</label>
-      <select id="datePreset" class="form-select">
-        <option value="">— Pilih —</option>
-        <option value="today" @selected(request('from_date') === now()->toDateString() && request('to_date') === now()->toDateString())>Hari ini</option>
-        <option value="this_week">Minggu ini</option>
-        <option value="this_month">Bulan ini</option>
-        <option value="last_month">Bulan lalu</option>
+    {{-- Preset periode cepat berdasarkan created_at --}}
+    <div class="col-md-2">
+      <select name="period" class="form-select">
+        <option value="">Semua Periode</option>
+        <option value="today" @selected(request('period') === 'today')>Hari ini</option>
+        <option value="week" @selected(request('period') === 'week')>Minggu ini</option>
+        <option value="month" @selected(request('period') === 'month')>Bulan ini</option>
       </select>
     </div>
 
-    {{-- Dari Tanggal --}}
-    <div class="col-lg-2">
-      <label class="form-label small text-muted mb-1">Dari Tanggal</label>
-      <input type="date" name="from_date" value="{{ request('from_date') }}" class="form-control" placeholder="Dari tanggal">
+    {{-- Rentang manual untuk kolom DATE (tanggal serah terima) --}}
+    <div class="col-md-2">
+      <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control" placeholder="Date from">
+    </div>
+    <div class="col-md-2">
+      <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control" placeholder="Date to">
     </div>
 
-    {{-- Sampai Tanggal --}}
-    <div class="col-lg-2">
-      <label class="form-label small text-muted mb-1">Sampai Tanggal</label>
-      <input type="date" name="to_date" value="{{ request('to_date') }}" class="form-control" placeholder="Sampai tanggal">
+    {{-- (Opsional) Rentang created_at --}}
+    {{--
+    <div class="col-md-2">
+      <input type="date" name="created_from" value="{{ request('created_from') }}" class="form-control"
+        placeholder="Created from">
     </div>
+    <div class="col-md-2">
+      <input type="date" name="created_to" value="{{ request('created_to') }}" class="form-control"
+        placeholder="Created to">
+    </div>
+    --}}
 
-    {{-- Actions --}}
-    <div class="col-12 d-flex gap-2 mt-2">
+    <div class="col-md-1 d-grid">
       <button class="btn btn-primary">
         <i class="ti ti-filter me-1"></i> Filter
       </button>
-      <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
-        <i class="ti ti-rotate-clockwise me-1"></i> Reset
-      </a>
     </div>
   </form>
+
 
   {{-- TABLE --}}
   <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">
@@ -109,7 +102,8 @@
                 <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown" aria-expanded="false">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
                     class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
-                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM9.5 3a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                    <path
+                      d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM9.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM9.5 3a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
                   </svg>
                 </button>
 
@@ -129,7 +123,9 @@
                       <i class="ti ti-signature me-2"></i> Tanda Tangan
                     </a>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
                   <li>
                     <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
                       <i class="ti ti-camera me-2"></i> Ambil Foto
@@ -144,7 +140,8 @@
               </div>
 
               {{-- form hapus tersembunyi --}}
-              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST" class="d-none">
+              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
+                class="d-none">
                 @csrf @method('DELETE')
               </form>
             </td>
@@ -160,7 +157,7 @@
 
   {{-- Footer pagination bar --}}
   <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
-       style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
+    style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
 
     {{-- Rows per page selector --}}
     <form method="get" class="d-inline-flex align-items-center gap-2 mb-0">
@@ -215,56 +212,56 @@
 @endsection
 
 @push('scripts')
-<script>
-  (function() {
-    const preset = document.getElementById('datePreset');
-    const fromInput = document.querySelector('input[name="from_date"]');
-    const toInput = document.querySelector('input[name="to_date"]');
+  <script>
+    (function () {
+      const preset = document.getElementById('datePreset');
+      const fromInput = document.querySelector('input[name="from_date"]');
+      const toInput = document.querySelector('input[name="to_date"]');
 
-    function pad(n){ return String(n).padStart(2, '0'); }
-    function fmt(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+      function pad(n) { return String(n).padStart(2, '0'); }
+      function fmt(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
-    function startOfWeek(d){
-      const day = d.getDay(); // 0=Sun
-      const diff = (day === 0 ? -6 : 1 - day); // Minggu -> mundur ke Senin
-      const s = new Date(d); s.setDate(d.getDate() + diff);
-      return s;
-    }
-    function endOfWeek(d){
-      const s = startOfWeek(d);
-      const e = new Date(s); e.setDate(s.getDate() + 6);
-      return e;
-    }
-
-    preset?.addEventListener('change', () => {
-      const today = new Date();
-      let from = '', to = '';
-      switch (preset.value) {
-        case 'today':
-          from = to = fmt(today);
-          break;
-        case 'this_week':
-          from = fmt(startOfWeek(today));
-          to   = fmt(endOfWeek(today));
-          break;
-        case 'this_month': {
-          const f = new Date(today.getFullYear(), today.getMonth(), 1);
-          const l = new Date(today.getFullYear(), today.getMonth()+1, 0);
-          from = fmt(f); to = fmt(l);
-          break;
-        }
-        case 'last_month': {
-          const f = new Date(today.getFullYear(), today.getMonth()-1, 1);
-          const l = new Date(today.getFullYear(), today.getMonth(), 0);
-          from = fmt(f); to = fmt(l);
-          break;
-        }
-        default:
-          from = ''; to = '';
+      function startOfWeek(d) {
+        const day = d.getDay(); // 0=Sun
+        const diff = (day === 0 ? -6 : 1 - day); // Minggu -> mundur ke Senin
+        const s = new Date(d); s.setDate(d.getDate() + diff);
+        return s;
       }
-      fromInput.value = from;
-      toInput.value = to;
-    });
-  })();
-</script>
+      function endOfWeek(d) {
+        const s = startOfWeek(d);
+        const e = new Date(s); e.setDate(s.getDate() + 6);
+        return e;
+      }
+
+      preset?.addEventListener('change', () => {
+        const today = new Date();
+        let from = '', to = '';
+        switch (preset.value) {
+          case 'today':
+            from = to = fmt(today);
+            break;
+          case 'this_week':
+            from = fmt(startOfWeek(today));
+            to = fmt(endOfWeek(today));
+            break;
+          case 'this_month': {
+            const f = new Date(today.getFullYear(), today.getMonth(), 1);
+            const l = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            from = fmt(f); to = fmt(l);
+            break;
+          }
+          case 'last_month': {
+            const f = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const l = new Date(today.getFullYear(), today.getMonth(), 0);
+            from = fmt(f); to = fmt(l);
+            break;
+          }
+          default:
+            from = ''; to = '';
+        }
+        fromInput.value = from;
+        toInput.value = to;
+      });
+    })();
+  </script>
 @endpush

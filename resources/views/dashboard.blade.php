@@ -1,32 +1,64 @@
 @extends('layouts.app')
 
 @push('styles')
-<style>
-  /* ===== Tampilan lembut seperti contoh ===== */
-  body{ background:#f3f4f6; }
+  <style>
+    /* ===== Tampilan lembut seperti contoh ===== */
+    body {
+      background: #f3f4f6;
+    }
 
-  :root{
-    --soft-bg:#ffffff;
-    --soft-br:#e5e7eb;            /* gray-200 */
-    --soft-shadow:0 8px 24px rgba(0,0,0,.06);
-  }
+    :root {
+      --soft-bg: #ffffff;
+      --soft-br: #e5e7eb;
+      /* gray-200 */
+      --soft-shadow: 0 8px 24px rgba(0, 0, 0, .06);
+    }
 
-  .card-soft{
-    background:var(--soft-bg);
-    border:1px solid var(--soft-br);
-    border-radius:16px;
-    box-shadow:var(--soft-shadow);
-  }
-  .card-soft.sm{ border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,.05); }
+    .card-soft {
+      background: var(--soft-bg);
+      border: 1px solid var(--soft-br);
+      border-radius: 16px;
+      box-shadow: var(--soft-shadow);
+    }
 
-  .stat-label{ font-size:.82rem; color:#6b7280; }
-  .stat-value{ font-size:2rem; font-weight:700; line-height:1.1; }
+    .card-soft.sm {
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
+    }
 
-  .pill{ border:none; padding:.35rem .6rem; border-radius:.5rem; font-weight:600; }
-  .pill-gray{ background:#6B7280; color:#fff; }
-  .pill-green{ background:#22C55E; color:#fff; }
-  .pill-red{ background:#EF4444; color:#fff; }
-</style>
+    .stat-label {
+      font-size: .82rem;
+      color: #6b7280;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .pill {
+      border: none;
+      padding: .35rem .6rem;
+      border-radius: .5rem;
+      font-weight: 600;
+    }
+
+    .pill-gray {
+      background: #6B7280;
+      color: #fff;
+    }
+
+    .pill-green {
+      background: #22C55E;
+      color: #fff;
+    }
+
+    .pill-red {
+      background: #EF4444;
+      color: #fff;
+    }
+  </style>
 @endpush
 
 @section('content')
@@ -41,13 +73,13 @@
   <div class="row g-3 mb-3">
     @php
       // Pastikan ada nilai draft walaupun controller belum kirim
-      $draftSafe = isset($draft) ? $draft : max(0, (int)$total - (int)$submitted - (int)$rejected);
+      $draftSafe = isset($draft) ? $draft : max(0, (int) $total - (int) $submitted - (int) $rejected);
 
       $tiles = [
         ['label' => 'Total Dokumen', 'value' => (int) $total, 'url' => route('documents.index'), 'color' => 'text-primary'],
-        ['label' => 'SUBMITTED',     'value' => (int) $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED']), 'color' => 'text-success'],
-        ['label' => 'REJECTED',      'value' => (int) $rejected, 'url' => route('documents.index', ['status' => 'REJECTED']), 'color' => 'text-danger'],
-        ['label' => 'DRAFT',         'value' => (int) $draftSafe, 'url' => route('documents.index', ['status' => 'DRAFT']),    'color' => 'text-secondary'],
+        ['label' => 'SUBMITTED', 'value' => (int) $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED']), 'color' => 'text-success'],
+        ['label' => 'REJECTED', 'value' => (int) $rejected, 'url' => route('documents.index', ['status' => 'REJECTED']), 'color' => 'text-danger'],
+        ['label' => 'DRAFT', 'value' => (int) $draftSafe, 'url' => route('documents.index', ['status' => 'DRAFT']), 'color' => 'text-secondary'],
       ];
     @endphp
 
@@ -91,7 +123,7 @@
         <div style="height:200px; position:relative">
           <canvas id="donutChart"></canvas>
           <div id="donutCenter"
-               style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700;">
+            style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700;">
           </div>
         </div>
       </div>
@@ -138,136 +170,151 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-<script>
-  const arr = (v) => Array.isArray(v) ? v : (v == null ? [] : [v]);
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script>
+    const arr = (v) => Array.isArray(v) ? v : (v == null ? [] : [v]);
 
-  function gradient(ctx, rgba){
-    const g = ctx.createLinearGradient(0,0,0,300);
-    g.addColorStop(0, rgba.replace('1)', '.2)'));
-    g.addColorStop(1, rgba.replace('1)', '0)'));
-    return g;
-  }
-
-  function initCharts(){
-    if (typeof Chart === 'undefined') return;
-    if (typeof ChartDataLabels !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
-      Chart.register(ChartDataLabels);
+    function gradient(ctx, rgba) {
+      const g = ctx.createLinearGradient(0, 0, 0, 300);
+      g.addColorStop(0, rgba.replace('1)', '.2)'));
+      g.addColorStop(1, rgba.replace('1)', '0)'));
+      return g;
     }
 
-    /* ===== LINE (12 bulan) ===== */
-    const lineEl = document.getElementById('lineChart');
-    if (lineEl){
-      const labels = @json($lineLabels ?? []);
-      const data   = @json($lineData ?? []);
-      const ctx    = lineEl.getContext('2d');
+    function initCharts() {
+      if (typeof Chart === 'undefined') return;
+      if (typeof ChartDataLabels !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
+        Chart.register(ChartDataLabels);
+      }
 
-      new Chart(lineEl,{
-        type:'line',
-        data:{
-          labels: arr(labels),
-          datasets:[{
-            data: arr(data),
-            borderColor:'rgba(46,90,172,1)',
-            backgroundColor: gradient(ctx,'rgba(46,90,172,1)'),
-            fill:true, borderWidth:2, tension:.35, pointRadius:2
-          }]
-        },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ display:false }, tooltip:{ mode:'index', intersect:false } },
-          scales:{ x:{ grid:{ display:false } }, y:{ beginAtZero:true, ticks:{ precision:0 } } }
-        }
-      });
-    }
+      /* ===== LINE (12 bulan) ===== */
+      const lineEl = document.getElementById('lineChart');
+      if (lineEl) {
+        const labels = @json($lineLabels ?? []);
+        const data = @json($lineData ?? []);
+        const ctx = lineEl.getContext('2d');
 
-    /* ===== BAR (bulan ini) – paksa urutan SUBMITTED, REJECTED, DRAFT ===== */
-    const barEl = document.getElementById('barChart');
-    if (barEl){
-      const rawLabels = @json($barLabels ?? []);   // dari controller (bisa acak)
-      const rawData   = @json($barData ?? []);
-      const wantOrder = ['SUBMITTED','REJECTED','DRAFT'];
-
-      // buat map {label: nilai}
-      const map = {};
-      rawLabels.forEach((l,i)=>{ map[l] = Number(rawData[i]||0); });
-
-      // reorder sesuai urutan yang diinginkan
-      const labels = wantOrder;
-      const data   = labels.map(l => map[l] ?? 0);
-
-      const palette = {
-        SUBMITTED:{ bg:'#22C55ECC', border:'#22C55E' },
-        REJECTED :{ bg:'#EF4444CC', border:'#EF4444' },
-        DRAFT    :{ bg:'#6B7280CC', border:'#6B7280' }
-      };
-      const bgColors = labels.map(l => palette[l].bg);
-      const brColors = labels.map(l => palette[l].border);
-
-      new Chart(barEl,{
-        type:'bar',
-        data:{ labels, datasets:[{
-          data,
-          backgroundColor:bgColors,
-          borderColor:brColors,
-          borderWidth:2, borderRadius:10, hoverBorderWidth:3
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{
-            legend:{ display:false },
-            datalabels:{
-              color:'#111827', anchor:'end', align:'start',
-              font:{ weight:'600' },
-              formatter:v => (typeof v==='number' && v>0) ? v : ''
-            }
+        new Chart(lineEl, {
+          type: 'line',
+          data: {
+            labels: arr(labels),
+            datasets: [{
+              data: arr(data),
+              borderColor: 'rgba(46,90,172,1)',
+              backgroundColor: gradient(ctx, 'rgba(46,90,172,1)'),
+              fill: true, borderWidth: 2, tension: .35, pointRadius: 2
+            }]
           },
-          onClick:(e,els)=>{
-            if(els.length){
-              const status = labels[els[0].index];
-              const base = `{{ route('documents.index') }}`;
-              window.location.href = `${base}?status=${encodeURIComponent(status)}`;
-            }
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+          }
+        });
+      }
+
+      /* ===== BAR (bulan ini) – paksa urutan SUBMITTED, REJECTED, DRAFT ===== */
+      const barEl = document.getElementById('barChart');
+      if (barEl) {
+        const rawLabels = @json($barLabels ?? []);   // dari controller (bisa acak)
+        const rawData = @json($barData ?? []);
+        const wantOrder = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+
+        // buat map {label: nilai}
+        const map = {};
+        rawLabels.forEach((l, i) => { map[l] = Number(rawData[i] || 0); });
+
+        // reorder sesuai urutan yang diinginkan
+        const labels = wantOrder;
+        const data = labels.map(l => map[l] ?? 0);
+
+        const palette = {
+          SUBMITTED: { bg: '#22C55ECC', border: '#22C55E' },
+          REJECTED: { bg: '#EF4444CC', border: '#EF4444' },
+          DRAFT: { bg: '#6B7280CC', border: '#6B7280' }
+        };
+        const bgColors = labels.map(l => palette[l].bg);
+        const brColors = labels.map(l => palette[l].border);
+
+        new Chart(barEl, {
+          type: 'bar',
+          data: {
+            labels, datasets: [{
+              data,
+              backgroundColor: bgColors,
+              borderColor: brColors,
+              borderWidth: 2, borderRadius: 10, hoverBorderWidth: 3
+            }]
           },
-          scales:{ x:{ grid:{ display:false } }, y:{ beginAtZero:true, ticks:{ precision:0, stepSize:1 } } }
-        }
-      });
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              datalabels: {
+                color: '#111827', anchor: 'end', align: 'start',
+                font: { weight: '600' },
+                formatter: v => (typeof v === 'number' && v > 0) ? v : ''
+              }
+            },
+            onClick: (e, els) => {
+              if (els.length) {
+                const status = labels[els[0].index];
+                const base = `{{ route('documents.index') }}`;
+                window.location.href = `${base}?status=${encodeURIComponent(status)}`;
+              }
+            },
+            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } }
+          }
+        });
+      }
+
+      /* ===== DONUT (share total) – ikut urutan SUBMITTED, REJECTED, DRAFT ===== */
+      /* ===== DONUT (share total) – robust, tidak ketuker ===== */
+      const donutEl = document.getElementById('donutChart');
+      if (donutEl) {
+        const rawLabels = @json(($donut['labels'] ?? []) ?: []);
+        const rawData = @json(($donut['data'] ?? []) ?: []);
+
+        // Normalisasi label agar case/spasi tidak bikin salah mapping
+        const norm = s => String(s ?? '').trim().toUpperCase();
+
+        // Buat map jumlah per label (normalized)
+        const map = {};
+        rawLabels.forEach((l, i) => {
+          map[norm(l)] = Number(rawData[i] ?? 0);
+        });
+
+        // Urutan final yang diinginkan
+        const labels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+
+        // Ambil data sesuai label (aman walau input beda case/spasi)
+        const data = labels.map(l => map[norm(l)] ?? 0);
+
+        // Tampilkan total di tengah
+        const total = data.reduce((a, b) => a + (+b || 0), 0);
+        const center = document.getElementById('donutCenter');
+        if (center) center.textContent = total;
+
+        // Warna diikat ke label agar tidak salah meski urutan berubah
+        const palette = {
+          SUBMITTED: '#22C55ECC',
+          REJECTED: '#EF4444CC',
+          DRAFT: '#6B7280CC'
+        };
+        const bgColors = labels.map(l => palette[l]);
+
+        new Chart(donutEl, {
+          type: 'doughnut',
+          data: { labels, datasets: [{ data, backgroundColor: bgColors }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+        });
+      }
+
     }
 
-    /* ===== DONUT (share total) – ikut urutan SUBMITTED, REJECTED, DRAFT ===== */
-    const donutEl = document.getElementById('donutChart');
-    if (donutEl){
-      const rawLabels = @json(($donut['labels'] ?? []) ?: []);
-      const rawData   = @json(($donut['data']   ?? []) ?: []);
-      const wantOrder = ['SUBMITTED','REJECTED','DRAFT'];
-
-      const map = {};
-      rawLabels.forEach((l,i)=>{ map[l] = Number(rawData[i]||0); });
-
-      const labels = wantOrder;
-      const data   = labels.map(l => map[l] ?? 0);
-      const total  = data.reduce((a,b)=>a+(+b||0),0);
-
-      const center = document.getElementById('donutCenter');
-      if(center) center.textContent = total;
-
-      new Chart(donutEl,{
-        type:'doughnut',
-        data:{
-          labels,
-          datasets:[{
-            data,
-            backgroundColor:['#22C55ECC','#EF4444CC','#6B7280CC'] // SUBMITTED, REJECTED, DRAFT
-          }]
-        },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } }, cutout:'60%' }
-      });
-    }
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', initCharts, {once:true});
-  }else{ initCharts(); }
-</script>
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCharts, { once: true });
+    } else { initCharts(); }
+  </script>
 @endpush
