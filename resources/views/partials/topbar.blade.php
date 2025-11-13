@@ -3,62 +3,23 @@
   $avatar = 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
 @endphp
 
-<header class="topbar" role="banner" aria-label="Topbar">
+<header class="topbar d-flex justify-content-between align-items-center px-3" role="banner" aria-label="Topbar">
   <div class="d-flex align-items-center gap-2">
-    {{-- Overflow (mobile) → NAV PANEL DARK --}}
-    <div class="dropdown d-lg-none">
-      <button
-        type="button"
-        id="btnOverflow"
-        class="btn btn-light"
-        aria-label="Buka menu cepat"
-        data-bs-toggle="dropdown"
-        data-bs-auto-close="outside"
-        aria-expanded="false"
-        style="border-radius:10px"
-      >
-        <i class="ti ti-dots-vertical"></i>
-      </button>
+    {{-- HAMBURGER – hanya muncul di mobile --}}
+    <button type="button" id="btnMobileNav" class="btn btn-light d-lg-none me-1" aria-label="Buka menu"
+      style="border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:20px;">
+      ☰
+    </button>
 
-      <div class="dropdown-menu dropdown-menu-start dropdown-menu-sheet" aria-labelledby="btnOverflow">
-        <div class="sheet-head">
-          <strong class="brand">
-            <img src="{{ asset('images/logo2.png') }}" alt="Logo" class="brand-logo"> Menu
-          </strong>
-          <button class="sheet-close" data-bs-toggle="dropdown" aria-label="Tutup">
-            <i class="ti ti-x"></i>
-          </button>
-        </div>
 
-        <div class="sheet-body">
-          <a class="sheet-item" href="{{ route('dashboard') }}"><i class="ti ti-home me-2"></i>Dashboard</a>
-          @if (Route::has('documents.index'))
-            <a class="sheet-item" href="{{ route('documents.index') }}"><i class="ti ti-folder me-2"></i>Data Dokumen</a>
-          @endif
-          @if (Route::has('documents.create'))
-            <a class="sheet-item" href="{{ route('documents.create') }}"><i class="ti ti-file-plus me-2"></i>Input Dokumen</a>
-          @endif
-
-          <div class="sheet-sep"></div>
-
-          @if (Route::has('profile.edit'))
-            <a class="sheet-item" href="{{ route('profile.edit') }}"><i class="ti ti-settings me-2"></i>Profil</a>
-          @endif
-          <form action="{{ route('logout') }}" method="POST" class="mt-1">
-            @csrf
-            <button type="submit" class="sheet-item text-danger"><i class="ti ti-logout me-2"></i>Logout</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    {{-- Brand / breadcrumb --}}
+    {{-- Brand / judul --}}
     <a href="{{ route('dashboard') }}" class="text-decoration-none d-flex align-items-center gap-2">
       <img src="{{ asset('images/logo2.png') }}" alt="Logo"
         style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:3px">
       <strong class="text-dark">Serah Terima</strong>
     </a>
 
+    {{-- Breadcrumb (desktop saja, opsional) --}}
     @isset($breadcrumb)
       <nav class="breadcrumb-mini ms-2 d-none d-lg-flex" aria-label="Breadcrumb">
         @foreach($breadcrumb as $i => $item)
@@ -73,19 +34,12 @@
     @endisset
   </div>
 
+  {{-- User dropdown --}}
   <div class="d-flex align-items-center gap-2">
-    {{-- User dropdown --}}
     <div class="dropdown">
-      <button
-        class="btn btn-light btn-user d-flex align-items-center gap-2 px-2 py-1"
-        type="button"
-        data-bs-toggle="dropdown"
-        data-bs-display="static"
-        data-bs-offset="0,8"
-        data-bs-auto-close="outside"
-        aria-expanded="false"
-        style="border-radius:999px"
-      >
+      <button class="btn btn-light btn-user d-flex align-items-center gap-2 px-2 py-1" type="button"
+        data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,8" data-bs-auto-close="outside"
+        aria-expanded="false" style="border-radius:999px">
         <img src="{{ $avatar }}" alt="avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover">
         <span class="d-none d-md-inline text-truncate" style="max-width:160px">
           {{ \Illuminate\Support\Str::limit($user->name ?? 'Pengguna', 22) }}
@@ -95,13 +49,21 @@
 
       <ul class="dropdown-menu dropdown-menu-end shadow menu-compact">
         @if (Route::has('profile.edit'))
-          <li><a class="dropdown-item" href="{{ route('profile.edit') }}"><i class="ti ti-settings me-2"></i>Profil</a></li>
+          <li>
+            <a class="dropdown-item" href="{{ route('profile.edit') }}">
+              <i class="ti ti-settings me-2"></i>Profil
+            </a>
+          </li>
         @endif
-        <li><hr class="dropdown-divider"></li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
         <li>
           <form action="{{ route('logout') }}" method="POST">
             @csrf
-            <button class="dropdown-item text-danger" type="submit"><i class="ti ti-logout me-2"></i>Logout</button>
+            <button class="dropdown-item text-danger" type="submit">
+              <i class="ti ti-logout me-2"></i>Logout
+            </button>
           </form>
         </li>
       </ul>
@@ -109,8 +71,64 @@
   </div>
 </header>
 
-{{-- Backdrop untuk panel (membuat panel “terpisah” dari halaman) --}}
-<div id="menuBackdrop" class="menu-backdrop" hidden></div>
+{{-- === MOBILE DRAWER NAV (FULLSCREEN) === --}}
+<nav id="mobileNav" class="mobile-drawer d-lg-none" aria-label="Menu utama">
+  <div class="mobile-drawer-inner">
+    <div class="mobile-drawer-header">
+      <div class="d-flex align-items-center gap-2">
+        <img src="{{ asset('images/logo2.png') }}" alt="Logo" class="mobile-brand-logo">
+        <div class="fw-semibold text-white">Menu</div>
+      </div>
+      <button type="button" class="btn btn-link text-white p-0" id="btnMobileNavClose" aria-label="Tutup menu"
+        style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:22px;">
+        ✕
+      </button>
+    </div>
+
+    <div class="mobile-drawer-body">
+      <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+        <i class="ti ti-home-2"></i>
+        <span>Dashboard</span>
+      </a>
+
+      @if (Route::has('documents.index'))
+        <a href="{{ route('documents.index') }}"
+          class="mobile-link {{ request()->routeIs('documents.index') ? 'is-active' : '' }}">
+          <i class="ti ti-folder"></i>
+          <span>Data Dokumen</span>
+        </a>
+      @endif
+
+      @if (Route::has('documents.create'))
+        <a href="{{ route('documents.create') }}"
+          class="mobile-link {{ request()->routeIs('documents.create') ? 'is-active' : '' }}">
+          <i class="ti ti-file-plus"></i>
+          <span>Input Dokumen</span>
+        </a>
+      @endif
+
+      <div class="mobile-separator"></div>
+
+      @if (Route::has('profile.edit'))
+        <a href="{{ route('profile.edit') }}"
+          class="mobile-link {{ request()->routeIs('profile.edit') ? 'is-active' : '' }}">
+          <i class="ti ti-settings"></i>
+          <span>Profil</span>
+        </a>
+      @endif
+
+      <form action="{{ route('logout') }}" method="POST" class="mt-1">
+        @csrf
+        <button type="submit" class="mobile-link text-danger">
+          <i class="ti ti-logout"></i>
+          <span>Logout</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+<div id="mobileNavBackdrop" class="mobile-drawer-backdrop d-lg-none" hidden></div>
 
 <style>
   :root {
@@ -121,95 +139,191 @@
     --nav-hover: #2a476f;
   }
 
+  /* TOPBAR */
   .topbar {
-    position: fixed; inset: 0 0 auto 0; height: var(--topbar-h);
-    z-index: 1200; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 8px 16px;
-    backdrop-filter: saturate(140%) blur(6px);
-  }
-  .app-main { padding-top: var(--topbar-h); }
-  .topbar .btn-user { padding: 6px 10px; border-radius: 999px; }
-
-  .dropdown-menu { border-radius: 14px; padding: 8px; min-width: 220px; }
-  .dropdown-item { padding: .65rem .85rem; border-radius: 10px; }
-  .dropdown-item:hover { background: #f3f4f6; }
-  .menu-compact { min-width: 220px; }
-
-  /* === NAV PANEL DARK (terpisah, ada border & shadow) === */
-  .dropdown-menu-sheet{
-    padding:0; border:1px solid rgba(255,255,255,.08);
-    overflow:hidden; width:92vw; max-width:520px;
-    background:var(--nav-bg); color:var(--nav-text);
-    border-radius:22px;
-    box-shadow:0 28px 60px rgba(0,0,0,.35);
-    transform-origin:top left; transform:translateY(-10px) scale(.98);
-    opacity:0; transition:transform .22s ease, opacity .22s ease;
-  }
-  .dropdown-menu-sheet.show{ transform:translateY(0) scale(1); opacity:1; }
-
-  .dropdown-menu-sheet .sheet-head{
-    display:flex; align-items:center; justify-content:space-between;
-    background:var(--nav-bg-2); padding:.95rem 1rem;
-    border-bottom:1px solid rgba(255,255,255,.08);
-  }
-  .dropdown-menu-sheet .brand{ color:#fff; display:inline-flex; align-items:center; gap:.6rem; font-weight:700; }
-  .dropdown-menu-sheet .brand-logo{ width:22px; height:22px; object-fit:contain; filter:brightness(0) invert(1); }
-  .dropdown-menu-sheet .sheet-close{ border:0; background:transparent; width:36px; height:36px; border-radius:10px; color:#fff; }
-  .dropdown-menu-sheet .sheet-close:hover{ background:rgba(255,255,255,.08); }
-
-  .dropdown-menu-sheet .sheet-body{ padding:.6rem; display:flex; flex-direction:column; }
-  .dropdown-menu-sheet .sheet-item{
-    display:flex; align-items:center; gap:.65rem;
-    padding:.9rem 1.1rem; color:var(--nav-text);
-    text-decoration:none; border-radius:12px; font-weight:600;
-  }
-  .dropdown-menu-sheet .sheet-item i{ width:20px; text-align:center; opacity:.9; }
-  .dropdown-menu-sheet .sheet-item:hover{ background:var(--nav-hover); }
-  .dropdown-menu-sheet .sheet-sep{ height:1px; margin:.4rem 0; background:rgba(255,255,255,.14); }
-
-  /* posisi aman & ada jarak dari tepi/topbar */
-  @media (max-width: 992px){
-    .dropdown-menu-sheet{
-      margin-top:10px;          /* jarak dari topbar */
-      margin-left:12px;         /* jarak dari tepi kiri */
-      left:0 !important; right:auto !important;
-    }
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--topbar-h);
+    z-index: 1200;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
   }
 
-  /* Backdrop: bikin panel berasa melayang & terpisah */
+  /* Pastikan di layout utama, konten dibungkus dengan class "app-main" */
+  .app-main {
+    padding-top: var(--topbar-h);
+  }
+
+  .topbar .btn-user {
+    padding: 6px 10px;
+    border-radius: 999px;
+  }
+
+  .dropdown-menu {
+    border-radius: 14px;
+    padding: 8px;
+    min-width: 220px;
+  }
+
+  .dropdown-item {
+    padding: .65rem .85rem;
+    border-radius: 10px;
+  }
+
+  .dropdown-item:hover {
+    background: #f3f4f6;
+  }
+
+  .menu-compact {
+    min-width: 220px;
+  }
   .menu-backdrop{
-    position:fixed; inset:var(--topbar-h) 0 0 0;
-    background:rgba(0,0,0,.35);
-    backdrop-filter: blur(1px);
-    z-index:1199;  /* di bawah panel (1200+ dropdown) */
-  }
-  .menu-backdrop[hidden]{ display:none !important; }
+  display:none !important;
+}
 
-  /* Kill sidebar di mobile */
-  @media (max-width: 992px){
-    .sidebar, .sidebar.open, .sidebar-backdrop{ display:none !important; visibility:hidden !important; pointer-events:none !important; }
-    .sidebar{ transform:translateX(-200%) !important; }
+
+  /* === MOBILE DRAWER FULL-SCREEN ala GLPI === */
+  .mobile-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    pointer-events: none;
+  }
+
+  .mobile-drawer-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* isi penuh 1 layar */
+    width: 100%;
+    max-width: 100vw;
+    background: var(--nav-bg);
+    color: var(--nav-text);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(-100%);
+    /* sembunyi di atas */
+    transition: transform .22s ease;
+    box-shadow: none;
+  }
+
+  .mobile-drawer-header {
+    padding: .9rem 1rem;
+    background: var(--nav-bg-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+  }
+
+  .mobile-brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  .mobile-drawer-body {
+    padding: .5rem .5rem 1rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .mobile-link {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem 1rem;
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: .95rem;
+  }
+
+  .mobile-link i {
+    width: 20px;
+    text-align: center;
+    opacity: .9;
+  }
+
+  .mobile-link:hover {
+    background: var(--nav-hover);
+  }
+
+  .mobile-link.is-active {
+    background: #163157;
+  }
+
+  .mobile-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, .15);
+    margin: .6rem 0;
+  }
+
+  .mobile-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .25);
+    backdrop-filter: blur(1px);
+    z-index: 1199;
+  }
+
+  .mobile-drawer-backdrop[hidden] {
+    display: none !important;
+  }
+
+  .mobile-drawer.open {
+    pointer-events: auto;
+  }
+
+  .mobile-drawer.open .mobile-drawer-inner {
+    transform: translateY(0);
+    /* slide turun dari atas */
+  }
+
+  /* Hide sidebar di mobile – konten full */
+  @media (max-width: 992px) {
+
+    .sidebar,
+    .sidebar.open,
+    .sidebar-backdrop {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
   }
 </style>
 
 <script>
-  // Tampilkan backdrop ketika dropdown panel dibuka
   (function () {
-    const backdrop = document.getElementById('menuBackdrop');
-    const dd = document.getElementById('btnOverflow')?.closest('.dropdown');
+    const btnOpen = document.getElementById('btnMobileNav');
+    const btnClose = document.getElementById('btnMobileNavClose');
+    const drawer = document.getElementById('mobileNav');
+    const backdrop = document.getElementById('mobileNavBackdrop');
 
-    if (!dd || !backdrop) return;
+    if (!btnOpen || !drawer || !backdrop) return;
 
-    dd.addEventListener('show.bs.dropdown', () => {
-      backdrop.removeAttribute('hidden');
-    });
-    dd.addEventListener('hide.bs.dropdown', () => {
-      backdrop.setAttribute('hidden', '');
-    });
+    const openNav = () => {
+      drawer.classList.add('open');
+      backdrop.hidden = false;
+      document.body.style.overflow = 'hidden';
+    };
 
-    // klik backdrop menutup dropdown
-    backdrop.addEventListener('click', () => {
-      const trigger = document.getElementById('btnOverflow');
-      if (trigger) trigger.click();
+    const closeNav = () => {
+      drawer.classList.remove('open');
+      backdrop.hidden = true;
+      document.body.style.overflow = '';
+    };
+
+    btnOpen.addEventListener('click', openNav);
+    btnClose?.addEventListener('click', closeNav);
+    backdrop.addEventListener('click', closeNav);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeNav();
     });
   })();
 </script>

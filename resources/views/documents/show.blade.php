@@ -1,8 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-
-
   <div class="container-fluid document-show bg-transparent px-0">
 
     {{-- Header --}}
@@ -12,18 +10,21 @@
         <div class="text-muted small">No. Dokumen: {{ $document->number }}</div>
       </div>
 
-      {{-- Logika baru untuk tombol Edit di bagian ini. --}}
       @php
-        $isRejected = strtoupper($document->status) === 'REJECTED';
+        $isRejected  = strtoupper($document->status) === 'REJECTED';
+        $isSigned    = filled($document->signature_path);
+        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
       @endphp
+
       <div class="d-flex gap-2">
         <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
         {{-- Tombol Edit dikunci bila REJECTED --}}
-        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary {{ $isRejected ? 'disabled' : '' }}"
-          @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
+        <a href="{{ route('documents.edit', $document) }}"
+           class="btn btn-primary {{ $isRejected ? 'disabled' : '' }}"
+           @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
           <i class="ti ti-edit"></i> Edit
         </a>
       </div>
@@ -35,7 +36,6 @@
         <strong>Dokumen Ditolak.</strong> Edit, tanda tangan, dan pengambilan foto dinonaktifkan.
       </div>
     @endif
-
 
     {{-- Ringkasan --}}
     <div class="row g-3 mb-4">
@@ -75,6 +75,7 @@
 
     {{-- Detail & Info --}}
     <div class="row g-3 mb-4">
+      {{-- Detail dokumen --}}
       <div class="col-lg-8">
         <div class="card-soft p-4">
           <div class="mb-3">
@@ -119,18 +120,14 @@
         </div>
       </div>
 
-      {{-- === KARTU INFO & AKSI (DIREVISI) === --}}
-      @php
-        $isSigned = filled($document->signature_path);
-        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
-      @endphp
+      {{-- Info tambahan & aksi --}}
       <div class="col-lg-4">
         <div class="card-soft p-4 mb-4 mb-lg-0">
 
           {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
-              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
+                 style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d;position:static !important;animation:none !important;">
               <i class="ti ti-badge-check"></i>
               <div class="small">
                 Dokumen <strong>telah ditandatangani</strong>
@@ -141,18 +138,18 @@
           @endif
 
           <h6 class="fw-semibold text-uppercase text-muted small mb-2">Info Tambahan</h6>
-          {{-- ... (bagian lain tetap) --}}
           <hr>
 
           {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
-            class="btn btn-outline-secondary w-100 mb-2">
+             class="btn btn-outline-secondary w-100 mb-2">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
           {{-- Hapus Dokumen: disembunyikan jika sudah signed atau submitted --}}
           @if(!$isSigned && !$isSubmitted)
-            <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
+            <button class="btn btn-outline-danger w-100 mb-2"
+                    onclick="confirmDelete({{ $document->id }})">
               <i class="ti ti-trash me-1"></i> Hapus Dokumen
             </button>
           @endif
@@ -160,7 +157,7 @@
           {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
             <form action="{{ route('documents.reject', $document) }}" method="POST"
-              onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
+                  onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
               @csrf
               <button type="submit" class="btn btn-outline-warning w-100">
                 <i class="ti ti-ban"></i> Tolak Dokumen
@@ -168,36 +165,50 @@
             </form>
           @endif
 
-          {{-- Form hapus (boleh tetap ada/tersembunyi) --}}
-          <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
-            class="d-none">
+          {{-- Form hapus tersembunyi --}}
+          <form id="delete-form-{{ $document->id }}"
+                action="{{ route('documents.destroy', $document) }}"
+                method="POST"
+                class="d-none">
             @csrf
             @method('DELETE')
           </form>
 
         </div>
       </div>
-
-
     </div>
 
-    {{-- === BLOK TANDA TANGAN & FOTO (DIREVISI) === --}}
-    <div class="card-soft p-3 mt-5">
-      <div class="d-flex justify-content-between align-items-center m">
+    {{-- === BLOK TANDA TANGAN & FOTO (IKUTAN TURUN OTOMATIS) === --}}
+    <div class="card-soft p-4 mt-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
+
         <div class="d-flex gap-2">
+          {{-- Tombol Ambil Tanda Tangan --}}
+          <a href="{{ route('documents.sign', $document) }}"
+             class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}"
+             @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
+            <i class="ti ti-signature me-1"></i> Tanda Tangan
+          </a>
+
+          {{-- Tombol Ambil Foto --}}
+          <a href="{{ route('documents.photo', $document) }}"
+             class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-camera me-1"></i> Ambil Foto
+          </a>
         </div>
       </div>
 
       <div class="row g-3">
         {{-- Kolom Tanda Tangan --}}
         <div class="col-md-6">
-          <div class="border rounded p-3 text-center h-100">
+          <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Tanda Tangan</div>
 
             @if($document->signature_path)
-              <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
-                style="max-height:140px;object-fit:contain">
+              <img src="{{ Storage::url($document->signature_path) }}"
+                   alt="Signature"
+                   style="max-height:140px;object-fit:contain">
               <div class="text-muted small mt-2">
                 Ditandatangani
                 {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
@@ -213,12 +224,13 @@
 
         {{-- Kolom Foto Dokumen --}}
         <div class="col-md-6">
-          <div class="border rounded p-3 text-center h-100">
+          <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Foto Dokumen</div>
 
             @if($document->photo_path)
-              <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
-                style="max-height:180px;width:100%;object-fit:contain">
+              <img src="{{ Storage::url($document->photo_path) }}"
+                   alt="Photo"
+                   style="max-height:180px;width:100%;object-fit:contain">
               <div class="text-muted small mt-2">
                 Difoto terakhir
                 {{ optional($document->updated_at)->translatedFormat('d M Y H:i') ?? '-' }}
@@ -230,5 +242,18 @@
         </div>
       </div>
     </div>
+
   </div>
 @endsection
+
+@push('styles')
+<style>
+  /* Kotak putih di dalam (tanda tangan & foto) */
+  .extra-box {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+  }
+</style>
+@endpush

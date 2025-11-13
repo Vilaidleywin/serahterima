@@ -408,17 +408,8 @@ body.nav-open .appbar-btn.hamburger span:nth-child(3) {
 }
 
 /* ========= Overlay (kalau dipakai) ========= */
-.nav-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(20, 30, 60, 0.35);
-    backdrop-filter: blur(1px);
-    z-index: 1035;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s, visibility 0.2s;
-}
-body.nav-open .nav-backdrop {
+
+body.nav-open {
     opacity: 1;
     visibility: visible;
 }
@@ -517,9 +508,6 @@ body.nav-open .mobile-nav {
     .mobile-nav {
         display: block;
     } /* aktifkan drawer di mobile */
-    .nav-backdrop {
-        display: none;
-    } /* backdrop lama tidak dipakai */
 }
 @media (max-width: 576px) {
     .appbar {

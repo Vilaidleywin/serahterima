@@ -159,15 +159,7 @@
         margin-left: 0;
       }
 
-      .nav-backdrop {
-        position: fixed;
-        inset: var(--topbar-h) 0 0 0;
-        background: rgba(0, 0, 0, .45);
-        display: none;
-        z-index: 1030;
-      }
-
-      body.nav-open .nav-backdrop {
+      body.nav-open {
         display: block;
       }
     }
@@ -237,8 +229,6 @@
     </nav>
   </aside>
 
-  {{-- BACKDROP drawer mobile --}}
-  <div class="nav-backdrop" id="navBackdrop" aria-hidden="true"></div>
 
   {{-- MAIN --}}
   <main class="content">
@@ -255,7 +245,7 @@
     (function () {
       const body = document.body;
       const btn = document.getElementById('btnMobileNav');
-      const bd = document.getElementById('navBackdrop');
+      // const bd = document.getElementById('navBackdrop');
 
       function openNav() { body.classList.add('nav-open'); btn?.classList.add('active'); btn?.setAttribute('aria-expanded', 'true'); }
       function closeNav() { body.classList.remove('nav-open'); btn?.classList.remove('active'); btn?.setAttribute('aria-expanded', 'false'); }

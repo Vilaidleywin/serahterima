@@ -119,7 +119,7 @@
     @endif
 
     <div class="mb-3">
-      <label for="username" class="form-label">Username</label>
+      <label for="username" class="form-label">Email atau Username</label>
       <input type="text" class="form-control" id="username" name="login" value="{{ old('email') || old('username') }}" required autofocus placeholder="Masukkan Email atau Username">
       
 
