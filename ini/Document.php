@@ -9,12 +9,18 @@ class Document extends Model
 {
     use HasFactory;
 
+    /**
+     * NOTE:
+     * - 'division' intentionally removed from $fillable to prevent mass-assignment.
+     * - Server must set $document->division = Auth::user()->division when creating.
+     */
     protected $fillable = [
         'number',
         'title',
         'sender',
         'receiver',
         'destination',
+        // 'division',
         'amount_idr',
         'date',
         'description',
@@ -27,12 +33,20 @@ class Document extends Model
         'signed_by',
     ];
 
+    /**
+     * Optional extra safety: explicitly guard division as well.
+     * If you prefer guarded approach, comment out $fillable and use $guarded instead.
+     */
+    // protected $guarded = ['id', 'division'];
+
     protected $casts = [
-        'date' => 'datetime',
+        'date'      => 'datetime',
         'signed_at' => 'datetime',
+        // 'photo_at' cast removed (not present as attribute in this model)
         'amount_idr' => 'float',
     ];
 
+    // Relations
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -43,14 +57,17 @@ class Document extends Model
         return $this->belongsTo(\App\Models\User::class, 'signed_by');
     }
 
+    // Accessor: formatted amount
     public function getAmountIdrFormattedAttribute()
     {
         if ($this->amount_idr === null) {
             return '-';
         }
+
         return 'Rp. ' . number_format($this->amount_idr, 0, ',', '.');
     }
 
+    // Mutator: bersihkan input amount apapun bentuknya jadi angka murni
     public function setAmountIdrAttribute($value)
     {
         if ($value === null || $value === '') {
@@ -58,23 +75,6 @@ class Document extends Model
             return;
         }
         $clean = preg_replace('/[^0-9]/', '', (string)$value);
-        $this->attributes['amount_idr'] = (float)$clean;
-    }
-
-    protected static function booted()
-    {
-        // Prevent changing division via normal update
-        static::updating(function ($doc) {
-            if ($doc->isDirty('division')) {
-                $doc->division = $doc->getOriginal('division');
-            }
-        });
-
-        // If creating in a web request, fill division from auth user if empty
-        static::creating(function ($doc) {
-            if (empty($doc->division) && auth()->check()) {
-                $doc->division = auth()->user()->division ?? 'UNKNOWN';
-            }
-        });
+        $this->attributes['amount_idr'] = $clean === '' ? null : (float)$clean;
     }
 }

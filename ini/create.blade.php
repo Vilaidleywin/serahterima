@@ -37,8 +37,9 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Tujuan</label>
-          <input type="text" name="destination_desc" class="form-control search" value="{{ old('destination_desc') }}" placeholder="">
+          <label class="form-label fw-semibold">Tujuan </label>
+          <input type="text" name="destination_desc" class="form-control search" value="{{ old('destination_desc') }}"
+            placeholder="">
           @error('destination_desc') <div class="text-danger small">{{ $message }}</div> @enderror
         </div>
 
@@ -47,17 +48,24 @@
 
           @php
             $selectedValue = old('division_tujuan', data_get($document, 'division_tujuan', ''));
+            // pastikan $divisions iterable; di controller Anda memang dikirim sebagai array string
             $hasOther = collect($divisions)->map(fn($d) => strtoupper((string) ($d ?? '')))->contains('OTHER');
           @endphp
 
+
           <select name="division_tujuan" id="division_tujuan" class="form-select search">
             <option value="">— Pilih Divisi Tujuan —</option>
+
             @foreach($divisions as $div)
-              @php $val = (string) $div; @endphp
+              @php
+                $val = (string) $div;
+                $label = $val;
+              @endphp
               <option value="{{ $val }}" {{ ($selectedValue == $val) ? 'selected' : '' }}>
-                {{ $val }}
+                {{ $label }}
               </option>
             @endforeach
+
             @unless($hasOther)
               <option value="Other" {{ (strtoupper((string) $selectedValue) === 'OTHER') ? 'selected' : '' }}>Other</option>
             @endunless
@@ -78,6 +86,9 @@
             <div class="text-danger small">{{ $message }}</div>
           @enderror
         </div>
+
+        {{-- jangan pakai hidden owner_division_input: controller sudah paksa divisi pembuat dari Auth::user()->division
+        --}}
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Nominal (Rp)</label>
@@ -114,24 +125,25 @@
 @endsection
 
 @push('scripts')
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const sel = document.getElementById('division_tujuan');
-    const other = document.getElementById('division_tujuan_other');
-    if (!sel || !other) return;
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const sel = document.getElementById('division_tujuan');
+      const other = document.getElementById('division_tujuan_other');
+      if (!sel || !other) return;
 
-    function toggleOther() {
-      if ((sel.value || '').toString().trim().toUpperCase() === 'OTHER') {
-        other.style.display = '';
-        other.focus();
-      } else {
-        other.style.display = 'none';
-        other.value = '';
+      function toggleOther() {
+        if ((sel.value || '').toString().trim().toUpperCase() === 'OTHER') {
+          other.style.display = '';
+          other.focus();
+        } else {
+          other.style.display = 'none';
+          // kosongkan jika ingin user mengetik ulang saat memilih Other lagi
+          other.value = '';
+        }
       }
-    }
 
-    sel.addEventListener('change', toggleOther);
-    toggleOther();
-  });
-</script>
+      sel.addEventListener('change', toggleOther);
+      toggleOther();
+    });
+  </script>
 @endpush

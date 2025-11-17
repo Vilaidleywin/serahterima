@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -34,20 +35,16 @@ class DocumentController extends Controller
         'Resepsionis',
         'Other'
     ];
+
     public static function divisions(): array
     {
         return self::DIVISIONS;
     }
 
     // ============================== HELPER ==============================
-    /**
-     * Membersihkan string input mata uang menjadi float/int bersih.
-     */
     private function sanitizeAmount($val): float
     {
-        // Menghapus semua karakter non-digit
         $num = preg_replace('/[^0-9]/', '', (string)$val);
-        // Mengembalikan 0 jika string kosong, jika tidak mengembalikan float
         return $num === '' ? 0.0 : (float)$num;
     }
 
@@ -118,6 +115,22 @@ class DocumentController extends Controller
 
         $q = Document::query();
 
+        // --- enforce viewer scope: non-admin only sees documents of their own division ---
+        $user = Auth::user();
+        $isAdmin = $user && (method_exists($user, 'isAdmin') ? $user->isAdmin() : (($user->role ?? '') === 'admin'));
+
+        if (!$isAdmin) {
+            $userDivision = $user->division ?? null;
+            if ($userDivision) {
+                $q->where('division', $userDivision);
+            } else {
+                // user has no division -> return empty set
+                $q->whereNull('id');
+            }
+        } else {
+            $userDivision = null;
+        }
+
         // --------------------------- FULL TEXT SEARCH --------------------------
         if ($raw = trim((string) $req->input('search'))) {
             $s = Str::of($raw)->lower()->toString();
@@ -186,7 +199,11 @@ class DocumentController extends Controller
 
         // ------------------------------ FILTERS --------------------------------
         if ($st = $req->input('status'))  $q->where('status', $st);
-        if ($div = $req->input('division')) $q->where('division', $div);
+
+        // Destination filter must use destination_filter param to avoid confusion with owner division
+        if ($dest = $req->input('destination_filter')) {
+            $q->where('destination', 'like', "%{$dest}%");
+        }
 
         if ($period = $req->input('period')) {
             $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
@@ -224,12 +241,22 @@ class DocumentController extends Controller
             ->paginate($per)
             ->withQueryString();
 
-        $divisions = Document::query()->select('division')->distinct()->pluck('division')->filter()->values();
+        // Ambil list tujuan (destination) yang TERLIHAT oleh user saat ini (sesuai scope di atas)
+        $divisions = $q->getModel()->newQuery()
+            ->when(!$isAdmin, function ($query) use ($userDivision) {
+                return $query->where('division', $userDivision);
+            })
+            ->select('destination')->distinct()->pluck('destination')->filter()->values();
 
-        $counts = Document::query()
+        // ======================= summary / charts data (filtered by userDivision) =======================
+        $countsQuery = Document::query();
+        if (!$isAdmin) {
+            $countsQuery->where('division', $userDivision);
+        }
+        $counts = $countsQuery
             ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
             ->groupBy('s')
-            ->pluck('c', 's'); // e.g. ['SUBMITTED'=>x, 'REJECTED'=>y, 'DRAFT'=>z]
+            ->pluck('c', 's');
 
         $alias = ['SUBMITTED' => 'SUBMITTED', 'APPROVED' => 'SUBMITTED', 'REJECT' => 'REJECTED', 'REJECTED' => 'REJECTED', 'DRAFT' => 'DRAFT'];
         $normalized = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
@@ -247,10 +274,16 @@ class DocumentController extends Controller
 
         $startMonth = $now->copy()->startOfMonth();
         $endMonth   = $now->copy()->endOfMonth();
-        $monthCounts = Document::query()
-            ->whereBetween('created_at', [$startMonth, $endMonth])
+
+        $monthCountsQuery = Document::query()
+            ->whereBetween('created_at', [$startMonth, $endMonth]);
+        if (!$isAdmin) {
+            $monthCountsQuery->where('division', $userDivision);
+        }
+        $monthCounts = $monthCountsQuery
             ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
             ->groupBy('s')->pluck('c', 's');
+
         $mNorm = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
         foreach ($monthCounts as $k => $v) {
             $key = $alias[$k] ?? $k;
@@ -261,10 +294,16 @@ class DocumentController extends Controller
 
         $start = $now->copy()->subMonthsNoOverflow(11)->startOfMonth();
         $end   = $now->copy()->endOfMonth();
-        $perMonth = Document::query()
-            ->whereBetween('created_at', [$start, $end])
+
+        $perMonthQuery = Document::query()
+            ->whereBetween('created_at', [$start, $end]);
+        if (!$isAdmin) {
+            $perMonthQuery->where('division', $userDivision);
+        }
+        $perMonth = $perMonthQuery
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as c")
-            ->groupBy('ym')->pluck('c', 'ym'); // ['2025-01'=>n, ...]
+            ->groupBy('ym')->pluck('c', 'ym');
+
         $lineLabels = [];
         $lineData   = [];
         $cursor = $start->copy();
@@ -275,20 +314,36 @@ class DocumentController extends Controller
             $cursor->addMonth();
         }
 
-        $createdToday = Document::whereDate('created_at', $now->toDateString())->count();
-        $createdWeek  = Document::whereBetween('created_at', [$now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)])->count();
-        $createdMonth = Document::whereBetween('created_at', [$startMonth, $endMonth])->count();
+        $createdTodayQuery = Document::whereDate('created_at', $now->toDateString());
+        $createdWeekQuery  = Document::whereBetween('created_at', [$now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)]);
+        $createdMonthQuery = Document::whereBetween('created_at', [$startMonth, $endMonth]);
+
+        if (!$isAdmin) {
+            $createdTodayQuery->where('division', $userDivision);
+            $createdWeekQuery->where('division', $userDivision);
+            $createdMonthQuery->where('division', $userDivision);
+        }
+
+        $createdToday = $createdTodayQuery->count();
+        $createdWeek  = $createdWeekQuery->count();
+        $createdMonth = $createdMonthQuery->count();
 
         $overdueDays = (int) $req->integer('overdue_days', 7); // default 7 hari
         $cutoff = $now->copy()->subDays($overdueDays)->toDateString();
-        $submittedOverdue = Document::where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
+
+        $submittedOverdueQuery = Document::where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
             $w->where(function ($x) use ($cutoff) {
                 $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
             })
                 ->orWhere(function ($x) use ($cutoff) {
                     $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
                 });
-        })->count();
+        });
+        if (!$isAdmin) {
+            $submittedOverdueQuery->where('division', $userDivision);
+        }
+        $submittedOverdue = $submittedOverdueQuery->count();
+
 
         return view('documents.index', [
             'title'      => 'Data Dokumen',
@@ -311,11 +366,11 @@ class DocumentController extends Controller
             'lineLabels' => $lineLabels,
             'lineData'  => $lineData,
 
-            'createdToday'     => $createdToday,
-            'createdWeek'      => $createdWeek,
-            'createdMonth'     => $createdMonth,
-            'overdueDays'      => $overdueDays,
-            'submittedOverdue' => $submittedOverdue,
+            'createdToday'       => $createdToday,
+            'createdWeek'        => $createdWeek,
+            'createdMonth'       => $createdMonth,
+            'overdueDays'        => $overdueDays,
+            'submittedOverdue'   => $submittedOverdue,
         ]);
     }
 
@@ -329,6 +384,7 @@ class DocumentController extends Controller
                 ['label' => 'Tambah Dokumen'],
             ],
             'divisions' => self::DIVISIONS,
+            'document' => null,
         ]);
     }
 
@@ -339,20 +395,35 @@ class DocumentController extends Controller
             'title'          => ['required', 'string', 'max:255'],
             'sender'         => ['required', 'string', 'max:100'],
             'receiver'       => ['required', 'string', 'max:100'],
-            'destination'    => ['nullable', 'string', 'max:255'],
-            'division'       => ['nullable', 'string', 'max:100'],
-            'division_other' => ['nullable', 'string', 'max:100'],
+            'destination_desc' => ['nullable', 'string', 'max:255'],
+            'division_tujuan'       => ['required', 'string', 'max:100'],
+            'division_tujuan_other' => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
             'amount_idr'     => ['required'],
             'date'           => ['required', 'date'],
             'description'    => ['nullable', 'string'],
             'file'           => ['nullable', 'file', 'max:5120'],
         ]);
 
-        if (strtoupper((string)$data['division']) === 'OTHER' && $request->filled('division_other')) {
-            $data['division'] = $request->input('division_other');
+        // defensive: remove any client-provided division keys (do not trust client)
+        $data = Arr::except($data, ['division', 'owner_division_input']);
+
+        // 1. Ambil Divisi Tujuan dari input (untuk kolom destination saja)
+        $divisiTujuan = $request->input('division_tujuan');
+        if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
+            $divisiTujuan = $request->input('division_tujuan_other');
         }
 
-        $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
+        // 2. Simpan Divisi Tujuan ke kolom 'destination' (kompromi skema)
+        $tujuanDeskripsi = $request->input('destination_desc');
+        $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
+
+        // 3. PAKSA Divisi dokumen (kolom 'division') diisi dengan Divisi Pembuat (User yang login)
+        //    Namun karena 'division' tidak fillable kami akan set langsung pada model setelah create
+        //    untuk mencegah client overwrite.
+        // Membersihkan data input yang tidak ada di database sebelum Document::create
+        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc']);
+
+        $data['amount_idr'] = $this->sanitizeAmount($request->input('amount_idr'));
         $data['status']     = 'DRAFT';
 
         if ($request->hasFile('file')) {
@@ -360,7 +431,14 @@ class DocumentController extends Controller
         }
 
         $data['user_id'] = Auth::id() ?? null;
-        Document::create($data);
+
+        // buat record
+        $document = Document::create($data);
+
+        // set division secara eksplisit pada model hasil create (karena division tidak fillable)
+        $document->division = Auth::user()->division ?? 'UNKNOWN';
+        $document->save();
+
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil ditambahkan.');
     }
 
@@ -399,7 +477,6 @@ class DocumentController extends Controller
             'sender'      => ['required', 'string', 'max:255'],
             'receiver'    => ['nullable', 'string', 'max:100'],
             'destination' => ['nullable', 'string', 'max:255'],
-            'division'    => 'nullable|string|max:100',
             'amount_idr'  => ['nullable'],
             'date'        => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
@@ -409,8 +486,6 @@ class DocumentController extends Controller
         if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '') {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
-            // Hapus 'amount_idr' dari array $data jika kosong, agar tidak di-update
-            // menjadi 0.0 jika tidak ada perubahan.
             unset($data['amount_idr']);
         }
 
@@ -421,13 +496,17 @@ class DocumentController extends Controller
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
+        // Pastikan update tidak mengubah kolom 'division' (harus di-manage oleh server)
+        if (array_key_exists('division', $data)) {
+            unset($data['division']);
+        }
+
         $document->update($data);
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diperbarui!');
     }
 
     public function destroy(Document $document)
     {
-        // Opsional: Hapus file dan foto terkait saat dokumen dihapus
         if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
             Storage::disk('public')->delete($document->file_path);
         }
@@ -444,7 +523,7 @@ class DocumentController extends Controller
 
     public function show(Document $document)
     {
-        $document->load('user'); 
+        $document->load('user');
         return view('documents.show', [
             'title' => 'Detail Dokumen',
             'document' => $document,
