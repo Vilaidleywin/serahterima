@@ -98,7 +98,23 @@
       opacity: .95
     }
 
-    /* ===== TOPBAR (didefinisikan di partial, tapi layout yang atur posisi) ===== */
+    /* 🔑 CSS Tambahan untuk Logout Hover & Gaya Dasar */
+    .sidebar #logout-form button.menu-item {
+      /* Pastikan gaya dasar tombol sama dengan a.menu-item */
+      background-color: transparent;
+      color: var(--aside-text);
+      cursor: pointer;
+      /* Menambahkan cursor pointer */
+    }
+
+    .sidebar #logout-form button.menu-item:hover {
+      background: var(--aside-active);
+      opacity: 1;
+      color: #fff;
+      /* Tambahkan agar teks tetap putih saat hover */
+    }
+
+    /* ===== TOPBAR ===== */
     .topbar {
       position: fixed;
       top: 0;
@@ -174,7 +190,6 @@
         style="width:150px;object-fit:contain;display:block;">
     </div>
 
-
     <nav class="menu">
       @php
         $u = auth()->user();
@@ -222,13 +237,12 @@
       {{-- Logout --}}
       <form id="logout-form" action="{{ route('logout') }}" method="POST" class="mt-auto">
         @csrf
-        <button type="button" id="btn-logout" class="menu-item w-100 border-0 bg-transparent text-start ">
+        <button type="button" id="btn-logout" class="menu-item w-100 border-0 bg-transparent text-start">
           <i class="ti ti-logout"></i> <span>Logout</span>
         </button>
       </form>
     </nav>
   </aside>
-
 
   {{-- MAIN --}}
   <main class="content">
@@ -245,14 +259,27 @@
     (function () {
       const body = document.body;
       const btn = document.getElementById('btnMobileNav');
-      // const bd = document.getElementById('navBackdrop');
+      const bd = document.getElementById('navBackdrop'); // <- sudah didefinisikan lagi
 
-      function openNav() { body.classList.add('nav-open'); btn?.classList.add('active'); btn?.setAttribute('aria-expanded', 'true'); }
-      function closeNav() { body.classList.remove('nav-open'); btn?.classList.remove('active'); btn?.setAttribute('aria-expanded', 'false'); }
-      function toggleNav() { body.classList.contains('nav-open') ? closeNav() : openNav(); }
+      function openNav() {
+        body.classList.add('nav-open');
+        btn?.classList.add('active');
+        btn?.setAttribute('aria-expanded', 'true');
+      }
+
+      function closeNav() {
+        body.classList.remove('nav-open');
+        btn?.classList.remove('active');
+        btn?.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleNav() {
+        body.classList.contains('nav-open') ? closeNav() : openNav();
+      }
 
       btn && btn.addEventListener('click', toggleNav);
       bd && bd.addEventListener('click', closeNav);
+
       document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
 
       // Auto-close saat klik link di sidebar
@@ -270,31 +297,54 @@
       window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeNav(); });
     })();
 
+    // Helper: konfirmasi aksi dengan SweetAlert + styling Bootstrap
+    function confirmWithSwal(options) {
+      return Swal.fire({
+        icon: options.icon ?? 'warning',
+        title: options.title ?? 'Yakin?',
+        text: options.text ?? '',
+        showCancelButton: true,
+        confirmButtonText: options.confirmText ?? 'Ya',
+        cancelButtonText: options.cancelText ?? 'Batal',
+        reverseButtons: true,
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: options.confirmClass ?? 'btn btn-danger me-2',
+          cancelButton: options.cancelClass ?? 'btn btn-secondary'
+        }
+      });
+    }
+
     // Global confirmDelete
     window.confirmDelete ??= function (id) {
-      Swal.fire({
-        title: 'Hapus dokumen ini?', text: 'Data akan hilang secara permanen!', icon: 'warning',
-        showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, hapus!', cancelButtonText: 'Batal'
-      }).then((r) => { if (r.isConfirmed) { const f = document.getElementById(`delete-form-${id}`); if (f) f.submit(); } });
-    };
-    document.getElementById('btn-logout')?.addEventListener('click', function () {
-      Swal.fire({
-        title: 'Keluar sekarang?',
-        text: 'Sesi kamu akan diakhiri.',
+      confirmWithSwal({
         icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Ya, Logout',
-        cancelButtonText: 'Batal'
+        title: 'Hapus dokumen ini?',
+        text: 'Data akan hilang secara permanen dan tidak bisa dikembalikan.',
+        confirmText: 'Ya, hapus',
+        cancelText: 'Batal',
+        confirmClass: 'btn btn-danger me-2',
+        cancelClass: 'btn btn-outline-secondary'
       }).then((r) => {
         if (r.isConfirmed) {
-          // (opsional) tampilkan loading sebentar
-          Swal.fire({
-            title: 'Logout...',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => Swal.showLoading()
-          });
+          const f = document.getElementById(`delete-form-${id}`);
+          if (f) f.submit();
+        }
+      });
+    };
+
+    // LOGOUT
+    document.getElementById('btn-logout')?.addEventListener('click', function () {
+      confirmWithSwal({
+        icon: 'question',
+        title: 'Keluar dari aplikasi?',
+        text: 'Sesi kamu akan diakhiri dan kamu perlu login kembali untuk mengakses sistem.',
+        confirmText: 'Ya, logout',
+        cancelText: 'Batal',
+        confirmClass: 'btn btn-danger me-2',
+        cancelClass: 'btn btn-outline-secondary'
+      }).then((r) => {
+        if (r.isConfirmed) {
           document.getElementById('logout-form')?.submit();
         }
       });
@@ -303,10 +353,35 @@
 
   {{-- Flash toast --}}
   @if (session('success'))
-    <script>window.addEventListener('DOMContentLoaded', () => { Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: @json(session('success')), showConfirmButton: false, timer: 2200, timerProgressBar: true }); });</script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: @json(session('success')),
+          showConfirmButton: false,
+          timer: 2200,
+          timerProgressBar: true
+        });
+      });
+    </script>
   @endif
+
   @if (session('error'))
-    <script>window.addEventListener('DOMContentLoaded', () => { Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: @json(session('error')), showConfirmButton: false, timer: 2600, timerProgressBar: true }); });</script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'error',
+          title: @json(session('error')),
+          showConfirmButton: false,
+          timer: 2600,
+          timerProgressBar: true
+        });
+      });
+    </script>
   @endif
 
   @stack('scripts')

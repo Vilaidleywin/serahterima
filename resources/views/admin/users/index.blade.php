@@ -18,7 +18,7 @@
   @endif
 
   <form method="GET" class="mb-3">
-    <input name="search" class="form-control" placeholder="Cari nama/username/email/divisi/role" value="{{ request('search') }}">
+    <input name="search" class="form-control" placeholder="Cari nama/username/email/divisi" value="{{ request('search') }}">
   </form>
 
   @if($users->isEmpty())

@@ -62,16 +62,15 @@
 
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal dari</label>
-        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control"
-          placeholder="Date from">
+        <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control">
       </div>
 
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal sampai</label>
-        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control" placeholder="Date to">
+        <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control">
       </div>
 
-      {{-- Tombol Filter + Reset di kolom kanan --}}
+      {{-- Tombol Filter + Reset --}}
       <div class="col-md-3 d-flex justify-content-end gap-2 filter-buttons">
         <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary w-100 w-md-auto">
           <i class="ti ti-filter-off me-1"></i> Reset
@@ -88,25 +87,19 @@
     <table class="table table-striped table-hover align-middle mb-0">
       <thead>
         <tr>
-          <th class="text-center" style="width:60px">No</th>
-          <th style="width:140px">No. Dokumen</th>
-          <th>Perihal</th>
-          <th style="width:160px">Pengirim</th>
-          <th style="width:160px">Penerima</th>
-          <th style="width:160px">Divisi</th>
-          <th style="width:160px">Tujuan</th>
+          <th>Pengirim</th>
+          <th>Penerima</th>
+          <th>Divisi</th>
+          <th>Tujuan</th>
           <th style="width:140px">Nominal (Rp)</th>
           <th style="width:120px">Tanggal</th>
           <th style="width:120px">Status</th>
-          <th style="width:180px">Aksi</th>
+          <th style="width:80px" class="text-end">Aksi</th>
         </tr>
       </thead>
       <tbody>
         @forelse($documents as $i => $d)
           <tr>
-            <td class="text-center">{{ $documents->firstItem() + $i }}</td>
-            <td>{{ $d->number }}</td>
-            <td>{{ $d->title }}</td>
             <td>{{ $d->sender ?? '-' }}</td>
             <td>{{ $d->receiver ?? '-' }}</td>
             <td>{{ $d->division ?? '-' }}</td>
@@ -117,8 +110,8 @@
 
             <td class="text-end">
               <div class="dropdown">
-                <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown" aria-expanded="false">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#111827"
                     class="bi bi-three-dots-vertical">
                     <path
                       d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
@@ -141,44 +134,48 @@
                       <i class="ti ti-signature me-2"></i> Tanda Tangan
                     </a>
                   </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
+
+                  <li><hr class="dropdown-divider"></li>
+
                   <li>
                     <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
                       <i class="ti ti-camera me-2"></i> Ambil Foto
                     </a>
                   </li>
+
                   <li>
-                    <button type="button" class="dropdown-item text-danger" onclick="confirmDelete({{ $d->id }})">
+                    <button
+                      type="button"
+                      class="dropdown-item text-danger btn-delete"
+                      data-id="{{ $d->id }}"
+                      data-label="{{ $d->number }} - {{ $d->title }}"
+                    >
                       <i class="ti ti-trash me-2"></i> Hapus
                     </button>
                   </li>
                 </ul>
               </div>
 
-              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
-                class="d-none">
+              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST" class="d-none">
                 @csrf @method('DELETE')
               </form>
             </td>
           </tr>
         @empty
           <tr>
-            <td colspan="11" class="text-center py-4">Tidak ada data</td>
+            <td colspan="8" class="text-center py-4">Tidak ada data</td>
           </tr>
         @endforelse
       </tbody>
     </table>
   </div>
 
-  {{-- Footer pagination bar --}}
+  {{-- FOOTER PAGINATION --}}
   <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
     style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
 
     {{-- Rows per page --}}
     <form method="get" class="d-inline-flex align-items-center gap-2 mb-0">
-      {{-- bawa filter biar nggak hilang saat ganti per_page --}}
       <input type="hidden" name="search" value="{{ request('search') }}">
       <input type="hidden" name="status" value="{{ request('status') }}">
       <input type="hidden" name="date_from" value="{{ request('date_from') }}">
@@ -219,57 +216,66 @@
     </div>
   </div>
 
-  @push('styles')
-    <style>
-      /* Samakan hover tombol Refresh custom dengan outline-secondary */
-      .outline-secondary {
-        border: 1px solid #6c757d;
-        color: #6c757d;
-        background: transparent;
-      }
+  {{-- MODAL KONFIRMASI HAPUS --}}
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">
+            <i class="ti ti-alert-triangle text-danger me-2"></i> Konfirmasi Hapus
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
 
-      .outline-secondary:hover {
-        background-color: #6c757d !important;
-        color: white !important;
-      }
+        <div class="modal-body pt-0">
+          <p class="mb-1">Apakah Anda yakin ingin menghapus dokumen berikut?</p>
+          <div class="small text-muted">
+            <span class="fw-semibold">Dokumen:</span>
+            <div class="delete-text mt-1"></div>
+          </div>
+        </div>
 
-      @media (max-width: 767.98px) {
-        .w-md-auto {
-          width: 100% !important;
-        }
-      }
-
-      /* Jarak antara filter input dan tombol */
-      .filter-buttons {
-        margin-top: 12px;
-        /* atur jarak sesuai selera */
-      }
-
-      @media (min-width: 768px) {
-        .filter-buttons {
-          margin-top: 18px;
-          /* versi desktop sedikit lebih tinggi biar seimbang */
-        }
-      }
-
-      .outline-secondary {
-        border: 1px solid #6c757d;
-        color: #6c757d;
-        background: transparent;
-      }
-
-      .outline-secondary:hover {
-        background-color: #6c757d !important;
-        color: white !important;
-      }
-    </style>
-  @endpush
-
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-danger" id="btn-confirm-delete">
+            <i class="ti ti-trash me-1"></i> Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @push('scripts')
   <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
+      // ====== MODAL DELETE HANDLER ======
+      const deleteModalElement = document.getElementById('deleteModal');
+      const deleteModal = new bootstrap.Modal(deleteModalElement);
+      const deleteText = deleteModalElement.querySelector('.delete-text');
+      let currentDeleteId = null;
+
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function () {
+          currentDeleteId = this.dataset.id;
+          const label = this.dataset.label || '';
+
+          deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
+          deleteModal.show();
+        });
+      });
+
+      document.getElementById('btn-confirm-delete').addEventListener('click', function () {
+        if (!currentDeleteId) return;
+
+        const form = document.getElementById('delete-form-' + currentDeleteId);
+        if (form) {
+          form.submit();
+        }
+        deleteModal.hide();
+      });
+
+      // ====== FILTER DATE PRESET ======
       const preset = document.getElementById('datePreset');
       const fromInput = document.querySelector('input[name="date_from"]');
       const toInput = document.querySelector('input[name="date_to"]');
@@ -280,13 +286,15 @@
       function startOfWeek(d) {
         const day = d.getDay();
         const diff = (day === 0 ? -6 : 1 - day);
-        const s = new Date(d); s.setDate(d.getDate() + diff);
+        const s = new Date(d);
+        s.setDate(d.getDate() + diff);
         return s;
       }
 
       preset?.addEventListener('change', () => {
         const today = new Date();
         let from = '', to = '';
+
         switch (preset.value) {
           case 'yesterday':
             const y = new Date(today);
@@ -315,9 +323,52 @@
             from = '';
             to = '';
         }
+
         if (fromInput) fromInput.value = from;
         if (toInput) toInput.value = to;
       });
-    })();
+    });
   </script>
+
+  <style>
+    .outline-secondary {
+      border: 1px solid #6c757d;
+      color: #6c757d;
+      background: transparent;
+    }
+
+    .outline-secondary:hover {
+      background-color: #6c757d !important;
+      color: white !important;
+    }
+
+    .filter-buttons {
+      margin-top: 12px;
+    }
+    @media (min-width: 768px) {
+      .filter-buttons {
+        margin-top: 18px;
+      }
+    }
+
+    /* Kebab button ala screenshot: putih, rounded, border halus */
+    .btn-kebab {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid #e2e8f0;
+      background-color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .btn-kebab:hover {
+      background-color: #eef2ff;
+      border-color: #c7d2fe;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+    }
+  </style>
 @endpush

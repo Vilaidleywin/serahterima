@@ -6,9 +6,7 @@
       <h2 class="fw-bold mb-0">Tambah Dokumen</h2>
       
     </div>
-    <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
-      <i class="ti ti-arrow-left"></i> Kembali
-    </a>
+
   </div>
 
   <div class="card-soft p-4">

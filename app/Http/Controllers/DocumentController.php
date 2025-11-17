@@ -39,6 +39,18 @@ class DocumentController extends Controller
         return self::DIVISIONS;
     }
 
+    // ============================== HELPER ==============================
+    /**
+     * Membersihkan string input mata uang menjadi float/int bersih.
+     */
+    private function sanitizeAmount($val): float
+    {
+        // Menghapus semua karakter non-digit
+        $num = preg_replace('/[^0-9]/', '', (string)$val);
+        // Mengembalikan 0 jika string kosong, jika tidak mengembalikan float
+        return $num === '' ? 0.0 : (float)$num;
+    }
+
     // ============================== PRINTS/PHOTO ==============================
     public function printPdf(Document $document)
     {
@@ -173,7 +185,7 @@ class DocumentController extends Controller
         }
 
         // ------------------------------ FILTERS --------------------------------
-        if ($st = $req->input('status'))   $q->where('status', $st);
+        if ($st = $req->input('status'))  $q->where('status', $st);
         if ($div = $req->input('division')) $q->where('division', $div);
 
         if ($period = $req->input('period')) {
@@ -206,9 +218,9 @@ class DocumentController extends Controller
             });
         }
 
-        $documents = $q->reorder()             
-            ->latest('created_at')     
-            ->orderByDesc('id')        
+        $documents = $q->reorder()
+            ->latest('created_at')
+            ->orderByDesc('id')
             ->paginate($per)
             ->withQueryString();
 
@@ -397,6 +409,8 @@ class DocumentController extends Controller
         if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '') {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
+            // Hapus 'amount_idr' dari array $data jika kosong, agar tidak di-update
+            // menjadi 0.0 jika tidak ada perubahan.
             unset($data['amount_idr']);
         }
 
@@ -413,13 +427,24 @@ class DocumentController extends Controller
 
     public function destroy(Document $document)
     {
+        // Opsional: Hapus file dan foto terkait saat dokumen dihapus
+        if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+        if ($document->photo_path && Storage::disk('public')->exists($document->photo_path)) {
+            Storage::disk('public')->delete($document->photo_path);
+        }
+        if ($document->signature_path && Storage::disk('public')->exists($document->signature_path)) {
+            Storage::disk('public')->delete($document->signature_path);
+        }
+
         $document->delete();
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus!');
     }
 
     public function show(Document $document)
     {
-        $document->load('user'); // ✅ tambahin ini
+        $document->load('user'); 
         return view('documents.show', [
             'title' => 'Detail Dokumen',
             'document' => $document,
@@ -467,11 +492,5 @@ class DocumentController extends Controller
         $document->save();
 
         return redirect()->route('documents.show', $document)->with('success', 'Tanda tangan berhasil disimpan.');
-    }
-
-    private function sanitizeAmount($val): float
-    {
-        $num = preg_replace('/[^0-9]/', '', (string)$val);
-        return $num === '' ? 0.0 : (float)$num;
     }
 }
