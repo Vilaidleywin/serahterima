@@ -87,6 +87,7 @@
     <table class="table table-striped table-hover align-middle mb-0">
       <thead>
         <tr>
+          <th style="width:60px">No</th>
           <th>No Dokumen</th>
           <th>Nama Dokumen</th>
           <th>Pengirim</th>
@@ -101,7 +102,16 @@
       </thead>
       <tbody>
         @forelse($documents as $i => $d)
+          @php
+            // nomor berurutan dengan offset pagination (fallback ke $i+1 jika firstItem null)
+            $rowNumber = ($documents->firstItem() ?? 1) + $i;
+            $statusUpper = strtoupper($d->status ?? '');
+            $isLocked = in_array($statusUpper, ['SUBMITTED', 'REJECTED']);
+            $isPhotoLocked = $statusUpper === 'REJECTED';
+          @endphp
           <tr>
+            <td class="fw-semibold">{{ $rowNumber }}</td>
+
             <td>{{ $d->number ?? '-' }}</td>
             <td>{{ $d->title ?? '-' }}</td>
             <td>{{ $d->sender ?? '-' }}</td>
@@ -123,51 +133,70 @@
                 </button>
 
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                  {{-- Always allow Detail --}}
                   <li>
                     <a class="dropdown-item" href="{{ route('documents.show', $d) }}">
                       <i class="ti ti-eye me-2"></i> Detail
                     </a>
                   </li>
-                  <li>
-                    <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
-                      <i class="ti ti-edit me-2"></i> Edit
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
-                      <i class="ti ti-signature me-2"></i> Tanda Tangan
-                    </a>
-                  </li>
 
-                  <li><hr class="dropdown-divider"></li>
+                  {{-- Edit & Sign: only if not locked --}}
+                  @unless($isLocked)
+                    <li>
+                      <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
+                        <i class="ti ti-edit me-2"></i> Edit
+                      </a>
+                    </li>
 
-                  <li>
-                    <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
-                      <i class="ti ti-camera me-2"></i> Ambil Foto
-                    </a>
-                  </li>
+                    <li>
+                      <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
+                        <i class="ti ti-signature me-2"></i> Tanda Tangan
+                      </a>
+                    </li>
+                  @endunless
 
                   <li>
-                    <button
-                      type="button"
-                      class="dropdown-item text-danger btn-delete"
-                      data-id="{{ $d->id }}"
-                      data-label="{{ $d->number }} - {{ $d->title }}"
-                    >
-                      <i class="ti ti-trash me-2"></i> Hapus
-                    </button>
+                    <hr class="dropdown-divider">
                   </li>
+
+                  {{-- Ambil Foto: block if REJECTED --}}
+                  @unless($isPhotoLocked)
+                    <li>
+                      <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
+                        <i class="ti ti-camera me-2"></i> Ambil Foto
+                      </a>
+                    </li>
+                  @else
+                    {{-- If you want to show it but disabled (optional) --}}
+                    <li>
+                      <span class="dropdown-item text-muted" style="cursor: default;">
+                        <i class="ti ti-camera me-2"></i> Ambil Foto (tidak tersedia)
+                      </span>
+                    </li>
+                  @endunless
+
+                  {{-- Delete: only if not locked --}}
+                  @unless($isLocked)
+                    <li>
+                      <button type="button" class="dropdown-item text-danger btn-delete" data-id="{{ $d->id }}"
+                        data-label="{{ $d->number }} - {{ $d->title }}">
+                        <i class="ti ti-trash me-2"></i> Hapus
+                      </button>
+                    </li>
+                  @endunless
                 </ul>
               </div>
 
-              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST" class="d-none">
+              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
+                class="d-none">
                 @csrf @method('DELETE')
               </form>
             </td>
+
           </tr>
         @empty
           <tr>
-            <td colspan="8" class="text-center py-4">Tidak ada data</td>
+            <td colspan="11" class="text-center py-4">Tidak ada data</td>
           </tr>
         @endforelse
       </tbody>
@@ -278,59 +307,6 @@
         }
         deleteModal.hide();
       });
-
-      // ====== FILTER DATE PRESET ======
-      const preset = document.getElementById('datePreset');
-      const fromInput = document.querySelector('input[name="date_from"]');
-      const toInput = document.querySelector('input[name="date_to"]');
-
-      function pad(n) { return String(n).padStart(2, '0'); }
-      function fmt(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-
-      function startOfWeek(d) {
-        const day = d.getDay();
-        const diff = (day === 0 ? -6 : 1 - day);
-        const s = new Date(d);
-        s.setDate(d.getDate() + diff);
-        return s;
-      }
-
-      preset?.addEventListener('change', () => {
-        const today = new Date();
-        let from = '', to = '';
-
-        switch (preset.value) {
-          case 'yesterday':
-            const y = new Date(today);
-            y.setDate(today.getDate() - 1);
-            from = to = fmt(y);
-            break;
-
-          case 'last_week':
-            const thisWeekStart = startOfWeek(today);
-            const lastWeekStart = new Date(thisWeekStart);
-            lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-            const lastWeekEnd = new Date(lastWeekStart);
-            lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-            from = fmt(lastWeekStart);
-            to = fmt(lastWeekEnd);
-            break;
-
-          case 'last_month':
-            const f = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            const l = new Date(today.getFullYear(), today.getMonth(), 0);
-            from = fmt(f);
-            to = fmt(l);
-            break;
-
-          default:
-            from = '';
-            to = '';
-        }
-
-        if (fromInput) fromInput.value = from;
-        if (toInput) toInput.value = to;
-      });
     });
   </script>
 
@@ -349,6 +325,7 @@
     .filter-buttons {
       margin-top: 12px;
     }
+
     @media (min-width: 768px) {
       .filter-buttons {
         margin-top: 18px;
