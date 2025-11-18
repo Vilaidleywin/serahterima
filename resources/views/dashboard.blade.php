@@ -1,5 +1,66 @@
 @extends('layouts.app')
 
+@push('styles')
+  <style>
+    /* ===== Tampilan lembut seperti contoh ===== */
+    body {
+      background: #f3f4f6;
+    }
+
+    :root {
+      --soft-bg: #ffffff;
+      --soft-br: #e5e7eb;
+      /* gray-200 */
+      --soft-shadow: 0 8px 24px rgba(0, 0, 0, .06);
+    }
+
+    .card-soft {
+      background: var(--soft-bg);
+      border: 1px solid var(--soft-br);
+      border-radius: 16px;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .card-soft.sm {
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .05);
+    }
+
+    .stat-label {
+      font-size: .82rem;
+      color: #6b7280;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .pill {
+      border: none;
+      padding: .35rem .6rem;
+      border-radius: .5rem;
+      font-weight: 600;
+    }
+
+    .pill-gray {
+      background: #6B7280;
+      color: #fff;
+    }
+
+    .pill-green {
+      background: #22C55E;
+      color: #fff;
+    }
+
+    .pill-red {
+      background: #EF4444;
+      color: #fff;
+    }
+  </style>
+@endpush
+
 @section('content')
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
@@ -11,19 +72,23 @@
   {{-- Row 1: Ringkasan --}}
   <div class="row g-3 mb-3">
     @php
+      // Pastikan ada nilai draft walaupun controller belum kirim
+      $draftSafe = isset($draft) ? $draft : max(0, (int) $total - (int) $submitted - (int) $rejected);
+
       $tiles = [
-        ['label' => 'Total Dokumen', 'value' => $total, 'url' => route('documents.index')],
-        ['label' => 'DRAFT', 'value' => $draft, 'url' => route('documents.index', ['status' => 'DRAFT'])],
-        ['label' => 'SUBMITTED', 'value' => $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED'])],
-        ['label' => 'REJECTED', 'value' => $rejected, 'url' => route('documents.index', ['status' => 'REJECTED'])],
+        ['label' => 'Total Dokumen', 'value' => (int) $total, 'url' => route('documents.index'), 'color' => 'text-primary'],
+        ['label' => 'SUBMITTED', 'value' => (int) $submitted, 'url' => route('documents.index', ['status' => 'SUBMITTED']), 'color' => 'text-success'],
+        ['label' => 'REJECTED', 'value' => (int) $rejected, 'url' => route('documents.index', ['status' => 'REJECTED']), 'color' => 'text-danger'],
+        ['label' => 'DRAFT', 'value' => (int) $draftSafe, 'url' => route('documents.index', ['status' => 'DRAFT']), 'color' => 'text-secondary'],
       ];
     @endphp
+
     @foreach($tiles as $t)
       <div class="col-lg-3 col-md-6">
         <a href="{{ $t['url'] }}" class="text-decoration-none">
           <div class="card-soft p-3 h-100">
-            <div class="text-muted small">{{ $t['label'] }}</div>
-            <div class="fs-3 fw-semibold text-dark">{{ $t['value'] }}</div>
+            <div class="stat-label">{{ $t['label'] }}</div>
+            <div class="stat-value {{ $t['color'] }}">{{ $t['value'] }}</div>
           </div>
         </a>
       </div>
@@ -45,19 +110,22 @@
           <div class="fw-semibold">Distribusi Status (bulan ini)</div>
         </div>
         <div style="height:220px"><canvas id="barChart"></canvas></div>
+
         <div class="d-flex gap-2 mt-2 flex-wrap">
-          <a href="{{ route('documents.index', ['status' => 'DRAFT']) }}" class="btn btn-sm text-white"
-            style="background-color: #6B7280; border:none;">DRAFT</a>
-          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="btn btn-sm text-white"
-            style="background-color: var(--success); border:none;">SUBMITTED</a>
-          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="btn btn-sm text-white"
-            style="background-color: var(--danger); border:none;">REJECTED</a>
+          <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="pill pill-green">SUBMITTED</a>
+          <a href="{{ route('documents.index', ['status' => 'REJECTED']) }}" class="pill pill-red">REJECTED</a>
+          <a href="{{ route('documents.index', ['status' => 'DRAFT']) }}" class="pill pill-gray">DRAFT</a>
         </div>
       </div>
 
       <div class="card-soft p-3">
         <div class="fw-semibold mb-2">Share Status (total)</div>
-        <div style="height:200px"><canvas id="donutChart"></canvas></div>
+        <div style="height:200px; position:relative">
+          <canvas id="donutChart"></canvas>
+          <div id="donutCenter"
+            style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700;">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -66,43 +134,39 @@
   <div class="row g-3">
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['period' => 'today']) }}" class="text-decoration-none">
-        <div class="card-soft p-3">
-          <div class="text-muted small">Dibuat hari ini</div>
-          <div class="fs-4 fw-semibold">{{ $createdToday }}</div>
+        <div class="card-soft sm p-3">
+          <div class="stat-label">Dibuat hari ini</div>
+          <div class="stat-value">{{ $createdToday }}</div>
         </div>
       </a>
     </div>
-
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['period' => 'week']) }}" class="text-decoration-none">
-        <div class="card-soft p-3">
-          <div class="text-muted small">Dibuat minggu ini</div>
-          <div class="fs-4 fw-semibold">{{ $createdWeek }}</div>
+        <div class="card-soft sm p-3">
+          <div class="stat-label">Dibuat minggu ini</div>
+          <div class="stat-value">{{ $createdWeek }}</div>
         </div>
       </a>
     </div>
-
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['period' => 'month']) }}" class="text-decoration-none">
-        <div class="card-soft p-3">
-          <div class="text-muted small">Dibuat bulan ini</div>
-          <div class="fs-4 fw-semibold">{{ $createdMonth }}</div>
+        <div class="card-soft sm p-3">
+          <div class="stat-label">Dibuat bulan ini</div>
+          <div class="stat-value">{{ $createdMonth }}</div>
         </div>
       </a>
     </div>
-
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['status' => 'SUBMITTED']) }}" class="text-decoration-none">
-        <div class="card-soft p-3">
-          <div class="text-muted small">SUBMITTED &gt; {{ $overdueDays }} hari</div>
-          <div class="fs-4 fw-semibold {{ ($submittedOverdue ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
+        <div class="card-soft sm p-3">
+          <div class="stat-label">SUBMITTED &gt; {{ $overdueDays }} hari</div>
+          <div class="stat-value {{ ($submittedOverdue ?? 0) > 0 ? 'text-danger' : 'text-success' }}">
             {{ $submittedOverdue }}
           </div>
         </div>
       </a>
     </div>
   </div>
-
 @endsection
 
 @push('scripts')
@@ -111,79 +175,93 @@
   <script>
     const arr = (v) => Array.isArray(v) ? v : (v == null ? [] : [v]);
 
+    function gradient(ctx, rgba) {
+      const g = ctx.createLinearGradient(0, 0, 0, 300);
+      g.addColorStop(0, rgba.replace('1)', '.2)'));
+      g.addColorStop(1, rgba.replace('1)', '0)'));
+      return g;
+    }
+
     function initCharts() {
       if (typeof Chart === 'undefined') return;
       if (typeof ChartDataLabels !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
         Chart.register(ChartDataLabels);
       }
 
-      // LINE chart
+      /* ===== LINE (12 bulan) ===== */
       const lineEl = document.getElementById('lineChart');
       if (lineEl) {
-        const lineLabels = @json($lineLabels ?? []);
-        const lineData = @json($lineData ?? []);
+        const labels = @json($lineLabels ?? []);
+        const data = @json($lineData ?? []);
+        const ctx = lineEl.getContext('2d');
+
         new Chart(lineEl, {
           type: 'line',
           data: {
-            labels: arr(lineLabels),
+            labels: arr(labels),
             datasets: [{
-              data: arr(lineData),
-              borderColor: '#2e5aac',
-              backgroundColor: 'rgba(46,90,172,0.10)',
-              fill: true,
-              borderWidth: 2,
-              tension: .35,
-              pointRadius: 2
+              data: arr(data),
+              borderColor: 'rgba(46,90,172,1)',
+              backgroundColor: gradient(ctx, 'rgba(46,90,172,1)'),
+              fill: true, borderWidth: 2, tension: .35, pointRadius: 2
             }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
             scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
           }
         });
       }
 
-      // BAR chart (bulan ini)
+      /* ===== BAR (bulan ini) – paksa urutan SUBMITTED, REJECTED, DRAFT ===== */
       const barEl = document.getElementById('barChart');
       if (barEl) {
-        const labels = @json($barLabels ?? []);
-        const data = @json($barData ?? []);
+        const rawLabels = @json($barLabels ?? []);   // dari controller (bisa acak)
+        const rawData = @json($barData ?? []);
+        const wantOrder = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+
+        // buat map {label: nilai}
+        const map = {};
+        rawLabels.forEach((l, i) => { map[l] = Number(rawData[i] || 0); });
+
+        // reorder sesuai urutan yang diinginkan
+        const labels = wantOrder;
+        const data = labels.map(l => map[l] ?? 0);
+
+        const palette = {
+          SUBMITTED: { bg: '#22C55ECC', border: '#22C55E' },
+          REJECTED: { bg: '#EF4444CC', border: '#EF4444' },
+          DRAFT: { bg: '#6B7280CC', border: '#6B7280' }
+        };
+        const bgColors = labels.map(l => palette[l].bg);
+        const brColors = labels.map(l => palette[l].border);
+
         new Chart(barEl, {
           type: 'bar',
           data: {
-            labels: arr(labels),
-            datasets: [{
-              data: arr(data),
-              backgroundColor: ['#6B7280CC', '#22C55ECC', '#EF4444CC'],
-              borderColor: ['#6B7280', '#22C55E', '#EF4444'],
-              borderWidth: 2,
-              borderRadius: 10,
-              hoverBorderWidth: 3
+            labels, datasets: [{
+              data,
+              backgroundColor: bgColors,
+              borderColor: brColors,
+              borderWidth: 2, borderRadius: 10, hoverBorderWidth: 3
             }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
               datalabels: {
-                color: '#111827',
-                anchor: 'end',
-                align: 'start',
+                color: '#111827', anchor: 'end', align: 'start',
                 font: { weight: '600' },
                 formatter: v => (typeof v === 'number' && v > 0) ? v : ''
               }
             },
             onClick: (e, els) => {
               if (els.length) {
-                const idx = els[0].index;
-                const status = arr(labels)[idx];
-                if (status) {
-                  const base = `{{ route('documents.index') }}`;
-                  window.location.href = `${base}?status=${encodeURIComponent(status)}`;
-                }
+                const status = labels[els[0].index];
+                const base = `{{ route('documents.index') }}`;
+                window.location.href = `${base}?status=${encodeURIComponent(status)}`;
               }
             },
             scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } }
@@ -191,34 +269,52 @@
         });
       }
 
-      // DONUT chart
+      /* ===== DONUT (share total) – ikut urutan SUBMITTED, REJECTED, DRAFT ===== */
+      /* ===== DONUT (share total) – robust, tidak ketuker ===== */
       const donutEl = document.getElementById('donutChart');
       if (donutEl) {
-        const labels = @json(($donut['labels'] ?? []) ?: []);
-        const data = @json(($donut['data'] ?? []) ?: []);
+        const rawLabels = @json(($donut['labels'] ?? []) ?: []);
+        const rawData = @json(($donut['data'] ?? []) ?: []);
+
+        // Normalisasi label agar case/spasi tidak bikin salah mapping
+        const norm = s => String(s ?? '').trim().toUpperCase();
+
+        // Buat map jumlah per label (normalized)
+        const map = {};
+        rawLabels.forEach((l, i) => {
+          map[norm(l)] = Number(rawData[i] ?? 0);
+        });
+
+        // Urutan final yang diinginkan
+        const labels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+
+        // Ambil data sesuai label (aman walau input beda case/spasi)
+        const data = labels.map(l => map[norm(l)] ?? 0);
+
+        // Tampilkan total di tengah
+        const total = data.reduce((a, b) => a + (+b || 0), 0);
+        const center = document.getElementById('donutCenter');
+        if (center) center.textContent = total;
+
+        // Warna diikat ke label agar tidak salah meski urutan berubah
+        const palette = {
+          SUBMITTED: '#22C55ECC',
+          REJECTED: '#EF4444CC',
+          DRAFT: '#6B7280CC'
+        };
+        const bgColors = labels.map(l => palette[l]);
+
         new Chart(donutEl, {
           type: 'doughnut',
-          data: {
-            labels: arr(labels),
-            datasets: [{
-              data: arr(data),
-              backgroundColor: ['#6B7280CC', '#22C55ECC', '#EF4444CC'],
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            cutout: '60%'
-          }
+          data: { labels, datasets: [{ data, backgroundColor: bgColors }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
         });
       }
+
     }
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initCharts, { once: true });
-    } else {
-      initCharts();
-    }
+    } else { initCharts(); }
   </script>
 @endpush

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-  <div class="container-fluid">
+  <div class="container-fluid document-show px-lg-4 px-md-3 px-2">
 
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -10,10 +10,12 @@
         <div class="text-muted small">No. Dokumen: {{ $document->number }}</div>
       </div>
 
-      {{-- Logika baru untuk tombol Edit di bagian ini. --}}
       @php
         $isRejected = strtoupper($document->status) === 'REJECTED';
+        $isSigned = filled($document->signature_path);
+        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
       @endphp
+
       <div class="d-flex gap-2">
         <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
           <i class="ti ti-arrow-left"></i> Kembali
@@ -29,7 +31,7 @@
 
     {{-- Banner jika REJECTED --}}
     @if($isRejected)
-      <div class="alert alert-warning" role="alert" style="border-radius:10px;">
+      <div class="alert alert-warning mb-4" role="alert" style="border-radius:10px;">
         <strong>Dokumen Ditolak.</strong> Edit, tanda tangan, dan pengambilan foto dinonaktifkan.
       </div>
     @endif
@@ -71,7 +73,8 @@
     </div>
 
     {{-- Detail & Info --}}
-    <div class="row g-3">
+    <div class="row g-4 mb-5">
+      {{-- Detail dokumen --}}
       <div class="col-lg-8">
         <div class="card-soft p-4">
           <div class="mb-3">
@@ -125,8 +128,8 @@
 
           {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
-  <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
-    style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
+            <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
+              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
               <i class="ti ti-badge-check"></i>
               <div class="small">
                 Dokumen <strong>telah ditandatangani</strong>
@@ -140,7 +143,7 @@
           <ul class="list-unstyled mb-3">
             <li class="mb-2">
               <i class="ti ti-user text-muted me-2"></i> Dibuat oleh:
-              <span class="fw-semibold">{{ $document->created_by->name ?? '-' }}</span>
+              <span class="fw-semibold">{{ $document->user->name ?? '-' }}</span>
             </li>
             <li class="mb-2">
               <i class="ti ti-clock text-muted me-2"></i> Diperbarui:
@@ -184,31 +187,32 @@
 
         </div>
       </div>
-
     </div>
 
-    {{-- === BLOK TANDA TANGAN & FOTO (DIREVISI) === --}}
-    <div class="card-soft p-3 mt-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
+    {{-- BLOK TANDA TANGAN & FOTO --}}
+    <div class="card-soft p-4 mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
         <div class="d-flex gap-2">
-
-        
+          <a href="{{ route('documents.sign', $document) }}"
+            class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}" @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
+            <i class="ti ti-signature me-1"></i> Tanda Tangan
+          </a>
+          <a href="{{ route('documents.photo', $document) }}" class="btn btn-outline-primary btn-sm">
+            <i class="ti ti-camera me-1"></i> Ambil Foto
+          </a>
         </div>
       </div>
 
       <div class="row g-3">
-        {{-- Kolom Tanda Tangan --}}
         <div class="col-md-6">
-          <div class="border rounded p-3 text-center h-100">
+          <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Tanda Tangan</div>
-
             @if($document->signature_path)
               <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
                 style="max-height:140px;object-fit:contain">
               <div class="text-muted small mt-2">
-                Ditandatangani
-                {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
+                Ditandatangani {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
                 @if($document->receiver)
                   oleh <strong>{{ $document->receiver }}</strong>
                 @endif
@@ -219,17 +223,14 @@
           </div>
         </div>
 
-        {{-- Kolom Foto Dokumen --}}
         <div class="col-md-6">
-          <div class="border rounded p-3 text-center h-100">
+          <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Foto Dokumen</div>
-
             @if($document->photo_path)
               <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
                 style="max-height:180px;width:100%;object-fit:contain">
               <div class="text-muted small mt-2">
-                Difoto terakhir
-                {{ optional($document->updated_at)->translatedFormat('d M Y H:i') ?? '-' }}
+                Difoto terakhir {{ optional($document->updated_at)->translatedFormat('d M Y H:i') ?? '-' }}
               </div>
             @else
               <div class="text-muted small">Belum ada foto.</div>
@@ -241,3 +242,25 @@
 
   </div>
 @endsection
+
+@push('styles')
+  <style>
+    .document-show {
+      background-color: #f6f7fb;
+    }
+
+    .card-soft {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .extra-box {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      padding: 1.5rem;
+    }
+  </style>
+@endpush

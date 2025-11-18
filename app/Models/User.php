@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'division',
         'created_by',
     ];
     public function creator()

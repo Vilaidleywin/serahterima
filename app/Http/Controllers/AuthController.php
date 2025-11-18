@@ -19,19 +19,28 @@ class AuthController extends Controller
     // POST /login
     public function login(Request $request)
     {
+        // Validasi input
         $credentials = $request->validate([
-            'email'    => ['required','email'],
+            'login'    => ['required', 'string'], // bisa username atau email
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Cek apakah input adalah email atau username
+        $loginType = filter_var($credentials['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // Coba login berdasarkan jenis input
+        if (Auth::attempt(
+            [$loginType => $credentials['login'], 'password' => $credentials['password']],
+            $request->boolean('remember')
+        )) {
             $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
 
+        // Jika gagal login
         return back()->withErrors([
-            'email' => 'Email atau password salah.',
-        ])->onlyInput('email');
+            'login' => ucfirst($loginType) . ' atau password salah.',
+        ])->onlyInput('login');
     }
 
     // POST /logout
@@ -45,12 +54,12 @@ class AuthController extends Controller
 
     // GET /
     public function homeRedirect()
-{
-    if (!auth()->check()) return redirect()->route('login');
+    {
+        if (!auth()->check()) return redirect()->route('login');
 
-    return match (auth()->user()->role) {
-        'admin_internal', 'admin_komersial' => redirect()->route('admin.users.index'),
-        default => redirect()->route('dashboard'),
-    };
-}
+        return match (auth()->user()->role) {
+            'admin_internal', 'admin_komersial' => redirect()->route('admin.users.index'),
+            default => redirect()->route('dashboard'),
+        };
+    }
 }

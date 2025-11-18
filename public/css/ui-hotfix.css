@@ -14,9 +14,6 @@
   .topbar{ left: 0; }
 }
 
-/* Content spacing (avoid topbar overlap) */
-main.app-content{ padding-top: 76px !important; }
-
 /* Hide topbar breadcrumb to avoid duplicate with page breadcrumb */
 .topbar .breadcrumb-mini{ display: none; }
 

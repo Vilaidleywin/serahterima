@@ -8,16 +8,47 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware('auth')->except(['index','show']);
-    // }
+    // --- DIVISION LIST ---
+    public const DIVISIONS = [
+        'Pengadaan',
+        'Pembelian',
+        'Pergudangan',
+        'Pengawas Internal',
+        'Pelayanan dan Jasa',
+        'Pemeliharaan',
+        'IT Komersial',
+        'Pemasaran',
+        'Pembekalan',
+        'Komersial Asset',
+        'SDM & Umum',
+        'IT Internal',
+        'Perpajakan',
+        'Akutansi',
+        'Menajemen Resiko',
+        'Manager Treasury',
+        'Resepsionis',
+        'Other'
+    ];
 
+    public static function divisions(): array
+    {
+        return self::DIVISIONS;
+    }
+
+    // ============================== HELPER ==============================
+    private function sanitizeAmount($val): float
+    {
+        $num = preg_replace('/[^0-9]/', '', (string)$val);
+        return $num === '' ? 0.0 : (float)$num;
+    }
+
+    // ============================== PRINTS/PHOTO ==============================
     public function printPdf(Document $document)
     {
         return Pdf::loadView('documents.print-pdf', compact('document'))
@@ -27,22 +58,12 @@ class DocumentController extends Controller
 
     public function printTandaTerima(Document $document)
     {
-        // NOTE: saat ini menampilkan view. Kalau ingin langsung PDF, aktifkan blok di bawah dan hapus return view.
-        return view('documents.print-tandaterima', [
-            'document' => $document,
-        ]);
-
-        // $pdf = Pdf::loadView('documents.print-tandaterima', compact('document'))
-        //     ->setPaper('a4', 'portrait');
-        // return $pdf->stream('TandaTerima-' . $document->number . '.pdf');
+        return view('documents.print-tandaterima', ['document' => $document]);
     }
 
     public function photo(Document $document)
     {
-        return view('documents.photo', [
-            'title'    => 'Ambil Foto',
-            'document' => $document,
-        ]);
+        return view('documents.photo', ['title' => 'Ambil Foto', 'document' => $document]);
     }
 
     public function photoStore(Request $request, Document $document)
@@ -52,143 +73,277 @@ class DocumentController extends Controller
         }
 
         $request->validate([
-            'photo'      => ['nullable', 'string'],            // base64 data URL
-            'photo_file' => ['nullable', 'image', 'max:5120'], // file < 5MB
+            'photo'      => ['nullable', 'string'],
+            'photo_file' => ['nullable', 'image', 'max:5120'],
         ]);
 
         $path = null;
-
-        // Upload file
         if ($request->hasFile('photo_file')) {
             $path = $request->file('photo_file')->store('document-photos', 'public');
-        }
-        // Base64 kamera
-        elseif ($dataUrl = $request->input('photo')) {
+        } elseif ($dataUrl = $request->input('photo')) {
             if (!preg_match('#^data:image/(png|jpe?g);base64,#i', $dataUrl)) {
                 return back()->withErrors(['photo' => 'Foto tidak valid.'])->withInput();
             }
-
             $binary = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $dataUrl), true);
             if ($binary === false || strlen($binary) < 1000) {
                 return back()->withErrors(['photo' => 'Gagal memproses foto.'])->withInput();
             }
-
             $filename = 'doc-' . $document->id . '-' . time() . '.jpg';
             $path = 'document-photos/' . $filename;
-            \Storage::disk('public')->put($path, $binary);
+            Storage::disk('public')->put($path, $binary);
         }
 
-        if (!$path) {
-            return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
-        }
+        if (!$path) return back()->withErrors(['photo' => 'Silakan ambil atau unggah foto terlebih dahulu.']);
 
-        // Hapus lama (opsional)
-        if ($document->photo_path && \Storage::disk('public')->exists($document->photo_path)) {
-            \Storage::disk('public')->delete($document->photo_path);
+        if ($document->photo_path && Storage::disk('public')->exists($document->photo_path)) {
+            Storage::disk('public')->delete($document->photo_path);
         }
 
         $document->update(['photo_path' => $path]);
-
-        return redirect()
-            ->route('documents.show', $document)
-            ->with('success', 'Foto berhasil disimpan.');
+        return redirect()->route('documents.show', $document)->with('success', 'Foto berhasil disimpan.');
     }
 
+    // ================================= INDEX =================================
     public function index(Request $req)
     {
-        // Per page aman (10/15/25/50)
+        $tz  = 'Asia/Jakarta';
+        $now = Carbon::now($tz);
+
+        // Per page whitelist
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        // ====== Search (number/title/receiver/destination) ======
-        if ($s = $req->input('search')) {
-            $q->where(function ($w) use ($s) {
+        // --- enforce viewer scope: non-admin only sees documents of their own division ---
+        $user = Auth::user();
+        $isAdmin = $user && (method_exists($user, 'isAdmin') ? $user->isAdmin() : (($user->role ?? '') === 'admin'));
+
+        if (!$isAdmin) {
+            $userDivision = $user->division ?? null;
+            if ($userDivision) {
+                $q->where('division', $userDivision);
+            } else {
+                // user has no division -> return empty set
+                $q->whereNull('id');
+            }
+        } else {
+            $userDivision = null;
+        }
+
+        // --------------------------- FULL TEXT SEARCH --------------------------
+        if ($raw = trim((string) $req->input('search'))) {
+            $s = Str::of($raw)->lower()->toString();
+
+            $statusMap = [
+                'draft' => 'DRAFT',
+                'draf' => 'DRAFT',
+                'submitted' => 'SUBMITTED',
+                'submit' => 'SUBMITTED',
+                'terkirim' => 'SUBMITTED',
+                'kirim' => 'SUBMITTED',
+                'rejected' => 'REJECTED',
+                'reject' => 'REJECTED',
+                'tolak' => 'REJECTED',
+                'ditolak' => 'REJECTED',
+                'disetujui' => 'SUBMITTED',
+                'approved' => 'SUBMITTED',
+            ];
+            $guessedStatus = null;
+            foreach ($statusMap as $needle => $mapped) {
+                if (Str::contains($s, $needle)) {
+                    $guessedStatus = $mapped;
+                    break;
+                }
+            }
+
+            $digits = preg_replace('/\D+/', '', $s);
+            $guessedAmount = $digits !== '' ? (int)$digits : null;
+
+            $guessedDate = null;
+            $dateCandidates = [];
+            if (preg_match('/\b\d{4}-\d{2}-\d{2}\b/', $s, $m)) $dateCandidates[] = $m[0];
+            if (preg_match('/\b\d{1,2}\/\d{1,2}\/\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];
+            if (preg_match('/\b\d{1,2}-\d{1,2}-\d{4}\b/', $s, $m)) $dateCandidates[] = $m[0];
+            foreach ($dateCandidates as $cand) {
+                foreach (['Y-m-d', 'd/m/Y', 'd-m-Y'] as $fmt) {
+                    try {
+                        $parsed = Carbon::createFromFormat($fmt, $cand);
+                        if ($parsed) {
+                            $guessedDate = $parsed->toDateString();
+                            break 2;
+                        }
+                    } catch (\Throwable $e) {
+                    }
+                }
+            }
+
+            $q->where(function ($w) use ($s, $guessedStatus, $guessedAmount, $guessedDate) {
                 $w->where('number', 'like', "%{$s}%")
                     ->orWhere('title', 'like', "%{$s}%")
+                    ->orWhere('sender', 'like', "%{$s}%")
                     ->orWhere('receiver', 'like', "%{$s}%")
+                    ->orWhere('division', 'like', "%{$s}%")
                     ->orWhere('destination', 'like', "%{$s}%");
+
+                if ($guessedStatus) $w->orWhere('status', $guessedStatus);
+
+                if (!is_null($guessedAmount) && $guessedAmount > 0) {
+                    $w->orWhere('amount_idr', $guessedAmount)
+                        ->orWhereRaw("CAST(amount_idr AS CHAR) LIKE ?", ['%' . $guessedAmount . '%']);
+                }
+
+                if ($guessedDate) $w->orWhereDate('date', $guessedDate);
             });
         }
 
-        // ====== Status (DRAFT/SUBMITTED/REJECTED) ======
-        if ($st = $req->input('status')) {
-            $q->where('status', $st);
+        // ------------------------------ FILTERS --------------------------------
+        if ($st = $req->input('status'))  $q->where('status', $st);
+
+        // Destination filter must use destination_filter param to avoid confusion with owner division
+        if ($dest = $req->input('destination_filter')) {
+            $q->where('destination', 'like', "%{$dest}%");
         }
 
-        // ====== Division ======
-        if ($div = $req->input('division')) {
-            $q->where('division', $div);
-        }
-
-        // ====== PERIOD (today|week|month) berdasarkan created_at ======
         if ($period = $req->input('period')) {
-            $now = Carbon::now('Asia/Jakarta');
-            // Minggu mulai Senin (standar ID)
-            $now->locale('id_ID');
             $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
             $endWeek   = $now->copy()->endOfWeek(Carbon::SUNDAY);
-
             if ($period === 'today') {
                 $q->whereDate('created_at', $now->toDateString());
             } elseif ($period === 'week') {
                 $q->whereBetween('created_at', [$startWeek, $endWeek]);
             } elseif ($period === 'month') {
-                $q->whereBetween('created_at', [
-                    $now->copy()->startOfMonth(),
-                    $now->copy()->endOfMonth(),
-                ]);
+                $q->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()]);
             }
         }
 
-        // ====== Rentang manual CREATED_AT (opsional) ======
-        if ($from = $req->input('created_from')) {
-            $q->whereDate('created_at', '>=', $from);
-        }
-        if ($to = $req->input('created_to')) {
-            $q->whereDate('created_at', '<=', $to);
-        }
+        if ($from = $req->input('created_from')) $q->whereDate('created_at', '>=', $from);
+        if ($to   = $req->input('created_to'))   $q->whereDate('created_at', '<=', $to);
 
-        // ====== Rentang manual DATE (handover) - INKLUSIF ======
-        // Pakai param: date_from & date_to
-        if ($df = $req->input('date_from')) {
-            $q->whereDate('date', '>=', $df);
-        }
-        if ($dt = $req->input('date_to')) {
-            $q->whereDate('date', '<=', $dt);
-        }
+        if ($df = $req->input('date_from')) $q->whereDate('date', '>=', $df);
+        if ($dt = $req->input('date_to'))   $q->whereDate('date', '<=', $dt);
 
-        // ====== OVERDUE SUBMITTED > N hari ======
-        // ?overdue_days=7 -> status SUBMITTED dengan (date <= now-7) ATAU (date null & created_at <= now-7)
         if ($overdue = $req->integer('overdue_days')) {
-            $cutoff = Carbon::now('Asia/Jakarta')->subDays($overdue)->toDateString();
-            $q->where('status', 'SUBMITTED')
-                ->where(function ($w) use ($cutoff) {
-                    $w->where(function ($x) use ($cutoff) {
-                        $x->whereNotNull('date')
-                            ->whereDate('date', '<=', $cutoff);
-                    })
-                        ->orWhere(function ($x) use ($cutoff) {
-                            $x->whereNull('date')
-                                ->whereDate('created_at', '<=', $cutoff);
-                        });
-                });
+            $cutoff = $now->copy()->subDays($overdue)->toDateString();
+            $q->where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
+                $w->where(function ($x) use ($cutoff) {
+                    $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
+                })
+                    ->orWhere(function ($x) use ($cutoff) {
+                        $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
+                    });
+            });
         }
 
-        // Urutan terbaru (date jika ada, fallback id)
-        $documents = $q->orderByDesc('date')
+        $documents = $q->reorder()
+            ->latest('created_at')
             ->orderByDesc('id')
             ->paginate($per)
             ->withQueryString();
 
-        // Daftar division unik untuk dropdown
-        $divisions = Document::query()
-            ->select('division')
-            ->distinct()
-            ->pluck('division')
-            ->filter()
-            ->values();
+        // Ambil list tujuan (destination) yang TERLIHAT oleh user saat ini (sesuai scope di atas)
+        $divisions = $q->getModel()->newQuery()
+            ->when(!$isAdmin, function ($query) use ($userDivision) {
+                return $query->where('division', $userDivision);
+            })
+            ->select('destination')->distinct()->pluck('destination')->filter()->values();
+
+        // ======================= summary / charts data (filtered by userDivision) =======================
+        $countsQuery = Document::query();
+        if (!$isAdmin) {
+            $countsQuery->where('division', $userDivision);
+        }
+        $counts = $countsQuery
+            ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
+            ->groupBy('s')
+            ->pluck('c', 's');
+
+        $alias = ['SUBMITTED' => 'SUBMITTED', 'APPROVED' => 'SUBMITTED', 'REJECT' => 'REJECTED', 'REJECTED' => 'REJECTED', 'DRAFT' => 'DRAFT'];
+        $normalized = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
+        foreach ($counts as $k => $v) {
+            $key = $alias[$k] ?? $k;
+            if (isset($normalized[$key])) $normalized[$key] += (int)$v;
+        }
+
+        $submitted = (int)$normalized['SUBMITTED'];
+        $rejected  = (int)$normalized['REJECTED'];
+        $draft     = (int)$normalized['DRAFT'];
+        $total     = $submitted + $rejected + $draft;
+
+        $donut = ['labels' => ['SUBMITTED', 'REJECTED', 'DRAFT'], 'data' => [$submitted, $rejected, $draft]];
+
+        $startMonth = $now->copy()->startOfMonth();
+        $endMonth   = $now->copy()->endOfMonth();
+
+        $monthCountsQuery = Document::query()
+            ->whereBetween('created_at', [$startMonth, $endMonth]);
+        if (!$isAdmin) {
+            $monthCountsQuery->where('division', $userDivision);
+        }
+        $monthCounts = $monthCountsQuery
+            ->selectRaw('UPPER(TRIM(status)) as s, COUNT(*) as c')
+            ->groupBy('s')->pluck('c', 's');
+
+        $mNorm = ['SUBMITTED' => 0, 'REJECTED' => 0, 'DRAFT' => 0];
+        foreach ($monthCounts as $k => $v) {
+            $key = $alias[$k] ?? $k;
+            if (isset($mNorm[$key])) $mNorm[$key] += (int)$v;
+        }
+        $barLabels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+        $barData   = [$mNorm['SUBMITTED'], $mNorm['REJECTED'], $mNorm['DRAFT']];
+
+        $start = $now->copy()->subMonthsNoOverflow(11)->startOfMonth();
+        $end   = $now->copy()->endOfMonth();
+
+        $perMonthQuery = Document::query()
+            ->whereBetween('created_at', [$start, $end]);
+        if (!$isAdmin) {
+            $perMonthQuery->where('division', $userDivision);
+        }
+        $perMonth = $perMonthQuery
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as c")
+            ->groupBy('ym')->pluck('c', 'ym');
+
+        $lineLabels = [];
+        $lineData   = [];
+        $cursor = $start->copy();
+        while ($cursor <= $end) {
+            $ym = $cursor->format('Y-m');
+            $lineLabels[] = $ym;
+            $lineData[]   = (int)($perMonth[$ym] ?? 0);
+            $cursor->addMonth();
+        }
+
+        $createdTodayQuery = Document::whereDate('created_at', $now->toDateString());
+        $createdWeekQuery  = Document::whereBetween('created_at', [$now->copy()->startOfWeek(Carbon::MONDAY), $now->copy()->endOfWeek(Carbon::SUNDAY)]);
+        $createdMonthQuery = Document::whereBetween('created_at', [$startMonth, $endMonth]);
+
+        if (!$isAdmin) {
+            $createdTodayQuery->where('division', $userDivision);
+            $createdWeekQuery->where('division', $userDivision);
+            $createdMonthQuery->where('division', $userDivision);
+        }
+
+        $createdToday = $createdTodayQuery->count();
+        $createdWeek  = $createdWeekQuery->count();
+        $createdMonth = $createdMonthQuery->count();
+
+        $overdueDays = (int) $req->integer('overdue_days', 7); // default 7 hari
+        $cutoff = $now->copy()->subDays($overdueDays)->toDateString();
+
+        $submittedOverdueQuery = Document::where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
+            $w->where(function ($x) use ($cutoff) {
+                $x->whereNotNull('date')->whereDate('date', '<=', $cutoff);
+            })
+                ->orWhere(function ($x) use ($cutoff) {
+                    $x->whereNull('date')->whereDate('created_at', '<=', $cutoff);
+                });
+        });
+        if (!$isAdmin) {
+            $submittedOverdueQuery->where('division', $userDivision);
+        }
+        $submittedOverdue = $submittedOverdueQuery->count();
+
 
         return view('documents.index', [
             'title'      => 'Data Dokumen',
@@ -199,10 +354,25 @@ class DocumentController extends Controller
             'documents' => $documents,
             'per_page'  => $per,
             'divisions' => $divisions,
+
+            // Ringkasan & chart data
+            'total'     => $total,
+            'submitted' => $submitted,
+            'rejected'  => $rejected,
+            'draft'     => $draft,
+            'donut'     => $donut,
+            'barLabels' => $barLabels,
+            'barData'   => $barData,
+            'lineLabels' => $lineLabels,
+            'lineData'  => $lineData,
+
+            'createdToday'       => $createdToday,
+            'createdWeek'        => $createdWeek,
+            'createdMonth'       => $createdMonth,
+            'overdueDays'        => $overdueDays,
+            'submittedOverdue'   => $submittedOverdue,
         ]);
     }
-
-    private array $divisions = ['Pengadaan', 'Pembelian', 'Pergudangan', 'Pengawas internal', 'Pelayanan dan jasa', 'Pemeliharaan', 'IT komersial', 'Pemasaran', 'Pembekalan', 'Komersial asset', 'SDM & umum', 'IT internal', 'Perpajakan', 'Akutansi', 'Menajemen resiko', 'Manager treasury', 'Other'];
 
     public function create()
     {
@@ -213,39 +383,61 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Tambah Dokumen'],
             ],
-            'divisions' => $this->divisions,
+            'divisions' => self::DIVISIONS,
+            'document' => null,
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'number'      => ['required', 'string', 'max:50', 'unique:documents,number'],
-            'title'       => ['required', 'string', 'max:255'],
-            'sender'      => ['required', 'string', 'max:100'],
-            'receiver'    => ['required', 'string', 'max:100'],
-            'destination' => ['nullable', 'string', 'max:255'],
-            'division'    => ['nullable', 'string', 'max:100'],
-            'division_other' => ['nullable', 'string', 'max:100'],
-            'amount_idr'  => ['required'],
-            'date'        => ['required', 'date'],
-            'description' => ['nullable', 'string'],
-            'file'        => ['nullable', 'file', 'max:5120'],
+            'number'         => ['required', 'string', 'max:50', 'unique:documents,number'],
+            'title'          => ['required', 'string', 'max:255'],
+            'sender'         => ['required', 'string', 'max:100'],
+            'receiver'       => ['required', 'string', 'max:100'],
+            'destination_desc' => ['nullable', 'string', 'max:255'],
+            'division_tujuan'       => ['required', 'string', 'max:100'],
+            'division_tujuan_other' => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
+            'amount_idr'     => ['required'],
+            'date'           => ['required', 'date'],
+            'description'    => ['nullable', 'string'],
+            'file'           => ['nullable', 'file', 'max:5120'],
         ]);
 
-        if (strtoupper((string)$data['division']) === 'OTHER' && $request->filled('division_other')) {
-            $data['division'] = $request->input('division_other');
+        // defensive: remove any client-provided division keys (do not trust client)
+        $data = Arr::except($data, ['division', 'owner_division_input']);
+
+        // 1. Ambil Divisi Tujuan dari input (untuk kolom destination saja)
+        $divisiTujuan = $request->input('division_tujuan');
+        if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
+            $divisiTujuan = $request->input('division_tujuan_other');
         }
 
-        $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
-        $data['status'] = 'DRAFT';
+        // 2. Simpan Divisi Tujuan ke kolom 'destination' (kompromi skema)
+        $tujuanDeskripsi = $request->input('destination_desc');
+        $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
+
+        // 3. PAKSA Divisi dokumen (kolom 'division') diisi dengan Divisi Pembuat (User yang login)
+        //    Namun karena 'division' tidak fillable kami akan set langsung pada model setelah create
+        //    untuk mencegah client overwrite.
+        // Membersihkan data input yang tidak ada di database sebelum Document::create
+        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc']);
+
+        $data['amount_idr'] = $this->sanitizeAmount($request->input('amount_idr'));
+        $data['status']     = 'DRAFT';
 
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('documents', 'public'); // storage/app/public/documents/xxx
-            $data['file_path'] = $path;
+            $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
-        Document::create($data);
+        $data['user_id'] = Auth::id() ?? null;
+
+        // buat record
+        $document = Document::create($data);
+
+        // set division secara eksplisit pada model hasil create (karena division tidak fillable)
+        $document->division = Auth::user()->division ?? 'UNKNOWN';
+        $document->save();
 
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil ditambahkan.');
     }
@@ -259,8 +451,8 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Edit Dokumen'],
             ],
-            'document' => $document,
-            'divisions' => $this->divisions,
+            'document'  => $document,
+            'divisions' => self::DIVISIONS,
         ]);
     }
 
@@ -270,7 +462,6 @@ class DocumentController extends Controller
             $document->status = 'REJECTED';
             $document->save();
         }
-
         return back()->with('success', 'Dokumen telah ditolak.');
     }
 
@@ -279,13 +470,13 @@ class DocumentController extends Controller
         if ($document->status === 'REJECTED') {
             return back()->with('error', 'Dokumen ditolak dan tidak dapat diedit.');
         }
+
         $data = $request->validate([
             'number'      => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
             'title'       => ['required', 'string', 'max:255'],
             'sender'      => ['required', 'string', 'max:255'],
             'receiver'    => ['nullable', 'string', 'max:100'],
             'destination' => ['nullable', 'string', 'max:255'],
-            'division'    => 'nullable|string|max:100',
             'amount_idr'  => ['nullable'],
             'date'        => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
@@ -299,49 +490,54 @@ class DocumentController extends Controller
         }
 
         if ($request->hasFile('file')) {
-            // hapus lama
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
             }
-            // simpan baru
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
-        $document->update($data);
+        // Pastikan update tidak mengubah kolom 'division' (harus di-manage oleh server)
+        if (array_key_exists('division', $data)) {
+            unset($data['division']);
+        }
 
+        $document->update($data);
         return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diperbarui!');
     }
 
     public function destroy(Document $document)
     {
+        if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+        if ($document->photo_path && Storage::disk('public')->exists($document->photo_path)) {
+            Storage::disk('public')->delete($document->photo_path);
+        }
+        if ($document->signature_path && Storage::disk('public')->exists($document->signature_path)) {
+            Storage::disk('public')->delete($document->signature_path);
+        }
+
         $document->delete();
-        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihaaapus!');
+        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil dihapus!');
     }
 
     public function show(Document $document)
     {
+        $document->load('user');
         return view('documents.show', [
             'title' => 'Detail Dokumen',
             'document' => $document,
         ]);
     }
 
-    // ====== TANDA TANGAN ======
-
     public function sign(Document $document)
     {
-        return view('documents.sign', [
-            'title' => 'Tanda Tangan Dokumen',
-            'document' => $document,
-        ]);
+        return view('documents.sign', ['title' => 'Tanda Tangan Dokumen', 'document' => $document]);
     }
 
     public function print(Document $document)
     {
-        return view('documents.print', [
-            'title' => 'Cetak Dokumen',
-            'document' => $document,
-        ]);
+        return view('documents.print', ['title' => 'Cetak Dokumen', 'document' => $document]);
     }
 
     public function signStore(Request $request, Document $document)
@@ -350,44 +546,30 @@ class DocumentController extends Controller
             return back()->with('error', 'Dokumen ditolak dan tidak dapat ditandatangani.');
         }
 
-        $dataUrl = $request->input('signature'); // data:image/png;base64,AAAA...
+        $dataUrl = $request->input('signature');
         if (!$dataUrl || !str_starts_with($dataUrl, 'data:image/png;base64,')) {
             return back()->withErrors(['signature' => 'Tanda tangan tidak valid.'])->withInput();
         }
 
-        // decode base64
         $png = base64_decode(Str::after($dataUrl, 'data:image/png;base64,'));
         if ($png === false || strlen($png) < 100) {
             return back()->withErrors(['signature' => 'Gagal memproses tanda tangan.'])->withInput();
         }
 
-        // simpan file
-        $dir = 'signatures';
+        $dir  = 'signatures';
         $name = 'sign-' . $document->id . '-' . time() . '.png';
         Storage::disk('public')->put("$dir/$name", $png);
 
-        // hapus file lama (opsional)
         if ($document->signature_path && Storage::disk('public')->exists($document->signature_path)) {
             Storage::disk('public')->delete($document->signature_path);
         }
 
         $document->signature_path = "$dir/$name";
         $document->signed_at      = now('Asia/Jakarta');
-        if ($document->status === 'DRAFT') {
-            $document->status = 'SUBMITTED';
-        }
-        $document->signed_by      = Auth::id(); // nullable
+        if ($document->status === 'DRAFT') $document->status = 'SUBMITTED';
+        $document->signed_by = Auth::id();
         $document->save();
 
-        return redirect()
-            ->route('documents.show', $document)
-            ->with('success', 'Tanda tangan berhasil disimpan.');
-    }
-
-    // ====== UTIL ======
-    private function sanitizeAmount($val): float
-    {
-        $num = preg_replace('/[^0-9]/', '', (string) $val);
-        return $num === '' ? 0.0 : (float) $num;
+        return redirect()->route('documents.show', $document)->with('success', 'Tanda tangan berhasil disimpan.');
     }
 }
