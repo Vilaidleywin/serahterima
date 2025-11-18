@@ -119,35 +119,55 @@
         </div>
       </div>
 
-      {{-- Info tambahan & aksi --}}
+      {{-- === KARTU INFO & AKSI (DIREVISI) === --}}
+      @php
+        $isSigned = filled($document->signature_path);
+      @endphp
       <div class="col-lg-4">
-        <div class="card-soft p-4 mb-4 mb-lg-0">
+        <div class="card-soft p-4">
+
+          {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
-              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d;">
+              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
               <i class="ti ti-badge-check"></i>
               <div class="small">
                 Dokumen <strong>telah ditandatangani</strong>
                 {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '' }}.
+                Tidak dapat ditolak lagi.
               </div>
             </div>
           @endif
 
           <h6 class="fw-semibold text-uppercase text-muted small mb-2">Info Tambahan</h6>
+          <ul class="list-unstyled mb-3">
+            <li class="mb-2">
+              <i class="ti ti-user text-muted me-2"></i> Dibuat oleh:
+              <span class="fw-semibold">{{ $document->user->name ?? '-' }}</span>
+            </li>
+            <li class="mb-2">
+              <i class="ti ti-clock text-muted me-2"></i> Diperbarui:
+              <span class="text-muted small">{{ $document->updated_at->diffForHumans() }}</span>
+            </li>
+            <li class="mb-2">
+              <i class="ti ti-folder text-muted me-2"></i> Nomor Dokumen:
+              <span class="fw-semibold">{{ $document->number }}</span>
+            </li>
+          </ul>
           <hr>
 
+          {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
             class="btn btn-outline-secondary w-100 mb-2">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
-          @if(!$isSigned && !$isSubmitted && !$isRejected)
-            <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
-              <i class="ti ti-trash me-1"></i> Hapus Dokumen
-            </button>
-          @endif
+          {{-- Hapus Dokumen (selalu ada) --}}
+          <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
+            <i class="ti ti-trash me-1"></i> Hapus Dokumen
+          </button>
 
-
+          {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
             <form action="{{ route('documents.reject', $document) }}" method="POST"
               onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
@@ -158,11 +178,13 @@
             </form>
           @endif
 
+          {{-- Form hapus (tetap di sini) --}}
           <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
             class="d-none">
             @csrf
             @method('DELETE')
           </form>
+
         </div>
       </div>
     </div>

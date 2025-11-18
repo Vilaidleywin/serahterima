@@ -45,7 +45,7 @@
         <div class="col-12"><hr></div>
 
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Ubah Password (opsional)</label>
+          <label class="form-label fw-semibold">Konfirmasi Password Lama </label>
           <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="Password sekarang (wajib jika ganti password)">
           @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
           <div class="form-text">Masukkan password lama sebelum mengganti password baru.</div>

@@ -75,21 +75,6 @@
       background-color: #1e40af;
     }
 
-    .forgot {
-      text-align: center;
-      margin-top: 0.8rem;
-      font-size: 0.9rem;
-    }
-
-    .forgot a {
-      color: #e0e7ff;
-      text-decoration: none;
-    }
-
-    .forgot a:hover {
-      text-decoration: underline;
-    }
-
     @media (max-width: 768px) {
       .login-container {
         margin: 0 1rem;
@@ -98,6 +83,12 @@
       .login-container h1 {
         font-size: 1.7rem;
       }
+    }
+
+    .remember-label {
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -118,23 +109,36 @@
       </div>
     @endif
 
+    {{-- USERNAME / EMAIL --}}
     <div class="mb-3">
-      <label for="username" class="form-label">Email atau Username</label>
-      <input type="text" class="form-control" id="username" name="login" value="{{ old('email') || old('username') }}" required autofocus placeholder="Masukkan Email atau Username">
-      
-
+      <label for="login" class="form-label">Email atau Username</label>
+      <input type="text" class="form-control" id="login" name="login"
+             value="{{ old('login') }}" required autofocus
+             placeholder="Masukkan Email atau Username">
     </div>
 
+    {{-- PASSWORD --}}
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
-      <input type="password" class="form-control" id="password" name="password" required placeholder="Masukkan Password">
+      <input type="password" class="form-control" id="password" name="password"
+             required placeholder="Masukkan Password">
     </div>
 
+    {{-- REMEMBER ME --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="1"
+               id="remember" name="remember" 
+               {{ old('remember') ? 'checked' : '' }}>
+        <label class="form-check-label remember-label" for="remember">
+          Save me
+        </label>
+      </div>
+    </div>
+
+    {{-- LOGIN BUTTON --}}
     <button type="submit" class="btn btn-login py-2">LOGIN</button>
 
-    <div class="forgot">
-      <a href="#">Forgot password?</a>
-    </div>
   </form>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

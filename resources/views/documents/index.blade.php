@@ -33,13 +33,28 @@
   </div>
 
   {{-- FILTER BAR --}}
+  {{-- FILTER BAR --}}
   <form method="get" class="mb-3">
-    <div class="row g-2 align-items-end">
-      <div class="col-md-3">
+    <div class="row g-3 align-items-end">
+
+      {{-- KOLOM 1: Pencarian + tombol Filter & Reset di bawahnya --}}
+      <div class="col-md-4">
         <label class="form-label mb-1 small text-muted">Pencarian</label>
         <input name="search" value="{{ request('search') }}" class="form-control search" placeholder="Cari dokumen...">
+
+        {{-- Tombol-tombol di bawah pencarian --}}
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="ti ti-filter me-1"></i> Filter
+          </button>
+
+          <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+            <i class="ti ti-filter-off me-1"></i> Reset
+          </a>
+        </div>
       </div>
 
+      {{-- KOLOM 2: Status --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Status</label>
         <select name="status" class="form-select search">
@@ -50,6 +65,7 @@
         </select>
       </div>
 
+      {{-- KOLOM 3: Periode cepat --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Periode cepat</label>
         <select name="period" id="datePreset" class="form-select">
@@ -60,27 +76,21 @@
         </select>
       </div>
 
+      {{-- KOLOM 4: Tanggal dari --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal dari</label>
         <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control">
       </div>
 
+      {{-- KOLOM 5: Tanggal sampai --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal sampai</label>
         <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control">
       </div>
 
-      {{-- Tombol Filter + Reset --}}
-      <div class="col-md-3 d-flex justify-content-end gap-2 filter-buttons">
-        <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary w-100 w-md-auto">
-          <i class="ti ti-filter-off me-1"></i> Reset
-        </a>
-        <button class="btn btn-primary w-100 w-md-auto">
-          <i class="ti ti-filter me-1"></i> Filter
-        </button>
-      </div>
     </div>
   </form>
+
 
   {{-- TABLE --}}
   <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">

@@ -52,7 +52,7 @@ class DashboardController extends Controller
         $roleColumn = Schema::hasColumn('users', 'role') ? 'role' : null;
         $topRole = $roleColumn
             ? User::select($roleColumn, DB::raw('COUNT(*) jml'))
-            ->groupBy($roleColumn)->orderByDesc('jml')->value($roleColumn)
+                ->groupBy($roleColumn)->orderByDesc('jml')->value($roleColumn)
             : '-';
 
         // Aktivitas per bulan (user baru)
@@ -94,6 +94,7 @@ class DashboardController extends Controller
                         ? User::where('updated_at', '>=', $weekStart)->whereIn('status', ['Nonaktif', 'inactive', 'INACTIVE', 0, '0', false])->count()
                         : 0)));
 
+
         return view('dashboard.admin', [
             'title'               => 'Manajemen Pengguna',
             'totalUsers'          => $totalUsers,
@@ -111,10 +112,24 @@ class DashboardController extends Controller
     /** =========================== USER DASHBOARD =========================== */
     protected function userView(Request $request)
     {
-        // === Ringkasan status total ===
-        $draft     = Document::where('status', 'DRAFT')->count();
-        $submitted = Document::where('status', 'SUBMITTED')->count();
-        $rejected  = Document::where('status', 'REJECTED')->count();
+        // determine user division (if not admin)
+        $user = auth()->user();
+        $isAdmin = $this->isAdmin();
+        $userDivision = $isAdmin ? null : ($user->division ?? null);
+
+        // closure factory -> selalu return fresh Query Builder (important)
+        $docFactory = function () use ($userDivision) {
+            $q = Document::query();
+            if ($userDivision) {
+                $q->where('division', $userDivision);
+            }
+            return $q;
+        };
+
+        // === Ringkasan status total (filtered by division when relevant) ===
+        $draft     = $docFactory()->where('status', 'DRAFT')->count();
+        $submitted = $docFactory()->where('status', 'SUBMITTED')->count();
+        $rejected  = $docFactory()->where('status', 'REJECTED')->count();
         $total     = $draft + $submitted + $rejected;
 
         // === Range waktu ===
@@ -122,28 +137,29 @@ class DashboardController extends Controller
         $week  = Carbon::now()->startOfWeek();
         $month = Carbon::now()->startOfMonth();
 
-        // === KPI ===
-        $createdToday = Document::whereDate('date', $today)->count();
-        $createdWeek  = Document::whereDate('date', '>=', $week)->count();
-        $createdMonth = Document::whereDate('date', '>=', $month)->count();
+        // === KPI === (counts by date field; filtered by division)
+        $createdToday = $docFactory()->whereDate('date', $today)->count();
+        $createdWeek  = $docFactory()->whereDate('date', '>=', $week)->count();
+        $createdMonth = $docFactory()->whereDate('date', '>=', $month)->count();
 
-        // === Line chart: 12 bulan ===
+        // === Line chart: 12 bulan === (use 'date' column range for each month)
         $months     = collect(range(11, 0))->map(fn($i) => Carbon::now()->startOfMonth()->subMonths($i));
         $lineLabels = $months->map(fn($m) => $m->format('Y-m'))->values()->toArray();
-        $lineData   = $months->map(fn($m) => Document::whereBetween('date', [$m->copy(), $m->copy()->endOfMonth()])->count())
-            ->values()->toArray();
+        $lineData   = $months->map(fn($m) => $docFactory()
+            ->whereBetween('date', [$m->copy(), $m->copy()->endOfMonth()])->count())->values()->toArray();
 
-        // === Overdue SUBMITTED ===
+        // === Overdue SUBMITTED (filtered) ===
         $overdueDays = 7;
-        $submittedOverdue = Document::where('status', 'SUBMITTED')
+        $submittedOverdue = $docFactory()
+            ->where('status', 'SUBMITTED')
             ->where('date', '<', now()->subDays($overdueDays))->count();
 
         // === Bar (bulan ini) ===
         $barLabels = ['DRAFT', 'SUBMITTED', 'REJECTED'];
         $barData = [
-            Document::where('status', 'DRAFT')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
-            Document::where('status', 'SUBMITTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
-            Document::where('status', 'REJECTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
+            $docFactory()->where('status', 'DRAFT')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
+            $docFactory()->where('status', 'SUBMITTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
+            $docFactory()->where('status', 'REJECTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
         ];
 
         // === Donut (urut SUBMITTED, REJECTED, DRAFT agar cocok dengan legend warna di view) ===
@@ -156,8 +172,12 @@ class DashboardController extends Controller
         $per = (int) $request->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50]) ? $per : 15;
 
-        $latest = Document::orderByDesc('date')->orderByDesc('id')
+        $latest = $docFactory()
+            ->orderByDesc('date')->orderByDesc('id')
             ->paginate($per)->withQueryString();
+
+        // divisions (unique destinations visible to current user) for potential filter UI
+        $destinations = $docFactory()->select('destination')->distinct()->pluck('destination')->filter()->values();
 
         // ====== RETURN (pakai satu array saja) ======
         $data = [
@@ -178,6 +198,7 @@ class DashboardController extends Controller
             'donut'            => $donut,
             'latest'           => $latest,
             'per_page'         => $per,
+            'divisions'        => $destinations,
         ];
 
         return view('dashboard', $data);

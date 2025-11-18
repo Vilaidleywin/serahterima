@@ -1,7 +1,10 @@
 @php
   $user = auth()->user();
-  $avatar = 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
+  $avatar = $user->avatar
+    ? asset('storage/' . $user->avatar)
+    : 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
 @endphp
+
 
 <header class="topbar d-flex justify-content-between align-items-center px-3" role="banner" aria-label="Topbar">
   <div class="d-flex align-items-center gap-2">
@@ -40,34 +43,56 @@
       <button class="btn btn-light btn-user d-flex align-items-center gap-2 px-2 py-1" type="button"
         data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,8" data-bs-auto-close="outside"
         aria-expanded="false" style="border-radius:999px">
+
         <img src="{{ $avatar }}" alt="avatar" style="width:28px;height:28px;border-radius:50%;object-fit:cover">
+
         <span class="d-none d-md-inline text-truncate" style="max-width:160px">
           {{ \Illuminate\Support\Str::limit($user->name ?? 'Pengguna', 22) }}
         </span>
+
         <i class="ti ti-chevron-down d-none d-md-inline"></i>
       </button>
 
       <ul class="dropdown-menu dropdown-menu-end shadow menu-compact">
-        @if (Route::has('profile.edit'))
-          <li>
-            <a class="dropdown-item" href="{{ route('profile.edit') }}">
-              <i class="ti ti-settings me-2"></i>Profil
-            </a>
-          </li>
-        @endif
+
+        {{-- HEADER DROPDOWN --}}
+        <li class="px-3 py-2">
+          <div class="d-flex align-items-center gap-2">
+            <img src="{{ $avatar }}" alt="avatar"
+              style="width:45px;height:45px;border-radius:12px;object-fit:cover;border:1px solid #eee">
+            <div>
+              <div class="fw-semibold">{{ $user->name }}</div>
+              <div class="text-muted small">{{ $user->division ?? 'Divisi tidak ada' }}</div>
+            </div>
+          </div>
+        </li>
+
         <li>
           <hr class="dropdown-divider">
         </li>
+
+        {{-- MENU PROFIL --}}
+        @if (Route::has('profile.edit'))
+          <li>
+            <a class="dropdown-item d-flex align-items-center" href="{{ route('profile.edit') }}">
+              <i class="ti ti-settings me-2"></i> Pengaturan Profil
+            </a>
+          </li>
+        @endif
+
+        {{-- LOGOUT --}}
         <li>
           <form action="{{ route('logout') }}" method="POST">
             @csrf
-            <button class="dropdown-item text-danger" type="submit">
-              <i class="ti ti-logout me-2"></i>Logout
+            <button class="dropdown-item text-danger d-flex align-items-center" type="submit">
+              <i class="ti ti-logout me-2"></i> Logout
             </button>
           </form>
         </li>
+
       </ul>
     </div>
+
   </div>
 </header>
 
@@ -177,9 +202,10 @@
   .menu-compact {
     min-width: 220px;
   }
-  .menu-backdrop{
-  display:none !important;
-}
+
+  .menu-backdrop {
+    display: none !important;
+  }
 
 
   /* === MOBILE DRAWER FULL-SCREEN ala GLPI === */

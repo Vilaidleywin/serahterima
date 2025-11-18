@@ -38,6 +38,12 @@ class Document extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+
     public function signer()
     {
         return $this->belongsTo(\App\Models\User::class, 'signed_by');
