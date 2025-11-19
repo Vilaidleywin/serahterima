@@ -115,10 +115,30 @@
           @php
             // nomor berurutan dengan offset pagination (fallback ke $i+1 jika firstItem null)
             $rowNumber = ($documents->firstItem() ?? 1) + $i;
+
             $statusUpper = strtoupper($d->status ?? '');
-            $isLocked = in_array($statusUpper, ['SUBMITTED', 'REJECTED']);
-            $isPhotoLocked = $statusUpper === 'REJECTED';
+
+            $isRejected = $statusUpper === 'REJECTED';
+            $isSubmitted = $statusUpper === 'SUBMITTED';
+
+            // Cek sudah tanda tangan / sudah foto
+            // SESUAIKAN dengan kolom di tabel kamu kalau beda:
+            $hasSigned = !empty($d->signed_at);     // contoh: kolom timestamp tanda tangan
+            $hasPhoto  = !empty($d->photo_path);    // contoh: kolom path / url foto
+
+            // Aturan:
+            // - REJECTED  : boleh Edit, tidak boleh Sign, Foto, Delete
+            // - SUBMITTED : tidak boleh Edit, Sign, Delete
+            // - DRAFT     : semua aksi boleh
+            // tambahan:
+            // - kalau sudah tanda tangan -> menu Tanda Tangan hilang
+            // - kalau sudah ada foto     -> menu Ambil Foto hilang
+            $canEdit   = !$isSubmitted;                            // Draft & Rejected bisa edit
+            $canSign   = !$isSubmitted && !$isRejected && !$hasSigned; // hanya Draft & belum tanda tangan
+            $canPhoto  = !$isRejected;                             // Rejected tidak boleh foto
+            $canDelete = !$isSubmitted && !$isRejected;            // hanya Draft
           @endphp
+
           <tr>
             <td class="fw-semibold">{{ $rowNumber }}</td>
 
@@ -150,50 +170,56 @@
                     </a>
                   </li>
 
-                  {{-- Edit & Sign: only if not locked --}}
-                  @unless($isLocked)
+                  {{-- Edit: boleh kecuali SUBMITTED --}}
+                  @if($canEdit)
                     <li>
                       <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
                         <i class="ti ti-edit me-2"></i> Edit
                       </a>
                     </li>
+                  @endif
 
+                  {{-- Tanda Tangan: hanya kalau masih DRAFT & belum tanda tangan --}}
+                  @if($canSign)
                     <li>
                       <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
                         <i class="ti ti-signature me-2"></i> Tanda Tangan
                       </a>
                     </li>
-                  @endunless
+                  @endif
+
 
                   <li>
                     <hr class="dropdown-divider">
                   </li>
 
-                  {{-- Ambil Foto: block if REJECTED --}}
-                  @unless($isPhotoLocked)
-                    <li>
-                      <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
-                        <i class="ti ti-camera me-2"></i> Ambil Foto
-                      </a>
-                    </li>
-                  @else
-                    {{-- If you want to show it but disabled (optional) --}}
-                    <li>
-                      <span class="dropdown-item text-muted" style="cursor: default;">
-                        <i class="ti ti-camera me-2"></i> Ambil Foto (tidak tersedia)
-                      </span>
-                    </li>
-                  @endunless
+                  {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
+                  @if(!$hasPhoto)
+                    @if($canPhoto)
+                      <li>
+                        <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
+                          <i class="ti ti-camera me-2"></i> Ambil Foto
+                        </a>
+                      </li>
+                    @else
+                      <li>
+                        <span class="dropdown-item text-muted" style="cursor: default;">
+                          <i class="ti ti-camera me-2"></i> Ambil Foto (tidak tersedia)
+                        </span>
+                      </li>
+                    @endif
+                  @endif
 
-                  {{-- Delete: only if not locked --}}
-                  @unless($isLocked)
+                  {{-- Delete: hanya kalau masih DRAFT --}}
+                  @if($canDelete)
                     <li>
                       <button type="button" class="dropdown-item text-danger btn-delete" data-id="{{ $d->id }}"
                         data-label="{{ $d->number }} - {{ $d->title }}">
                         <i class="ti ti-trash me-2"></i> Hapus
                       </button>
                     </li>
-                  @endunless
+                  @endif
+
                 </ul>
               </div>
 

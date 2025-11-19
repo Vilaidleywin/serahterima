@@ -11,9 +11,12 @@
       </div>
 
       @php
-        $isRejected = strtoupper($document->status) === 'REJECTED';
-        $isSigned = filled($document->signature_path);
+        $isRejected  = strtoupper($document->status) === 'REJECTED';
+        $isSigned    = filled($document->signature_path);
         $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
+
+        // Delete hanya ketika masih DRAFT (tidak submitted dan tidak rejected)
+        $canDelete = ! $isRejected && ! $isSubmitted;
       @endphp
 
       <div class="d-flex gap-2">
@@ -21,9 +24,10 @@
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
-        {{-- Tombol Edit dikunci bila REJECTED --}}
-        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary {{ $isRejected ? 'disabled' : '' }}"
-          @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
+        {{-- Edit dikunci bila SUBMITTED (REJECTED tetap bisa edit) --}}
+        <a href="{{ route('documents.edit', $document) }}"
+           class="btn btn-primary {{ $isSubmitted ? 'disabled' : '' }}"
+           @if($isSubmitted) aria-disabled="true" tabindex="-1" @endif>
           <i class="ti ti-edit"></i> Edit
         </a>
       </div>
@@ -32,7 +36,7 @@
     {{-- Banner jika REJECTED --}}
     @if($isRejected)
       <div class="alert alert-warning mb-4" role="alert" style="border-radius:10px;">
-        <strong>Dokumen Ditolak.</strong> Edit, tanda tangan, dan pengambilan foto dinonaktifkan.
+        <strong>Dokumen Ditolak.</strong> Tanda tangan dan pengambilan foto dinonaktifkan.
       </div>
     @endif
 
@@ -119,17 +123,14 @@
         </div>
       </div>
 
-      {{-- === KARTU INFO & AKSI (DIREVISI) === --}}
-      @php
-        $isSigned = filled($document->signature_path);
-      @endphp
+      {{-- Kartu info & aksi --}}
       <div class="col-lg-4">
         <div class="card-soft p-4">
 
           {{-- Notifikasi hijau kalau sudah ditandatangani --}}
           @if($isSigned)
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3"
-              style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
+                 style="background:#e6f6ee;border:1px solid #b4e0c3;color:#13693d; position: static !important; animation: none !important;">
               <i class="ti ti-badge-check"></i>
               <div class="small">
                 Dokumen <strong>telah ditandatangani</strong>
@@ -158,19 +159,21 @@
 
           {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
-            class="btn btn-outline-secondary w-100 mb-2">
+             class="btn btn-outline-secondary w-100 mb-2">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
-          {{-- Hapus Dokumen (selalu ada) --}}
-          <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
-            <i class="ti ti-trash me-1"></i> Hapus Dokumen
-          </button>
+          {{-- Hapus Dokumen: hanya jika tidak REJECTED dan tidak SUBMITTED (DRAFT saja) --}}
+          @if($canDelete)
+            <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
+              <i class="ti ti-trash me-1"></i> Hapus Dokumen
+            </button>
+          @endif
 
           {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
             <form action="{{ route('documents.reject', $document) }}" method="POST"
-              onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
+                  onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
               @csrf
               <button type="submit" class="btn btn-outline-warning w-100">
                 <i class="ti ti-ban"></i> Tolak Dokumen
@@ -178,9 +181,9 @@
             </form>
           @endif
 
-          {{-- Form hapus (tetap di sini) --}}
+          {{-- Form hapus --}}
           <form id="delete-form-{{ $document->id }}" action="{{ route('documents.destroy', $document) }}" method="POST"
-            class="d-none">
+                class="d-none">
             @csrf
             @method('DELETE')
           </form>
@@ -194,11 +197,17 @@
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="text-muted small">Tanda Tangan & Foto Dokumen</div>
         <div class="d-flex gap-2">
+          {{-- Tanda Tangan: disable jika REJECTED atau sudah ditandatangani --}}
           <a href="{{ route('documents.sign', $document) }}"
-            class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}" @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
+             class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}"
+             @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
             <i class="ti ti-signature me-1"></i> Tanda Tangan
           </a>
-          <a href="{{ route('documents.photo', $document) }}" class="btn btn-outline-primary btn-sm">
+
+          {{-- Ambil Foto: disable jika REJECTED --}}
+          <a href="{{ route('documents.photo', $document) }}"
+             class="btn btn-outline-primary btn-sm {{ $isRejected ? 'disabled' : '' }}"
+             @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
             <i class="ti ti-camera me-1"></i> Ambil Foto
           </a>
         </div>
@@ -209,8 +218,14 @@
           <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Tanda Tangan</div>
             @if($document->signature_path)
-              <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
-                style="max-height:140px;object-fit:contain">
+              <button type="button"
+                      class="border-0 bg-transparent p-0 preview-trigger"
+                      data-bs-toggle="modal"
+                      data-bs-target="#imagePreviewModal"
+                      data-image="{{ Storage::url($document->signature_path) }}">
+                <img src="{{ Storage::url($document->signature_path) }}" alt="Signature"
+                     style="max-height:140px;object-fit:contain">
+              </button>
               <div class="text-muted small mt-2">
                 Ditandatangani {{ optional($document->signed_at)->translatedFormat('d M Y H:i') ?? '-' }}
                 @if($document->receiver)
@@ -227,8 +242,14 @@
           <div class="extra-box text-center h-100">
             <div class="fw-semibold mb-2">Foto Dokumen</div>
             @if($document->photo_path)
-              <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
-                style="max-height:180px;width:100%;object-fit:contain">
+              <button type="button"
+                      class="border-0 bg-transparent p-0 preview-trigger w-100"
+                      data-bs-toggle="modal"
+                      data-bs-target="#imagePreviewModal"
+                      data-image="{{ Storage::url($document->photo_path) }}">
+                <img src="{{ Storage::url($document->photo_path) }}" alt="Photo"
+                     style="max-height:180px;width:100%;object-fit:contain">
+              </button>
               <div class="text-muted small mt-2">
                 Difoto terakhir {{ optional($document->updated_at)->translatedFormat('d M Y H:i') ?? '-' }}
               </div>
@@ -240,6 +261,21 @@
       </div>
     </div>
 
+  </div>
+
+  {{-- Modal Preview Gambar --}}
+  <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-body p-0 position-relative">
+          <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                  data-bs-dismiss="modal" aria-label="Close"></button>
+          <img id="previewImage" src="" alt="Preview"
+               class="w-100"
+               style="max-height:80vh;object-fit:contain;">
+        </div>
+      </div>
+    </div>
   </div>
 @endsection
 
@@ -262,5 +298,30 @@
       border: 1px solid #e5e7eb;
       padding: 1.5rem;
     }
+
+    .preview-trigger {
+      cursor: zoom-in;
+    }
   </style>
+@endpush
+
+@push('scripts')
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var previewModal = document.getElementById('imagePreviewModal');
+      var previewImage = document.getElementById('previewImage');
+
+      if (previewModal) {
+        previewModal.addEventListener('show.bs.modal', function (event) {
+          var button = event.relatedTarget;
+          var imageSrc = button.getAttribute('data-image');
+          previewImage.src = imageSrc || '';
+        });
+
+        previewModal.addEventListener('hidden.bs.modal', function () {
+          previewImage.src = '';
+        });
+      }
+    });
+  </script>
 @endpush

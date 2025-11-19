@@ -163,9 +163,7 @@
         display: block;
       }
 
-      body.nav-open .sidebar {
-        transform: translateX(0);
-      }
+      
 
       .topbar {
         left: 0;
@@ -175,9 +173,7 @@
         margin-left: 0;
       }
 
-      body.nav-open {
-        display: block;
-      }
+      
     }
   </style>
 </head>
