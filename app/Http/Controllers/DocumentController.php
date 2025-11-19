@@ -205,24 +205,67 @@ class DocumentController extends Controller
             $q->where('destination', 'like', "%{$dest}%");
         }
 
+        /**
+         * QUICK PERIOD (periode cepat) + TANGGAL DOKUMEN
+         *
+         * View kirim:
+         *   - period: null | yesterday | last_week | last_month
+         *   - date_from, date_to: tanggal manual
+         *
+         * Quick period akan mengisi date_from/date_to kalau user belum isi manual.
+         * Semua filter ini diarahkan ke kolom `date` (bukan created_at).
+         */
+        $dateFrom = $req->input('date_from');
+        $dateTo   = $req->input('date_to');
+
         if ($period = $req->input('period')) {
-            $startWeek = $now->copy()->startOfWeek(Carbon::MONDAY);
-            $endWeek   = $now->copy()->endOfWeek(Carbon::SUNDAY);
-            if ($period === 'today') {
-                $q->whereDate('created_at', $now->toDateString());
-            } elseif ($period === 'week') {
-                $q->whereBetween('created_at', [$startWeek, $endWeek]);
-            } elseif ($period === 'month') {
-                $q->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()]);
+            $start = null;
+            $end   = null;
+
+            switch ($period) {
+                case 'yesterday':
+                    $start = $now->copy()->subDay()->startOfDay();
+                    $end   = $now->copy()->subDay()->endOfDay();
+                    break;
+
+                case 'last_week':
+                    // minggu lalu (Senin–Minggu minggu sebelumnya)
+                    $start = $now->copy()->subWeek()->startOfWeek(Carbon::MONDAY);
+                    $end   = $now->copy()->subWeek()->endOfWeek(Carbon::SUNDAY);
+                    break;
+
+                case 'last_month':
+                    $start = $now->copy()->subMonthNoOverflow()->startOfMonth();
+                    $end   = $now->copy()->subMonthNoOverflow()->endOfMonth();
+                    break;
+            }
+
+            // Hanya auto-set kalau user belum isi manual di form
+            if ($start && !$dateFrom) {
+                $dateFrom = $start->toDateString();
+            }
+            if ($end && !$dateTo) {
+                $dateTo = $end->toDateString();
             }
         }
 
-        if ($from = $req->input('created_from')) $q->whereDate('created_at', '>=', $from);
-        if ($to   = $req->input('created_to'))   $q->whereDate('created_at', '<=', $to);
+        // created_at range (kalau suatu saat ada filter created_from/created_to di UI)
+        if ($from = $req->input('created_from')) {
+            $q->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $req->input('created_to')) {
+            $q->whereDate('created_at', '<=', $to);
+        }
 
-        if ($df = $req->input('date_from')) $q->whereDate('date', '>=', $df);
-        if ($dt = $req->input('date_to'))   $q->whereDate('date', '<=', $dt);
+        // date range utama pakai kolom `date`
+        if ($dateFrom) {
+            $q->whereDate('date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $q->whereDate('date', '<=', $dateTo);
+        }
 
+        // overdue filter (SUBMITTED yang lewat X hari)
         if ($overdue = $req->integer('overdue_days')) {
             $cutoff = $now->copy()->subDays($overdue)->toDateString();
             $q->where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {

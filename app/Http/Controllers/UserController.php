@@ -14,34 +14,38 @@ class UserController extends Controller
     {
         $q = User::query();
 
-        // admin hanya lihat user yang dia buat
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
-            $q->where('created_by', auth()->id());
-        }
+        // ambil per_page dari query, default 15 & whitelist
+        $per_page = (int) $request->integer('per_page', 15);
+        $per_page = in_array($per_page, [10, 15, 25, 50], true) ? $per_page : 15;
 
         // pencarian: nama, username, email, role, division
         if ($s = (string) $request->query('search', '')) {
             $like = "%{$s}%";
             $q->where(function ($w) use ($like) {
                 $w->where('name', 'like', $like)
-                  ->orWhere('username', 'like', $like)
-                  ->orWhere('email', 'like', $like)
-                  ->orWhere('division', 'like', $like)
-                  ->orWhere('role', 'like', $like);
+                    ->orWhere('username', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('division', 'like', $like)
+                    ->orWhere('role', 'like', $like);
             });
         }
 
-        $users = $q->orderBy('name')->paginate(15)->withQueryString();
+        $users = $q->orderBy('name')
+            ->paginate($per_page)
+            ->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        return view('admin.users.index', [
+            'users'    => $users,
+            'per_page' => $per_page,
+        ]);
     }
 
     public function create()
     {
         return view('admin.users.form', [
-            'mode'       => 'create',
-            // ambil daftar divisi statis dari DocumentController (sudah kita tambahkan)
-            'divisions'  => DocumentController::divisions(),
+            'mode'      => 'create',
+            // ambil daftar divisi statis dari DocumentController
+            'divisions' => DocumentController::divisions(),
         ]);
     }
 
@@ -56,8 +60,8 @@ class UserController extends Controller
         ]);
 
         $data['password']   = Hash::make($data['password']);
-        $data['role']       = 'user';        // kunci role
-        $data['created_by'] = auth()->id();
+        $data['role']       = 'user';        // kunci role tetap user
+        $data['created_by'] = auth()->id();  // tetap disimpan, meski tidak dipakai untuk filter lagi
 
         User::create($data);
 
@@ -67,16 +71,19 @@ class UserController extends Controller
     public function edit(User $user)
     {
         return view('admin.users.form', [
-            'mode'       => 'edit',
-            'user'       => $user,
-            'divisions'  => DocumentController::divisions(),
+            'mode'      => 'edit',
+            'user'      => $user,
+            'divisions' => DocumentController::divisions(),
         ]);
     }
 
     public function update(Request $request, User $user)
     {
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
-            abort_unless($user->created_by === auth()->id(), 403);
+        // Larang update untuk user dengan role admin/admin_internal/admin_komersial
+        if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
+            return redirect()
+                ->route('admin.users.index')
+                ->with('err', 'User dengan role admin tidak dapat diubah dari halaman ini.');
         }
 
         $data = $request->validate([
@@ -93,7 +100,7 @@ class UserController extends Controller
             unset($data['password']);
         }
 
-        // tidak boleh ubah kepemilikan & role
+        // tidak boleh ubah kepemilikan & role lewat form
         unset($data['created_by']);
         $data['role'] = 'user';
 
@@ -104,10 +111,12 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        if (in_array(auth()->user()->role, ['admin_internal', 'admin_komersial'], true)) {
-            abort_unless($user->created_by === auth()->id(), 403);
+        // Larang hapus user admin/admin_internal/admin_komersial
+        if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
+            return back()->with('err', 'User dengan role admin tidak dapat dihapus.');
         }
 
+        // tetap: tidak boleh hapus diri sendiri
         if (auth()->id() === $user->id) {
             return back()->with('err', 'Tidak bisa menghapus diri sendiri');
         }
