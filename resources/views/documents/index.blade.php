@@ -34,7 +34,7 @@
 
   {{-- FILTER BAR --}}
   {{-- FILTER BAR --}}
-  <form method="get" class="mb-3">
+  <form id="filterForm" method="get" class="mb-3">
     <div class="row g-3 align-items-end">
 
       {{-- KOLOM 1: Pencarian + tombol Filter & Reset di bawahnya --}}
@@ -48,7 +48,8 @@
             <i class="ti ti-filter me-1"></i> Filter
           </button>
 
-          <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+          {{-- Reset pakai AJAX, jadi href diganti # dan dikasih id --}}
+          <a href="#" id="btnFilterReset" class="btn btn-outline-secondary">
             <i class="ti ti-filter-off me-1"></i> Reset
           </a>
         </div>
@@ -91,199 +92,202 @@
     </div>
   </form>
 
+  {{-- WRAPPER: bagian ini saja yang di-refresh via AJAX --}}
+  <div id="table-wrapper">
 
-  {{-- TABLE --}}
-  <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">
-    <table class="table table-striped table-hover align-middle mb-0">
-      <thead>
-        <tr>
-          <th style="width:60px">No</th>
-          <th>No Dokumen</th>
-          <th>Nama Dokumen</th>
-          <th>Pengirim</th>
-          <th>Penerima</th>
-          <th>Divisi</th>
-          <th>Tujuan</th>
-          <th style="width:140px">Nominal (Rp)</th>
-          <th style="width:120px">Tanggal</th>
-          <th style="width:120px">Status</th>
-          <th style="width:80px" class="text-end">Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        @forelse($documents as $i => $d)
-          @php
-            // nomor berurutan dengan offset pagination (fallback ke $i+1 jika firstItem null)
-            $rowNumber = ($documents->firstItem() ?? 1) + $i;
-
-            $statusUpper = strtoupper($d->status ?? '');
-
-            $isRejected = $statusUpper === 'REJECTED';
-            $isSubmitted = $statusUpper === 'SUBMITTED';
-
-            // Cek sudah tanda tangan / sudah foto
-            // SESUAIKAN dengan kolom di tabel kamu kalau beda:
-            $hasSigned = !empty($d->signed_at);     // contoh: kolom timestamp tanda tangan
-            $hasPhoto  = !empty($d->photo_path);    // contoh: kolom path / url foto
-
-            // Aturan:
-            // - REJECTED  : boleh Edit, tidak boleh Sign, Foto, Delete
-            // - SUBMITTED : tidak boleh Edit, Sign, Delete
-            // - DRAFT     : semua aksi boleh
-            // tambahan:
-            // - kalau sudah tanda tangan -> menu Tanda Tangan hilang
-            // - kalau sudah ada foto     -> menu Ambil Foto hilang
-            $canEdit   = !$isSubmitted;                            // Draft & Rejected bisa edit
-            $canSign   = !$isSubmitted && !$isRejected && !$hasSigned; // hanya Draft & belum tanda tangan
-            $canPhoto  = !$isRejected;                             // Rejected tidak boleh foto
-            $canDelete = !$isSubmitted && !$isRejected;            // hanya Draft
-          @endphp
-
+    {{-- TABLE --}}
+    <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead>
           <tr>
-            <td class="fw-semibold">{{ $rowNumber }}</td>
+            <th style="width:60px">No</th>
+            <th>No Dokumen</th>
+            <th>Nama Dokumen</th>
+            <th>Pengirim</th>
+            <th>Penerima</th>
+            <th>Divisi</th>
+            <th>Tujuan</th>
+            <th style="width:140px">Nominal (Rp)</th>
+            <th style="width:120px">Tanggal</th>
+            <th style="width:120px">Status</th>
+            <th style="width:80px" class="text-end">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($documents as $i => $d)
+            @php
+              // nomor berurutan dengan offset pagination (fallback ke $i+1 jika firstItem null)
+              $rowNumber = ($documents->firstItem() ?? 1) + $i;
 
-            <td>{{ $d->number ?? '-' }}</td>
-            <td>{{ $d->title ?? '-' }}</td>
-            <td>{{ $d->sender ?? '-' }}</td>
-            <td>{{ $d->receiver ?? '-' }}</td>
-            <td>{{ $d->division ?? '-' }}</td>
-            <td>{{ $d->destination ?? '-' }}</td>
-            <td>{{ $d->amount_idr_formatted ?? 'Rp. ' . number_format((int) $d->amount_idr, 0, ',', '.') }}</td>
-            <td>{{ $d->date?->format('Y-m-d') }}</td>
-            <td>@include('shared.status-badge', ['status' => $d->status])</td>
+              $statusUpper = strtoupper($d->status ?? '');
 
-            <td class="text-end">
-              <div class="dropdown">
-                <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown" aria-expanded="false">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#111827"
-                    class="bi bi-three-dots-vertical">
-                    <path
-                      d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
-                  </svg>
-                </button>
+              $isRejected = $statusUpper === 'REJECTED';
+              $isSubmitted = $statusUpper === 'SUBMITTED';
 
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                  {{-- Always allow Detail --}}
-                  <li>
-                    <a class="dropdown-item" href="{{ route('documents.show', $d) }}">
-                      <i class="ti ti-eye me-2"></i> Detail
-                    </a>
-                  </li>
+              // Cek sudah tanda tangan / sudah foto
+              // SESUAIKAN dengan kolom di tabel kamu kalau beda:
+              $hasSigned = !empty($d->signed_at);     // contoh: kolom timestamp tanda tangan
+              $hasPhoto  = !empty($d->photo_path);    // contoh: kolom path / url foto
 
-                  {{-- Edit: boleh kecuali SUBMITTED --}}
-                  @if($canEdit)
+              // Aturan:
+              // - REJECTED  : boleh Edit, tidak boleh Sign, Foto, Delete
+              // - SUBMITTED : tidak boleh Edit, Sign, Delete
+              // - DRAFT     : semua aksi boleh
+              // tambahan:
+              // - kalau sudah tanda tangan -> menu Tanda Tangan hilang
+              // - kalau sudah ada foto     -> menu Ambil Foto hilang
+              $canEdit   = !$isSubmitted;                                // Draft & Rejected bisa edit
+              $canSign   = !$isSubmitted && !$isRejected && !$hasSigned; // hanya Draft & belum tanda tangan
+              $canPhoto  = !$isRejected;                                 // Rejected tidak boleh foto
+              $canDelete = !$isSubmitted && !$isRejected;                // hanya Draft
+            @endphp
+
+            <tr>
+              <td class="fw-semibold">{{ $rowNumber }}</td>
+
+              <td>{{ $d->number ?? '-' }}</td>
+              <td>{{ $d->title ?? '-' }}</td>
+              <td>{{ $d->sender ?? '-' }}</td>
+              <td>{{ $d->receiver ?? '-' }}</td>
+              <td>{{ $d->division ?? '-' }}</td>
+              <td>{{ $d->destination ?? '-' }}</td>
+              <td>{{ $d->amount_idr_formatted ?? 'Rp. ' . number_format((int) $d->amount_idr, 0, ',', '.') }}</td>
+              <td>{{ $d->date?->format('Y-m-d') }}</td>
+              <td>@include('shared.status-badge', ['status' => $d->status])</td>
+
+              <td class="text-end">
+                <div class="dropdown">
+                  <button type="button" class="btn btn-kebab" data-bs-toggle="dropdown" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#111827"
+                      class="bi bi-three-dots-vertical">
+                      <path
+                        d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                    </svg>
+                  </button>
+
+                  <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    {{-- Always allow Detail --}}
                     <li>
-                      <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
-                        <i class="ti ti-edit me-2"></i> Edit
+                      <a class="dropdown-item" href="{{ route('documents.show', $d) }}">
+                        <i class="ti ti-eye me-2"></i> Detail
                       </a>
                     </li>
-                  @endif
 
-                  {{-- Tanda Tangan: hanya kalau masih DRAFT & belum tanda tangan --}}
-                  @if($canSign)
-                    <li>
-                      <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
-                        <i class="ti ti-signature me-2"></i> Tanda Tangan
-                      </a>
-                    </li>
-                  @endif
-
-
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-
-                  {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
-                  @if(!$hasPhoto)
-                    @if($canPhoto)
+                    {{-- Edit: boleh kecuali SUBMITTED --}}
+                    @if($canEdit)
                       <li>
-                        <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
-                          <i class="ti ti-camera me-2"></i> Ambil Foto
+                        <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
+                          <i class="ti ti-edit me-2"></i> Edit
                         </a>
                       </li>
-                    @else
+                    @endif
+
+                    {{-- Tanda Tangan: hanya kalau masih DRAFT & belum tanda tangan --}}
+                    @if($canSign)
                       <li>
-                        <span class="dropdown-item text-muted" style="cursor: default;">
-                          <i class="ti ti-camera me-2"></i> Ambil Foto (tidak tersedia)
-                        </span>
+                        <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
+                          <i class="ti ti-signature me-2"></i> Tanda Tangan
+                        </a>
                       </li>
                     @endif
-                  @endif
 
-                  {{-- Delete: hanya kalau masih DRAFT --}}
-                  @if($canDelete)
+
                     <li>
-                      <button type="button" class="dropdown-item text-danger btn-delete" data-id="{{ $d->id }}"
-                        data-label="{{ $d->number }} - {{ $d->title }}">
-                        <i class="ti ti-trash me-2"></i> Hapus
-                      </button>
+                      <hr class="dropdown-divider">
                     </li>
-                  @endif
 
-                </ul>
-              </div>
+                    {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
+                    @if(!$hasPhoto)
+                      @if($canPhoto)
+                        <li>
+                          <a class="dropdown-item" href="{{ route('documents.photo', $d) }}">
+                            <i class="ti ti-camera me-2"></i> Ambil Foto
+                          </a>
+                        </li>
+                      @else
+                        <li>
+                          <span class="dropdown-item text-muted" style="cursor: default;">
+                            <i class="ti ti-camera me-2"></i> Ambil Foto (tidak tersedia)
+                          </span>
+                        </li>
+                      @endif
+                    @endif
 
-              <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
-                class="d-none">
-                @csrf @method('DELETE')
-              </form>
-            </td>
+                    {{-- Delete: hanya kalau masih DRAFT --}}
+                    @if($canDelete)
+                      <li>
+                        <button type="button" class="dropdown-item text-danger btn-delete" data-id="{{ $d->id }}"
+                          data-label="{{ $d->number }} - {{ $d->title }}">
+                          <i class="ti ti-trash me-2"></i> Hapus
+                        </button>
+                      </li>
+                    @endif
 
-          </tr>
-        @empty
-          <tr>
-            <td colspan="11" class="text-center py-4">Tidak ada data</td>
-          </tr>
-        @endforelse
-      </tbody>
-    </table>
-  </div>
+                  </ul>
+                </div>
 
-  {{-- FOOTER PAGINATION --}}
-  <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
-    style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
+                <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
+                  class="d-none">
+                  @csrf @method('DELETE')
+                </form>
+              </td>
 
-    {{-- Rows per page --}}
-    <form method="get" class="d-inline-flex align-items-center gap-2 mb-0">
-      <input type="hidden" name="search" value="{{ request('search') }}">
-      <input type="hidden" name="status" value="{{ request('status') }}">
-      <input type="hidden" name="date_from" value="{{ request('date_from') }}">
-      <input type="hidden" name="date_to" value="{{ request('date_to') }}">
-
-      <select name="per_page" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
-        @foreach([10, 15, 25, 50] as $n)
-          <option value="{{ $n }}" @selected(($per_page ?? 15) == $n)>{{ $n }}</option>
-        @endforeach
-      </select>
-      <span>rows / page</span>
-    </form>
-
-    {{-- Showing info --}}
-    <div class="text-muted small flex-grow-1 text-center mb-0">
-      Showing {{ $documents->firstItem() ?? 0 }} to {{ $documents->lastItem() ?? 0 }} of {{ $documents->total() }} rows
+            </tr>
+          @empty
+            <tr>
+              <td colspan="11" class="text-center py-4">Tidak ada data</td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
     </div>
 
-    {{-- Pagination --}}
-    <div class="mb-0">
-      <nav>
-        <ul class="pagination mb-0">
-          <li class="page-item {{ $documents->onFirstPage() ? 'disabled' : '' }}">
-            <a class="page-link" href="{{ $documents->previousPageUrl() ?? '#' }}">&laquo;</a>
-          </li>
+    {{-- FOOTER PAGINATION --}}
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
+      style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
 
-          @foreach ($documents->getUrlRange(1, $documents->lastPage()) as $page => $url)
-            <li class="page-item {{ $page == $documents->currentPage() ? 'active' : '' }}">
-              <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-            </li>
+      {{-- Rows per page --}}
+      <form method="get" class="d-inline-flex align-items-center gap-2 mb-0">
+        <input type="hidden" name="search" value="{{ request('search') }}">
+        <input type="hidden" name="status" value="{{ request('status') }}">
+        <input type="hidden" name="date_from" value="{{ request('date_from') }}">
+        <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+
+        <select name="per_page" class="form-select form-select-sm" style="width:90px" onchange="this.form.submit()">
+          @foreach([10, 15, 25, 50] as $n)
+            <option value="{{ $n }}" @selected(($per_page ?? 15) == $n)>{{ $n }}</option>
           @endforeach
+        </select>
+        <span>rows / page</span>
+      </form>
 
-          <li class="page-item {{ !$documents->hasMorePages() ? 'disabled' : '' }}">
-            <a class="page-link" href="{{ $documents->nextPageUrl() ?? '#' }}">&raquo;</a>
-          </li>
-        </ul>
-      </nav>
+      {{-- Showing info --}}
+      <div class="text-muted small flex-grow-1 text-center mb-0">
+        Showing {{ $documents->firstItem() ?? 0 }} to {{ $documents->lastItem() ?? 0 }} of {{ $documents->total() }} rows
+      </div>
+
+      {{-- Pagination --}}
+      <div class="mb-0">
+        <nav>
+          <ul class="pagination mb-0">
+            <li class="page-item {{ $documents->onFirstPage() ? 'disabled' : '' }}">
+              <a class="page-link" href="{{ $documents->previousPageUrl() ?? '#' }}">&laquo;</a>
+            </li>
+
+            @foreach ($documents->getUrlRange(1, $documents->lastPage()) as $page => $url)
+              <li class="page-item {{ $page == $documents->currentPage() ? 'active' : '' }}">
+                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+              </li>
+            @endforeach
+
+            <li class="page-item {{ !$documents->hasMorePages() ? 'disabled' : '' }}">
+              <a class="page-link" href="{{ $documents->nextPageUrl() ?? '#' }}">&raquo;</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
     </div>
-  </div>
+  </div> {{-- /#table-wrapper --}}
 
   {{-- MODAL KONFIRMASI HAPUS --}}
   <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
@@ -318,20 +322,21 @@
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // ====== MODAL DELETE HANDLER ======
+      // ====== MODAL DELETE HANDLER (pakai event delegation biar tetap jalan setelah tabel di-replace) ======
       const deleteModalElement = document.getElementById('deleteModal');
       const deleteModal = new bootstrap.Modal(deleteModalElement);
       const deleteText = deleteModalElement.querySelector('.delete-text');
       let currentDeleteId = null;
 
-      document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function () {
-          currentDeleteId = this.dataset.id;
-          const label = this.dataset.label || '';
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.btn-delete');
+        if (!btn) return;
 
-          deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
-          deleteModal.show();
-        });
+        currentDeleteId = btn.dataset.id;
+        const label = btn.dataset.label || '';
+
+        deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
+        deleteModal.show();
       });
 
       document.getElementById('btn-confirm-delete').addEventListener('click', function () {
@@ -342,6 +347,43 @@
           form.submit();
         }
         deleteModal.hide();
+      });
+
+      // ====== AJAX FILTER & RESET (refresh cuma bagian table-wrapper) ======
+      const filterForm = document.getElementById('filterForm');
+      const btnFilterReset = document.getElementById('btnFilterReset');
+      const tableWrapper = document.getElementById('table-wrapper');
+
+      function loadTable(url) {
+        fetch(url, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newWrapper = doc.querySelector('#table-wrapper');
+            if (newWrapper) {
+              tableWrapper.innerHTML = newWrapper.innerHTML;
+            }
+          })
+          .catch(err => console.error(err));
+      }
+
+      // submit filter tanpa reload full page
+      filterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const params = new URLSearchParams(new FormData(filterForm)).toString();
+        const url = "{{ route('documents.index') }}" + (params ? ('?' + params) : '');
+        loadTable(url);
+      });
+
+      // reset filter tanpa reload full page
+      btnFilterReset.addEventListener('click', function (e) {
+        e.preventDefault();
+        filterForm.reset();
+        // kalau mau benar2 clear query string, cukup panggil route index tanpa param
+        loadTable("{{ route('documents.index') }}");
       });
     });
   </script>

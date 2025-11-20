@@ -7,315 +7,139 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    :root {
-      --pid-primary: #2563eb;
-      --pid-primary-dark: #1e40af;
-      --pid-light: #f9fafb;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background: url('{{ asset('images/backgroundlogin.jpg') }}') no-repeat center center/cover;
       min-height: 100vh;
-      margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem 1rem; /* HP: agak rapat */
+      flex-direction: column;
       color: #fff;
-      position: relative;
     }
 
     .overlay {
       position: fixed;
       inset: 0;
-      background: linear-gradient(to bottom right, rgba(15,23,42,0.9), rgba(37,99,235,0.7));
-      mix-blend-mode: multiply;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(2px);
       z-index: 0;
     }
 
-    .login-wrapper {
+    .login-container {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 420px; /* default HP & small tablet */
+      max-width: 400px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      padding: 2rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    .app-title {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .app-title h1 {
+    .login-container h1 {
       font-weight: 700;
-      letter-spacing: 0.08em;
-      font-size: 1.5rem;
-      margin-bottom: 0.25rem;
+      letter-spacing: 1px;
+      font-size: 2rem;
     }
 
-    .app-title h6 {
+    .login-container h5 {
       font-weight: 400;
-      font-size: 0.85rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      opacity: 0.9;
-    }
-
-    .login-card {
-      background: rgba(15,23,42,0.7);
-      backdrop-filter: blur(18px);
-      border-radius: 18px;
-      padding: 1.5rem 1.25rem;
-      border: 1px solid rgba(148,163,184,0.35);
-      box-shadow: 0 18px 45px rgba(15,23,42,0.7);
-    }
-
-    .login-header {
       margin-bottom: 1.5rem;
-    }
-
-    .login-header h2 {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-
-    .login-header p {
-      font-size: 0.85rem;
-      color: #e5e7eb;
-      margin: 0;
-      opacity: 0.9;
-    }
-
-    .form-label {
-      font-size: 0.85rem;
-      color: #e5e7eb;
-      margin-bottom: 0.35rem;
+      color: #f1f5f9;
     }
 
     .form-control {
-      border-radius: 12px;
-      border: 1px solid rgba(148,163,184,0.6);
-      background: rgba(15,23,42,0.85);
-      color: #f9fafb;
-      padding: 0.6rem 0.85rem;
-      font-size: 0.9rem;
-    }
-
-    .form-control:focus {
-      border-color: var(--pid-primary);
-      box-shadow: 0 0 0 1px rgba(37,99,235,0.45);
-      background: rgba(15,23,42,0.95);
-      color: #f9fafb;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
     }
 
     .form-control::placeholder {
-      color: #9ca3af;
-      font-size: 0.85rem;
+      color: #e2e8f0;
     }
 
     .btn-login {
       width: 100%;
-      border-radius: 999px;
-      background: linear-gradient(to right, var(--pid-primary), #38bdf8);
+      border-radius: 10px;
+      background-color: #2563eb;
       border: none;
       font-weight: 600;
-      font-size: 0.95rem;
-      padding: 0.65rem 1rem;
-      margin-top: 0.35rem;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-      box-shadow: 0 12px 30px rgba(37,99,235,0.55);
+      transition: 0.3s;
     }
 
     .btn-login:hover {
-      opacity: 0.95;
-      transform: translateY(-1px);
-      box-shadow: 0 14px 36px rgba(37,99,235,0.6);
-      background: linear-gradient(to right, var(--pid-primary-dark), #0ea5e9);
+      background-color: #1e40af;
     }
 
-    .btn-login:active {
-      transform: translateY(0);
-      box-shadow: 0 8px 18px rgba(15,23,42,0.8);
+    @media (max-width: 768px) {
+      .login-container {
+        margin: 0 1rem;
+        padding: 1.5rem;
+      }
+      .login-container h1 {
+        font-size: 1.7rem;
+      }
     }
 
     .remember-label {
-      color: #e5e7eb;
-      font-size: 0.78rem;
+      color: #e2e8f0;
+      font-size: 0.9rem;
       cursor: pointer;
-      user-select: none;
-    }
-
-    .form-check-input {
-      cursor: pointer;
-      width: 0.95rem;
-      height: 0.95rem;
-    }
-
-    .helper-row {
-      font-size: 0.78rem;
-      color: #cbd5f5;
-    }
-
-    .alert {
-      font-size: 0.78rem;
-      border-radius: 10px;
-    }
-
-    .footer-text {
-      margin-top: 0.85rem;
-      text-align: center;
-      font-size: 0.75rem;
-      color: #cbd5f5;
-      opacity: 0.85;
-    }
-
-    .footer-text span {
-      opacity: 1;
-      font-weight: 500;
-    }
-
-    /* =========================
-       RESPONSIVE: HP & TABLET
-       ========================= */
-
-    /* HP gede / small tablet (>= 576px) */
-    @media (min-width: 576px) {
-      body {
-        padding: 2rem 1.5rem;
-      }
-      .login-wrapper {
-        max-width: 440px;
-      }
-      .login-card {
-        padding: 1.75rem 1.6rem;
-      }
-      .login-header h2 {
-        font-size: 1.3rem;
-      }
-    }
-
-    /* Tablet portrait (>= 768px) */
-    @media (min-width: 768px) {
-      body {
-        padding: 2.5rem 2rem;
-      }
-      .login-wrapper {
-        max-width: 480px;
-      }
-      .login-card {
-        padding: 2rem 1.9rem;
-      }
-      .app-title h1 {
-        font-size: 1.8rem;
-      }
-      .app-title h6 {
-        font-size: 0.9rem;
-      }
-      .login-header h2 {
-        font-size: 1.35rem;
-      }
-      .form-control {
-        font-size: 0.95rem;
-        padding: 0.7rem 0.9rem;
-      }
-    }
-
-    /* Tablet landscape / small laptop (>= 992px) */
-    @media (min-width: 992px) {
-      body {
-        padding: 3rem 2.5rem;
-      }
-      .login-wrapper {
-        max-width: 520px;
-      }
-      .login-card {
-        padding: 2.25rem 2.1rem;
-      }
     }
   </style>
 </head>
 <body>
   <div class="overlay"></div>
 
-  <div class="login-wrapper">
-    <!-- Title di atas card -->
-    <div class="app-title">
-      <h1>PT. PID</h1>
-      <h6>Serah Terima Dokumen</h6>
+  <div class="text-center mb-4" style="z-index:1;">
+    <h1 class="fw-bold">PT. PID</h1>
+    <h5>SERAH TERIMA DOKUMEN</h5>
+  </div>
+
+  <form method="POST" action="{{ route('login.attempt') }}" class="login-container">
+    @csrf
+
+    @if ($errors->any())
+      <div class="alert alert-danger py-2 small mb-3">
+        {{ $errors->first() }}
+      </div>
+    @endif
+
+    {{-- USERNAME / EMAIL --}}
+    <div class="mb-3">
+      <label for="login" class="form-label">Email atau Username</label>
+      <input type="text" class="form-control" id="login" name="login"
+             value="{{ old('login') }}" required autofocus
+             placeholder="Masukkan Email atau Username">
     </div>
 
-    <!-- Card Login -->
-    <form method="POST" action="{{ route('login.attempt') }}" class="login-card">
-      @csrf
+    {{-- PASSWORD --}}
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password"
+             required placeholder="Masukkan Password">
+    </div>
 
-      
-      @if ($errors->any())
-        <div class="alert alert-danger py-2 small mb-3">
-          {{ $errors->first() }}
-        </div>
-      @endif
-
-      {{-- USERNAME / EMAIL --}}
-      <div class="mb-3">
-        <label for="login" class="form-label">Email atau Username</label>
-        <input
-          type="text"
-          class="form-control"
-          id="login"
-          name="login"
-          value="{{ old('login') }}"
-          required
-          autofocus
-          autocomplete="username">
+    {{-- REMEMBER ME --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="1"
+               id="remember" name="remember" 
+               {{ old('remember') ? 'checked' : '' }}>
+        <label class="form-check-label remember-label" for="remember">
+          Save me
+        </label>
       </div>
+    </div>
 
-      {{-- PASSWORD --}}
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          class="form-control"
-          id="password"
-          name="password"
-          required
-          autocomplete="current-password">
-      </div>
+    {{-- LOGIN BUTTON --}}
+    <button type="submit" class="btn btn-login py-2">LOGIN</button>
 
-      {{-- REMEMBER + LUPA PASSWORD (opsional link) --}}
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="form-check">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            value="1"
-            id="remember"
-            name="remember"
-            {{ old('remember') ? 'checked' : '' }}>
-          <label class="form-check-label remember-label" for="remember">
-            Ingat saya
-          </label>
-        </div>
-
-        {{-- Kalau nanti ada route lupa password tinggal aktifkan --}}
-        {{-- <a href="{{ route('password.request') }}" class="helper-row text-decoration-none">
-          Lupa password?
-        </a> --}}
-      </div>
-
-      <button type="submit" class="btn btn-login">
-        MASUK
-      </button>
-
-      <div class="footer-text mt-3">
-        <span>PT. PID</span> &mdash; Sistem Serah Terima Dokumen
-      </div>
-    </form>
-  </div>
+  </form>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

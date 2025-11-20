@@ -18,9 +18,20 @@
     @endif
 
     <form method="GET" class="mb-3">
-      <input name="search" class="form-control" placeholder="Cari nama/username/email/divisi"
-        value="{{ request('search') }}">
-    </form>
+  <div class="input-group">
+    <input 
+      name="search" 
+      class="form-control" 
+      placeholder="Cari nama/username/email/divisi"
+      value="{{ request('search') }}"
+    >
+
+    <button class="btn btn-primary" type="submit">
+      <i class="ti ti-search"></i> Cari
+    </button>
+  </div>
+</form>
+
 
     @if($users->isEmpty())
       <p class="text-muted">Anda belum mendaftarkan user sama sekali.</p>
@@ -29,6 +40,7 @@
         <table class="table table-striped align-middle">
           <thead>
             <tr>
+              <th style="width:60px">No</th> {{-- <== kolom nomor --}}
               <th>Nama</th>
               <th>Username</th>
               <th>Email</th>
@@ -38,8 +50,13 @@
             </tr>
           </thead>
           <tbody>
-            @foreach($users as $u)
+            @foreach($users as $i => $u)
+              @php
+                // nomor berurutan mengikuti pagination
+                $rowNumber = ($users->firstItem() ?? 1) + $i;
+              @endphp
               <tr>
+                <td>{{ $rowNumber }}</td>
                 <td>{{ $u->name }}</td>
                 <td>{{ $u->username }}</td>
                 <td>{{ $u->email }}</td>
@@ -56,7 +73,6 @@
                     </form>
                   @endif
                 </td>
-
               </tr>
             @endforeach
           </tbody>
