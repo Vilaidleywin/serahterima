@@ -33,7 +33,6 @@
   </div>
 
   {{-- FILTER BAR --}}
-  {{-- FILTER BAR --}}
   <form id="filterForm" method="get" class="mb-3">
     <div class="row g-3 align-items-end">
 
@@ -48,7 +47,7 @@
             <i class="ti ti-filter me-1"></i> Filter
           </button>
 
-          {{-- Reset pakai AJAX, jadi href diganti # dan dikasih id --}}
+          {{-- Reset pakai AJAX --}}
           <a href="#" id="btnFilterReset" class="btn btn-outline-secondary">
             <i class="ti ti-filter-off me-1"></i> Reset
           </a>
@@ -116,30 +115,18 @@
         <tbody>
           @forelse($documents as $i => $d)
             @php
-              // nomor berurutan dengan offset pagination (fallback ke $i+1 jika firstItem null)
               $rowNumber = ($documents->firstItem() ?? 1) + $i;
-
               $statusUpper = strtoupper($d->status ?? '');
-
               $isRejected = $statusUpper === 'REJECTED';
               $isSubmitted = $statusUpper === 'SUBMITTED';
 
-              // Cek sudah tanda tangan / sudah foto
-              // SESUAIKAN dengan kolom di tabel kamu kalau beda:
-              $hasSigned = !empty($d->signed_at);     // contoh: kolom timestamp tanda tangan
-              $hasPhoto  = !empty($d->photo_path);    // contoh: kolom path / url foto
+              $hasSigned = !empty($d->signed_at);
+              $hasPhoto  = !empty($d->photo_path);
 
-              // Aturan:
-              // - REJECTED  : boleh Edit, tidak boleh Sign, Foto, Delete
-              // - SUBMITTED : tidak boleh Edit, Sign, Delete
-              // - DRAFT     : semua aksi boleh
-              // tambahan:
-              // - kalau sudah tanda tangan -> menu Tanda Tangan hilang
-              // - kalau sudah ada foto     -> menu Ambil Foto hilang
-              $canEdit   = !$isSubmitted;                                // Draft & Rejected bisa edit
-              $canSign   = !$isSubmitted && !$isRejected && !$hasSigned; // hanya Draft & belum tanda tangan
-              $canPhoto  = !$isRejected;                                 // Rejected tidak boleh foto
-              $canDelete = !$isSubmitted && !$isRejected;                // hanya Draft
+              $canEdit   = !$isSubmitted;
+              $canSign   = !$isSubmitted && !$isRejected && !$hasSigned;
+              $canPhoto  = !$isRejected;
+              $canDelete = !$isSubmitted && !$isRejected;
             @endphp
 
             <tr>
@@ -191,10 +178,7 @@
                       </li>
                     @endif
 
-
-                    <li>
-                      <hr class="dropdown-divider">
-                    </li>
+                    <li><hr class="dropdown-divider"></li>
 
                     {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
                     @if(!$hasPhoto)
@@ -322,37 +306,50 @@
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // ====== MODAL DELETE HANDLER (pakai event delegation biar tetap jalan setelah tabel di-replace) ======
+      // ====== MODAL DELETE HANDLER (safe) ======
       const deleteModalElement = document.getElementById('deleteModal');
-      const deleteModal = new bootstrap.Modal(deleteModalElement);
-      const deleteText = deleteModalElement.querySelector('.delete-text');
+      let deleteModal = null;
+      let deleteText = null;
       let currentDeleteId = null;
 
-      document.addEventListener('click', function (e) {
-        const btn = e.target.closest('.btn-delete');
-        if (!btn) return;
+      if (deleteModalElement && window.bootstrap && bootstrap.Modal) {
+        deleteModal = new bootstrap.Modal(deleteModalElement);
+        deleteText = deleteModalElement.querySelector('.delete-text');
 
-        currentDeleteId = btn.dataset.id;
-        const label = btn.dataset.label || '';
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.btn-delete');
+          if (!btn) return;
 
-        deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
-        deleteModal.show();
-      });
+          currentDeleteId = btn.dataset.id;
+          const label = btn.dataset.label || '';
 
-      document.getElementById('btn-confirm-delete').addEventListener('click', function () {
-        if (!currentDeleteId) return;
+          deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
+          deleteModal.show();
+        });
 
-        const form = document.getElementById('delete-form-' + currentDeleteId);
-        if (form) {
-          form.submit();
+        const btnConfirmDelete = document.getElementById('btn-confirm-delete');
+        if (btnConfirmDelete) {
+          btnConfirmDelete.addEventListener('click', function () {
+            if (!currentDeleteId) return;
+
+            const form = document.getElementById('delete-form-' + currentDeleteId);
+            if (form) {
+              form.submit();
+            }
+            deleteModal.hide();
+          });
         }
-        deleteModal.hide();
-      });
+      }
 
       // ====== AJAX FILTER & RESET (refresh cuma bagian table-wrapper) ======
       const filterForm = document.getElementById('filterForm');
       const btnFilterReset = document.getElementById('btnFilterReset');
       const tableWrapper = document.getElementById('table-wrapper');
+
+      if (!filterForm || !btnFilterReset || !tableWrapper) {
+        // kalau ada yang nggak ketemu, jangan lanjut
+        return;
+      }
 
       function loadTable(url) {
         fetch(url, {
@@ -382,8 +379,22 @@
       btnFilterReset.addEventListener('click', function (e) {
         e.preventDefault();
         filterForm.reset();
-        // kalau mau benar2 clear query string, cukup panggil route index tanpa param
         loadTable("{{ route('documents.index') }}");
+      });
+
+      // pagination di dalam #table-wrapper pakai AJAX juga
+      document.addEventListener('click', function (e) {
+        const link = e.target.closest('#table-wrapper .pagination a');
+        if (!link) return;
+
+        // kalau link disabled atau "#", biarin bawaan
+        if (link.getAttribute('href') === '#' || link.parentElement.classList.contains('disabled')) {
+          e.preventDefault();
+          return;
+        }
+
+        e.preventDefault();
+        loadTable(link.href);
       });
     });
   </script>

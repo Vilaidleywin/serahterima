@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL; // <-- TAMBAH BARIS INI
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Paksa https kalau APP_URL mengandung ngrok atau lagi production
+        if (app()->environment('production') || str_contains(config('app.url'), 'ngrok-free.dev')) {
+            URL::forceScheme('https');
+        }
     }
 }
