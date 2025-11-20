@@ -56,16 +56,19 @@ class UserController extends Controller
             'username' => ['required', 'alpha_dash', 'max:50', 'unique:users,username'],
             'email'    => ['required', 'email', 'max:150', 'unique:users,email'],
             'division' => ['required', 'string', 'max:100'],
-            'password' => ['required', 'min:6'],
+            'password' => ['required', 'min:8'],
         ]);
 
         $data['password']   = Hash::make($data['password']);
         $data['role']       = 'user';        // kunci role tetap user
-        $data['created_by'] = auth()->id();  // tetap disimpan, meski tidak dipakai untuk filter lagi
+        $data['created_by'] = auth()->id();  // tetap disimpan
 
         User::create($data);
 
-        return redirect()->route('admin.users.index')->with('ok', 'User dibuat');
+        // pakai 'success' biar keluar SweetAlert toast
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'User berhasil dibuat.');
     }
 
     public function edit(User $user)
@@ -83,7 +86,7 @@ class UserController extends Controller
         if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
             return redirect()
                 ->route('admin.users.index')
-                ->with('err', 'User dengan role admin tidak dapat diubah dari halaman ini.');
+                ->with('error', 'User dengan role admin tidak dapat diubah dari halaman ini.');
         }
 
         $data = $request->validate([
@@ -91,7 +94,7 @@ class UserController extends Controller
             'username' => ['required', 'alpha_dash', 'max:50', Rule::unique('users', 'username')->ignore($user->id)],
             'email'    => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
             'division' => ['required', 'string', 'max:100'],
-            'password' => ['nullable', 'min:6'],
+            'password' => ['nullable', 'min:8'],
         ]);
 
         if (!empty($data['password'])) {
@@ -106,23 +109,25 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('admin.users.index')->with('ok', 'User diupdate');
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', 'User berhasil diperbarui.');
     }
 
     public function destroy(User $user)
     {
         // Larang hapus user admin/admin_internal/admin_komersial
         if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
-            return back()->with('err', 'User dengan role admin tidak dapat dihapus.');
+            return back()->with('error', 'User dengan role admin tidak dapat dihapus.');
         }
 
         // tetap: tidak boleh hapus diri sendiri
         if (auth()->id() === $user->id) {
-            return back()->with('err', 'Tidak bisa menghapus diri sendiri');
+            return back()->with('error', 'Tidak bisa menghapus diri sendiri.');
         }
 
         $user->delete();
 
-        return back()->with('ok', 'User dihapus');
+        return back()->with('success', 'User berhasil dihapus.');
     }
 }

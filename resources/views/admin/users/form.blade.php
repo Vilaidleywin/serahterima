@@ -27,13 +27,30 @@
 
   {{-- Error summary --}}
   @if($errors->any())
-    <div class="alert alert-danger small">
-      <strong>Periksa kembali isian Anda.</strong>
-      <ul class="mb-0 mt-1">
-        @foreach($errors->all() as $e)
-          <li>{{ $e }}</li>
-        @endforeach
-      </ul>
+    @php
+      $allErrors = $errors->all();
+      $maxShown  = 3;
+    @endphp
+
+    <div class="alert alert-danger small d-flex align-items-start gap-2 mb-3 error-summary">
+      <div class="pt-1 flex-shrink-0">
+        <i class="ti ti-alert-triangle" style="font-size:1.25rem;"></i>
+      </div>
+      <div>
+        <div class="fw-semibold mb-1">
+          Form belum lengkap, silakan periksa kembali.
+        </div>
+        <ul class="mb-0 ps-3">
+          @foreach($allErrors as $i => $e)
+            @break($i >= $maxShown)
+            <li>{{ $e }}</li>
+          @endforeach
+
+          @if(count($allErrors) > $maxShown)
+            <li>dan {{ count($allErrors) - $maxShown }} error lainnya…</li>
+          @endif
+        </ul>
+      </div>
     </div>
   @endif
 
@@ -115,9 +132,10 @@
             <div class="position-relative">
               <input id="password" name="password" type="password"
                      class="form-control pw-input @error('password') is-invalid @enderror"
-                     placeholder="{{ $isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter' }}"
+                     placeholder="{{ $isEdit ? 'Kosongkan jika tidak diubah' : 'Minimal 8 karakter' }}"
                      {{ $isEdit ? '' : 'required' }}
-                     autocomplete="{{ $isEdit ? 'new-password' : 'new-password' }}">
+                     minlength="8"
+                     autocomplete="new-password">
               <button type="button" class="pw-toggle" id="togglePw"
                       aria-label="Tampilkan password" aria-pressed="false">
                 <i class="bi bi-eye"></i>
@@ -178,6 +196,11 @@
     font-size: .8rem;
   }
 
+  .error-summary {
+    border-left: 4px solid #dc3545;
+    background-color: #fff5f5;
+  }
+
   @media (max-width: 575.98px) {
     .w-sm-auto {
       width: 100% !important;
@@ -203,7 +226,7 @@
 
     if (!base) return;
 
-    const candidate = base.length < 6
+    const candidate = base.length < 8
       ? base + Math.floor(Math.random() * 900 + 100)
       : base;
 

@@ -115,18 +115,18 @@
         <tbody>
           @forelse($documents as $i => $d)
             @php
-              $rowNumber = ($documents->firstItem() ?? 1) + $i;
+              $rowNumber   = ($documents->firstItem() ?? 1) + $i;
               $statusUpper = strtoupper($d->status ?? '');
-              $isRejected = $statusUpper === 'REJECTED';
+              $isRejected  = $statusUpper === 'REJECTED';
               $isSubmitted = $statusUpper === 'SUBMITTED';
 
-              $hasSigned = !empty($d->signed_at);
-              $hasPhoto  = !empty($d->photo_path);
+              $hasSigned   = !empty($d->signed_at);
+              $hasPhoto    = !empty($d->photo_path);
 
-              $canEdit   = !$isSubmitted;
-              $canSign   = !$isSubmitted && !$isRejected && !$hasSigned;
-              $canPhoto  = !$isRejected;
-              $canDelete = !$isSubmitted && !$isRejected;
+              $canEdit     = !$isSubmitted;
+              $canSign     = !$isSubmitted && !$isRejected && !$hasSigned;
+              $canPhoto    = !$isRejected;
+              $canDelete   = !$isSubmitted && !$isRejected;
             @endphp
 
             <tr>
@@ -200,8 +200,11 @@
                     {{-- Delete: hanya kalau masih DRAFT --}}
                     @if($canDelete)
                       <li>
-                        <button type="button" class="dropdown-item text-danger btn-delete" data-id="{{ $d->id }}"
-                          data-label="{{ $d->number }} - {{ $d->title }}">
+                        <button
+                          type="button"
+                          class="dropdown-item text-danger"
+                          onclick="confirmDelete({{ $d->id }}, @js(($d->number ?? '-') . ' - ' . ($d->title ?? '-')))"
+                        >
                           <i class="ti ti-trash me-2"></i> Hapus
                         </button>
                       </li>
@@ -210,9 +213,11 @@
                   </ul>
                 </div>
 
+                {{-- FORM DELETE --}}
                 <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
                   class="d-none">
-                  @csrf @method('DELETE')
+                  @csrf
+                  @method('DELETE')
                 </form>
               </td>
 
@@ -272,82 +277,17 @@
       </div>
     </div>
   </div> {{-- /#table-wrapper --}}
-
-  {{-- MODAL KONFIRMASI HAPUS --}}
-  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0">
-        <div class="modal-header border-0">
-          <h5 class="modal-title">
-            <i class="ti ti-alert-triangle text-danger me-2"></i> Konfirmasi Hapus
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-
-        <div class="modal-body pt-0">
-          <p class="mb-1">Apakah Anda yakin ingin menghapus dokumen berikut?</p>
-          <div class="small text-muted">
-            <span class="fw-semibold">Dokumen:</span>
-            <div class="delete-text mt-1"></div>
-          </div>
-        </div>
-
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-          <button type="button" class="btn btn-danger" id="btn-confirm-delete">
-            <i class="ti ti-trash me-1"></i> Hapus
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 @endsection
 
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // ====== MODAL DELETE HANDLER (safe) ======
-      const deleteModalElement = document.getElementById('deleteModal');
-      let deleteModal = null;
-      let deleteText = null;
-      let currentDeleteId = null;
-
-      if (deleteModalElement && window.bootstrap && bootstrap.Modal) {
-        deleteModal = new bootstrap.Modal(deleteModalElement);
-        deleteText = deleteModalElement.querySelector('.delete-text');
-
-        document.addEventListener('click', function (e) {
-          const btn = e.target.closest('.btn-delete');
-          if (!btn) return;
-
-          currentDeleteId = btn.dataset.id;
-          const label = btn.dataset.label || '';
-
-          deleteText.innerHTML = `<span class="fw-semibold">${label}</span>`;
-          deleteModal.show();
-        });
-
-        const btnConfirmDelete = document.getElementById('btn-confirm-delete');
-        if (btnConfirmDelete) {
-          btnConfirmDelete.addEventListener('click', function () {
-            if (!currentDeleteId) return;
-
-            const form = document.getElementById('delete-form-' + currentDeleteId);
-            if (form) {
-              form.submit();
-            }
-            deleteModal.hide();
-          });
-        }
-      }
-
       // ====== AJAX FILTER & RESET (refresh cuma bagian table-wrapper) ======
-      const filterForm = document.getElementById('filterForm');
+      const filterForm     = document.getElementById('filterForm');
       const btnFilterReset = document.getElementById('btnFilterReset');
-      const tableWrapper = document.getElementById('table-wrapper');
+      const tableWrapper   = document.getElementById('table-wrapper');
 
       if (!filterForm || !btnFilterReset || !tableWrapper) {
-        // kalau ada yang nggak ketemu, jangan lanjut
         return;
       }
 
@@ -357,8 +297,8 @@
         })
           .then(res => res.text())
           .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
+            const parser    = new DOMParser();
+            const doc       = parser.parseFromString(html, 'text/html');
             const newWrapper = doc.querySelector('#table-wrapper');
             if (newWrapper) {
               tableWrapper.innerHTML = newWrapper.innerHTML;
@@ -387,7 +327,6 @@
         const link = e.target.closest('#table-wrapper .pagination a');
         if (!link) return;
 
-        // kalau link disabled atau "#", biarin bawaan
         if (link.getAttribute('href') === '#' || link.parentElement.classList.contains('disabled')) {
           e.preventDefault();
           return;

@@ -13,6 +13,7 @@
   {{-- Build CSS (opsional) --}}
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  
   @stack('styles')
 
   <style>

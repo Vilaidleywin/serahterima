@@ -19,13 +19,31 @@
 
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Username (tidak bisa diubah)</label>
-          <input type="text" class="form-control" value="{{ $user->name }}" readonly>
+          <label class="form-label fw-semibold">Username</label>
+
+          @php
+            $isAdmin = in_array(auth()->user()->role, ['admin', 'admin_internal', 'admin_komersial']);
+          @endphp
+
+          @if($isAdmin)
+            {{-- ADMIN bisa mengubah username --}}
+            <input type="text" name="username" class="form-control @error('username') is-invalid @enderror"
+              value="{{ old('username', $user->username) }}" required>
+            @error('username') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            <div class="form-text text-success">Anda admin — username dapat diubah.</div>
+
+          @else
+            {{-- USER biasa tidak bisa ubah --}}
+            <input type="text" class="form-control" value="{{ $user->username }}" readonly>
+            <div class="form-text">Username tidak dapat diubah.</div>
+          @endif
         </div>
+
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Email</label>
-          <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" required>
+          <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+            value="{{ old('email', $user->email) }}" required>
           @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
@@ -35,25 +53,31 @@
             @php
               $avatarUrl = $user->avatar ? asset('storage/' . $user->avatar) : 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
             @endphp
-            <img src="{{ $avatarUrl }}" alt="avatar" style="width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb">
+            <img src="{{ $avatarUrl }}" alt="avatar"
+              style="width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb">
           </div>
           <input type="file" name="avatar" class="form-control @error('avatar') is-invalid @enderror">
           @error('avatar') <div class="text-danger small">{{ $message }}</div> @enderror
           <div class="form-text">Format gambar: jpg/png. Maks 5MB.</div>
         </div>
 
-        <div class="col-12"><hr></div>
+        <div class="col-12">
+          <hr>
+        </div>
 
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Konfirmasi Password Lama </label>
-          <input type="password" name="current_password" class="form-control @error('current_password') is-invalid @enderror" placeholder="Password sekarang (wajib jika ganti password)">
+          <label class="form-label fw-semibold">Konfirmasi Password saat ini </label>
+          <input type="password" name="current_password"
+            class="form-control @error('current_password') is-invalid @enderror"
+            placeholder="Password sekarang (wajib jika ganti password)">
           @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
           <div class="form-text">Masukkan password lama sebelum mengganti password baru.</div>
         </div>
 
         <div class="col-md-6">
           <label class="form-label fw-semibold">Password Baru</label>
-          <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Minimal 8 karakter">
+          <input type="password" name="password" class="form-control @error('password') is-invalid @enderror"
+            placeholder="Minimal 8 karakter">
           @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 

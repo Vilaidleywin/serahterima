@@ -21,8 +21,11 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
+        // cek role admin
+        $isAdmin = in_array($user->role ?? '', ['admin', 'admin_internal', 'admin_komersial'], true);
+
         $rules = [
-            // name / username not editable (show readonly in view)
+            // email
             'email' => [
                 'required',
                 'email',
@@ -32,40 +35,57 @@ class ProfileController extends Controller
             'avatar' => ['nullable', 'image', 'max:5120'], // max 5MB
         ];
 
+        // kalau admin, izinkan ubah username
+        if ($isAdmin) {
+            $rules['username'] = [
+                'required',
+                'alpha_dash',
+                'max:50',
+                Rule::unique('users', 'username')->ignore($user->id),
+            ];
+        }
+
         // jika user mau ganti password, tambahkan aturan validasi
-        if ($request->filled('password') || $request->filled('password_confirmation') || $request->filled('current_password')) {
+        if (
+            $request->filled('password')
+            || $request->filled('password_confirmation')
+            || $request->filled('current_password')
+        ) {
             $rules['current_password'] = ['required', 'current_password'];
             $rules['password'] = ['required', 'confirmed', Password::min(8)];
-            // tambahkan aturan kompleksitas jika mau, e.g. ->mixedCase()->numbers()
+            // bisa ditambah ->mixedCase()->numbers() kalau mau lebih strict
         }
 
         $data = $request->validate($rules);
 
-        // 1) Email: jika berubah, reset email_verified_at
+        // 1) Username (hanya admin)
+        if ($isAdmin && array_key_exists('username', $data) && $data['username'] !== $user->username) {
+            $user->username = $data['username'];
+        }
+
+        // 2) Email: jika berubah, reset email_verified_at
         if ($request->input('email') !== $user->email) {
             $user->email = $request->input('email');
+
             // jika pakai email verification, batal verifikasi lama
             if (property_exists($user, 'email_verified_at')) {
                 $user->email_verified_at = null;
             }
         }
 
-        // 2) Avatar: upload & hapus file lama
+        // 3) Avatar: upload & hapus file lama
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $path = $file->store('avatars', 'public');
 
-            // hapus yang lama kalau ada
             if (!empty($user->avatar) && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // simpan path ke kolom avatar (ganti nama kolom sesuai app: avatar/avatar_path)
-            // pastikan kolom ada di tabel users
             $user->avatar = $path;
         }
 
-        // 3) Password: verifikasi sudah dilakukan oleh rule 'current_password'
+        // 4) Password: verifikasi sudah dilakukan oleh rule 'current_password'
         if ($request->filled('password')) {
             $user->password = Hash::make($request->input('password'));
         }
@@ -73,6 +93,9 @@ class ProfileController extends Controller
         // simpan
         $user->save();
 
-        return redirect()->route('profile.edit')->with('success', 'Profil berhasil diperbarui.');
+        // pakai 'success' biar keluar SweetAlert toast di layouts.app
+        return redirect()
+            ->route('profile.edit')
+            ->with('success', 'Profil berhasil diperbarui!');
     }
 }

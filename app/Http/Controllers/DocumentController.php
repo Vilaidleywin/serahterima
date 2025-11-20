@@ -510,9 +510,8 @@ class DocumentController extends Controller
 
     public function update(Request $request, Document $document)
     {
-        if ($document->status === 'REJECTED') {
-            return back()->with('error', 'Dokumen ditolak dan tidak dapat diedit.');
-        }
+        // tandai dulu apakah dokumen sebelumnya REJECTED
+        $wasRejected = $document->status === 'REJECTED';
 
         $data = $request->validate([
             'number'      => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
@@ -526,12 +525,14 @@ class DocumentController extends Controller
             'file'        => ['nullable', 'file', 'max:5120'],
         ]);
 
+        // proses amount
         if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '') {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
             unset($data['amount_idr']);
         }
 
+        // upload file baru jika ada
         if ($request->hasFile('file')) {
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
@@ -539,14 +540,26 @@ class DocumentController extends Controller
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
-        // Pastikan update tidak mengubah kolom 'division' (harus di-manage oleh server)
+        // Pastikan update tidak mengubah kolom 'division'
         if (array_key_exists('division', $data)) {
             unset($data['division']);
         }
 
+        // Jika sebelumnya REJECTED → otomatis reset ke DRAFT
+        if ($wasRejected) {
+            $data['status'] = 'DRAFT';
+        }
+
+        // Simpan perubahan
         $document->update($data);
-        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diperbarui!');
+
+        return redirect()
+            ->route('documents.index')
+            ->with('success', $wasRejected
+                ? 'Dokumen berhasil diperbarui dan status dikembalikan ke DRAFT.'
+                : 'Dokumen berhasil diperbarui!');
     }
+
 
     public function destroy(Document $document)
     {
