@@ -13,7 +13,7 @@
   {{-- Build CSS (opsional) --}}
   <link rel="stylesheet" href="{{ asset('css/app.build.css') }}">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-  
+
   @stack('styles')
 
   <style>
@@ -29,6 +29,7 @@
     body {
       height: 100%
     }
+
 
     body {
       background: #f6f7fb;
@@ -164,7 +165,7 @@
         display: block;
       }
 
-      
+
 
       .topbar {
         left: 0;
@@ -174,7 +175,7 @@
         margin-left: 0;
       }
 
-      
+
     }
   </style>
 </head>
@@ -338,8 +339,9 @@
         text: 'Sesi kamu akan diakhiri dan kamu perlu login kembali untuk mengakses sistem.',
         confirmText: 'Ya, logout',
         cancelText: 'Batal',
-        confirmClass: 'btn btn-danger me-2',
-        cancelClass: 'btn btn-outline-secondary'
+        confirmClass: 'btn btn-danger ms-2',
+        cancelClass: 'btn btn-outline-secondary me-2'
+
       }).then((r) => {
         if (r.isConfirmed) {
           document.getElementById('logout-form')?.submit();
@@ -349,14 +351,14 @@
   </script>
 
   {{-- Flash toast --}}
-  @if (session('success'))
+  @if (request('updated') == 1)
     <script>
       window.addEventListener('DOMContentLoaded', () => {
         Swal.fire({
           toast: true,
           position: 'top-end',
           icon: 'success',
-          title: @json(session('success')),
+          title: 'Profil berhasil diperbarui!',
           showConfirmButton: false,
           timer: 2200,
           timerProgressBar: true
@@ -364,7 +366,6 @@
       });
     </script>
   @endif
-
   @if (session('error'))
     <script>
       window.addEventListener('DOMContentLoaded', () => {

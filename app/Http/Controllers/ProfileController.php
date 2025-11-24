@@ -94,8 +94,7 @@ class ProfileController extends Controller
         $user->save();
 
         // pakai 'success' biar keluar SweetAlert toast di layouts.app
-        return redirect()
-            ->route('profile.edit')
-            ->with('success', 'Profil berhasil diperbarui!');
+        // di ProfileController@update
+        return redirect()->route('profile.edit', ['updated' => 1]);
     }
 }

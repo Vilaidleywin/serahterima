@@ -38,9 +38,11 @@ class AuthController extends Controller
         }
 
         // Jika gagal login
-        return back()->withErrors([
-            'login' => ucfirst($loginType) . ' atau password salah.',
-        ])->onlyInput('login');
+        return back()
+            ->withErrors([
+                'login' => ucfirst($loginType) . ' atau password salah.',
+            ])
+            ->withInput($request->only('login', 'remember'));
     }
 
     // POST /logout

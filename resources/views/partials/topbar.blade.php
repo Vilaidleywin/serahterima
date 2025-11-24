@@ -14,7 +14,6 @@
       ☰
     </button>
 
-
     {{-- Brand / judul --}}
     <a href="{{ route('dashboard') }}" class="text-decoration-none d-flex align-items-center gap-2">
       <img src="{{ asset('images/logo2.png') }}" alt="Logo"
@@ -80,11 +79,12 @@
           </li>
         @endif
 
-        {{-- LOGOUT --}}
+        {{-- LOGOUT (DROPDOWN) --}}
         <li>
-          <form action="{{ route('logout') }}" method="POST">
+          <form action="{{ route('logout') }}" method="POST" id="dropdownLogoutForm">
             @csrf
-            <button class="dropdown-item text-danger d-flex align-items-center" type="submit">
+            <button class="dropdown-item text-danger d-flex align-items-center"
+                    type="button" id="btnDropdownLogout">
               <i class="ti ti-logout me-2"></i> Logout
             </button>
           </form>
@@ -132,7 +132,7 @@
         </a>
       @endif
 
-      <div class="mobile-separator"></div>
+      {{-- <div class="mobile-separator"></div> --}}
 
       @if (Route::has('profile.edit'))
         <a href="{{ route('profile.edit') }}"
@@ -142,13 +142,8 @@
         </a>
       @endif
 
-      <form action="{{ route('logout') }}" method="POST" class="mt-1">
-        @csrf
-        <button type="submit" class="mobile-link text-danger">
-          <i class="ti ti-logout"></i>
-          <span>Logout</span>
-        </button>
-      </form>
+      {{-- LOGOUT (MOBILE) --}}
+      
     </div>
   </div>
 </nav>
@@ -207,7 +202,6 @@
     display: none !important;
   }
 
-
   /* === MOBILE DRAWER FULL-SCREEN ala GLPI === */
   .mobile-drawer {
     position: fixed;
@@ -222,7 +216,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    /* isi penuh 1 layar */
     width: 100%;
     max-width: 100vw;
     background: var(--nav-bg);
@@ -230,7 +223,6 @@
     display: flex;
     flex-direction: column;
     transform: translateY(-100%);
-    /* sembunyi di atas */
     transition: transform .22s ease;
     box-shadow: none;
   }
@@ -307,7 +299,6 @@
 
   .mobile-drawer.open .mobile-drawer-inner {
     transform: translateY(0);
-    /* slide turun dari atas */
   }
 
   /* Hide sidebar di mobile – konten full */
@@ -351,5 +342,39 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeNav();
     });
+  })();
+
+  // === SAMAIN KONFIRMASI LOGOUT DENGAN app.blade ===
+  (function () {
+    const dropdownBtn = document.getElementById('btnDropdownLogout');
+    const mobileBtn = document.getElementById('btnMobileLogout');
+
+    function handleLogoutClick(e) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (!form) return;
+
+      // pakai helper global dari app.blade
+      if (typeof confirmWithSwal === 'function') {
+        confirmWithSwal({
+          icon: 'question',
+          title: 'Keluar dari aplikasi?',
+          text: 'Sesi kamu akan diakhiri dan kamu perlu login kembali untuk mengakses sistem.',
+          confirmText: 'Ya, logout',
+          cancelText: 'Batal',
+          // jarak antar tombol pakai util Bootstrap (ms/me)
+          confirmClass: 'btn btn-danger ms-3',
+          cancelClass: 'btn btn-outline-secondary me-3'
+        }).then((r) => {
+          if (r.isConfirmed) form.submit();
+        });
+      } else {
+        // fallback kalau SweetAlert belum tersedia
+        if (confirm('Keluar dari aplikasi?')) form.submit();
+      }
+    }
+
+    dropdownBtn?.addEventListener('click', handleLogoutClick);
+    mobileBtn?.addEventListener('click', handleLogoutClick);
   })();
 </script>
