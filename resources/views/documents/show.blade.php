@@ -14,6 +14,7 @@
         $isRejected = strtoupper($document->status) === 'REJECTED';
         $isSigned = filled($document->signature_path);
         $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
+        $isPhotoTaken = filled($document->photo_path);
 
         // Delete hanya ketika masih DRAFT (tidak submitted dan tidak rejected)
         $canDelete = !$isRejected && !$isSubmitted;
@@ -34,7 +35,7 @@
 
     {{-- Banner jika REJECTED --}}
     @if($isRejected)
-      <div class="alert alert-warning mb-4" role="alert" style="border-radius:10px;">
+      <div class="alert alert-danger mb-4 reject-banner" role="alert">
         <strong>Dokumen Ditolak.</strong> Tanda tangan dan pengambilan foto dinonaktifkan.
       </div>
     @endif
@@ -139,6 +140,43 @@
             </div>
           @endif
 
+          {{-- Keterangan Penolakan (box merah di card kanan) --}}
+          @if($isRejected && $document->reject_reason)
+            @php
+              // fallback ke updated_at kalau rejected_at null (data lama)
+              $rejectedAt = $document->rejected_at ?? $document->updated_at;
+
+              $rejectedAtCarbon = null;
+              if ($rejectedAt) {
+                try {
+                  $rejectedAtCarbon = \Illuminate\Support\Carbon::parse($rejectedAt);
+                } catch (\Exception $e) {
+                  $rejectedAtCarbon = null;
+                }
+              }
+            @endphp
+
+            <div class="reject-info-box mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-semibold small text-uppercase">Keterangan Penolakan</span>
+                <span class="badge bg-light text-danger border border-danger small">
+                  REJECTED
+                </span>
+              </div>
+
+              <p class="mb-1">{{ $document->reject_reason }}</p>
+
+              @if($rejectedAtCarbon)
+                <div class="text-muted small">
+                  Ditolak pada
+                  <span class="fw-semibold">
+                    {{ $rejectedAtCarbon->timezone('Asia/Jakarta')->translatedFormat('d M Y, H:i') }}
+                  </span>
+                </div>
+              @endif
+            </div>
+          @endif
+
           <h6 class="fw-semibold text-uppercase text-muted small mb-2">Info Tambahan</h6>
           <ul class="list-unstyled mb-3">
             <li class="mb-2">
@@ -158,7 +196,7 @@
 
           {{-- Cetak --}}
           <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
-            class="btn btn-outline-secondary w-100 mb-2">
+            class="btn btn-outline-secondary w-100 mb-2 mt-3">
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
@@ -171,13 +209,10 @@
 
           {{-- Tolak (hanya kalau belum signed dan belum rejected) --}}
           @if(!$isSigned && !$isRejected)
-            <form action="{{ route('documents.reject', $document) }}" method="POST"
-              onsubmit="return confirm('Tolak dokumen ini?');" class="mt-2">
-              @csrf
-              <button type="submit" class="btn btn-outline-warning w-100">
-                <i class="ti ti-ban"></i> Tolak Dokumen
-              </button>
-            </form>
+            <button type="button" class="btn btn-outline-warning w-100 mt-2" data-bs-toggle="modal"
+              data-bs-target="#rejectModal">
+              <i class="ti ti-ban"></i> Tolak Dokumen
+            </button>
           @endif
 
           {{-- Form hapus --}}
@@ -202,12 +237,11 @@
             <i class="ti ti-signature me-1"></i> Tanda Tangan
           </a>
 
-          {{-- Ambil Foto: disable jika REJECTED atau sudah ditandatangani --}}
+          {{-- Ambil Foto: disable jika REJECTED atau SUDAH ADA FOTO --}}
           <a href="{{ route('documents.photo', $document) }}"
-            class="btn btn-outline-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}" @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
+            class="btn btn-outline-primary btn-sm {{ ($isRejected || $isPhotoTaken) ? 'disabled' : '' }}" @if($isRejected || $isPhotoTaken) aria-disabled="true" tabindex="-1" @endif>
             <i class="ti ti-camera me-1"></i> Ambil Foto
           </a>
-
         </div>
       </div>
 
@@ -267,6 +301,41 @@
       </div>
     </div>
   </div>
+
+  {{-- Modal Tolak Dokumen --}}
+  <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form action="{{ route('documents.reject', $document) }}" method="POST">
+        @csrf
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="rejectModalLabel">Tolak Dokumen</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="rejectReason" class="form-label">
+                Keterangan Penolakan <span class="text-danger">*</span>
+              </label>
+              <textarea name="reject_reason" id="rejectReason" rows="3"
+                class="form-control @error('reject_reason') is-invalid @enderror"
+                required>{{ old('reject_reason') }}</textarea>
+
+              @error('reject_reason')
+                <div class="invalid-feedback">{{ $message }}</div>
+              @enderror
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-danger">Tolak Dokumen</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 @endsection
 
 @push('styles')
@@ -292,6 +361,31 @@
     .preview-trigger {
       cursor: zoom-in;
     }
+
+    /* Banner merah REJECTED */
+    .reject-banner {
+      background: #fee2e2 !important;
+      color: #991b1b !important;
+      border: 1px solid #fecaca !important;
+      border-radius: 10px;
+    }
+
+    /* Box merah untuk keterangan penolakan */
+    .reject-info-box {
+      border-radius: 12px;
+      background: #fee2e2;
+      /* merah muda */
+      border: 1px solid #fecaca;
+      /* border merah lembut */
+      padding: 0.85rem 1rem;
+      color: #991b1b;
+      /* teks merah tua */
+    }
+
+    .reject-info-box p {
+      margin-bottom: 0.25rem;
+      white-space: pre-line;
+    }
   </style>
 @endpush
 
@@ -312,6 +406,15 @@
           previewImage.src = '';
         });
       }
-    });
+
+      // Kalau validasi alasan reject gagal, buka lagi modalnya
+      @if($errors->has('reject_reason'))
+        var rejectModalEl = document.getElementById('rejectModal');
+        if (rejectModalEl) {
+          var rejectModal = new bootstrap.Modal(rejectModalEl);
+          rejectModal.show();
+        }
+      @endif
+      });
   </script>
 @endpush

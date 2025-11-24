@@ -83,8 +83,7 @@
         <li>
           <form action="{{ route('logout') }}" method="POST" id="dropdownLogoutForm">
             @csrf
-            <button class="dropdown-item text-danger d-flex align-items-center"
-                    type="button" id="btnDropdownLogout">
+            <button class="dropdown-item text-danger d-flex align-items-center" type="button" id="btnDropdownLogout">
               <i class="ti ti-logout me-2"></i> Logout
             </button>
           </form>
@@ -111,25 +110,42 @@
     </div>
 
     <div class="mobile-drawer-body">
-      <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
-        <i class="ti ti-home-2"></i>
-        <span>Dashboard</span>
-      </a>
-
-      @if (Route::has('documents.index'))
-        <a href="{{ route('documents.index') }}"
-          class="mobile-link {{ request()->routeIs('documents.index') ? 'is-active' : '' }}">
-          <i class="ti ti-folder"></i>
-          <span>Data Dokumen</span>
+      @if ($isAdmin)
+        {{-- MENU ADMIN --}}
+        <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+          <i class="ti ti-home-2"></i>
+          <span>Dashboard</span>
         </a>
-      @endif
 
-      @if (Route::has('documents.create'))
-        <a href="{{ route('documents.create') }}"
-          class="mobile-link {{ request()->routeIs('documents.create') ? 'is-active' : '' }}">
-          <i class="ti ti-file-plus"></i>
-          <span>Input Dokumen</span>
+        @if (Route::has('admin.users.index'))
+          <a href="{{ route('admin.users.index') }}"
+            class="mobile-link {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
+            <i class="ti ti-users"></i>
+            <span>Pengguna</span>
+          </a>
+        @endif
+      @else
+        {{-- MENU USER BIASA --}}
+        <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+          <i class="ti ti-home-2"></i>
+          <span>Dashboard</span>
         </a>
+
+        @if (Route::has('documents.index'))
+          <a href="{{ route('documents.index') }}"
+            class="mobile-link {{ request()->routeIs('documents.index') ? 'is-active' : '' }}">
+            <i class="ti ti-folder"></i>
+            <span>Data Dokumen</span>
+          </a>
+        @endif
+
+        @if (Route::has('documents.create'))
+          <a href="{{ route('documents.create') }}"
+            class="mobile-link {{ request()->routeIs('documents.create') ? 'is-active' : '' }}">
+            <i class="ti ti-file-plus"></i>
+            <span>Input Dokumen</span>
+          </a>
+        @endif
       @endif
 
       {{-- <div class="mobile-separator"></div> --}}
@@ -143,8 +159,9 @@
       @endif
 
       {{-- LOGOUT (MOBILE) --}}
-      
+      {{-- (bagian logout mobile yang tadi kita bahas bisa taruh di sini) --}}
     </div>
+
   </div>
 </nav>
 

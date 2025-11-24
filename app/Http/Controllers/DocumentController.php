@@ -501,12 +501,25 @@ class DocumentController extends Controller
 
     public function reject(Request $request, Document $document)
     {
-        if ($document->status !== 'REJECTED') {
-            $document->status = 'REJECTED';
-            $document->save();
+        if (filled($document->signature_path)) {
+            return back()->with('error', 'Dokumen sudah ditandatangani dan tidak dapat ditolak.');
         }
-        return back()->with('success', 'Dokumen telah ditolak.');
+
+        $validated = $request->validate([
+            'reject_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $document->status        = 'REJECTED';
+        $document->reject_reason = $validated['reject_reason'];
+        $document->rejected_at   = now('Asia/Jakarta');   // <<< TAMBAHKAN INI
+        $document->save();
+
+        return redirect()
+            ->route('documents.show', $document)
+            ->with('success', 'Dokumen telah ditolak.');
     }
+
+
 
     public function update(Request $request, Document $document)
     {

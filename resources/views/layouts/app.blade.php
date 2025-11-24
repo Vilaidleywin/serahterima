@@ -30,7 +30,6 @@
       height: 100%
     }
 
-
     body {
       background: #f6f7fb;
       overflow-x: hidden
@@ -100,20 +99,17 @@
       opacity: .95
     }
 
-    /* 🔑 CSS Tambahan untuk Logout Hover & Gaya Dasar */
+    /* Tombol logout di sidebar */
     .sidebar #logout-form button.menu-item {
-      /* Pastikan gaya dasar tombol sama dengan a.menu-item */
       background-color: transparent;
       color: var(--aside-text);
       cursor: pointer;
-      /* Menambahkan cursor pointer */
     }
 
     .sidebar #logout-form button.menu-item:hover {
       background: var(--aside-active);
       opacity: 1;
       color: #fff;
-      /* Tambahkan agar teks tetap putih saat hover */
     }
 
     /* ===== TOPBAR ===== */
@@ -165,8 +161,6 @@
         display: block;
       }
 
-
-
       .topbar {
         left: 0;
       }
@@ -174,8 +168,6 @@
       .content {
         margin-left: 0;
       }
-
-
     }
   </style>
 </head>
@@ -257,7 +249,7 @@
     (function () {
       const body = document.body;
       const btn = document.getElementById('btnMobileNav');
-      const bd = document.getElementById('navBackdrop'); // <- sudah didefinisikan lagi
+      const bd = document.getElementById('navBackdrop'); // kalau ga ada, ga masalah (null)
 
       function openNav() {
         body.classList.add('nav-open');
@@ -280,10 +272,8 @@
 
       document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
 
-      // Auto-close saat klik link di sidebar
       document.querySelectorAll('.menu a').forEach(a => a.addEventListener('click', closeNav));
 
-      // Auto-close pada navigasi SPA / bfcache
       window.addEventListener('pageshow', closeNav);
       window.addEventListener('turbo:visit', closeNav);
       window.addEventListener('turbo:load', closeNav);
@@ -291,7 +281,6 @@
       document.addEventListener('inertia:navigate', closeNav);
       document.addEventListener('livewire:navigated', closeNav);
 
-      // Tutup jika masuk desktop
       window.addEventListener('resize', () => { if (window.innerWidth >= 1024) closeNav(); });
     })();
 
@@ -331,7 +320,7 @@
       });
     };
 
-    // LOGOUT
+    // LOGOUT sidebar
     document.getElementById('btn-logout')?.addEventListener('click', function () {
       confirmWithSwal({
         icon: 'question',
@@ -341,7 +330,6 @@
         cancelText: 'Batal',
         confirmClass: 'btn btn-danger ms-2',
         cancelClass: 'btn btn-outline-secondary me-2'
-
       }).then((r) => {
         if (r.isConfirmed) {
           document.getElementById('logout-form')?.submit();

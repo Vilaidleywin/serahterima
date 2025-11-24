@@ -2,189 +2,72 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Tanda Terima – {{ $document->number }}</title>
+  <title>SURAT SERAH TERIMA DOKUMEN – 11.04/SANDI/APPS/2025</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html, body {
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: "Calibri","Segoe UI",Arial,sans-serif;
       font-size: 11pt;
       background: #fff;
     }
 
-    /* === SETTING CETAK A4 FIX === */
     @page {
       size: A4 portrait;
-      margin: 0; /* full kontrol dari CSS sendiri */
+      margin: 0;
     }
 
-    @media print {
-      html, body {
-        background: #fff;
-      }
-
-      .page {
-        box-shadow: none !important;
-        margin: 0;
-      }
-    }
-
-    /* === HALAMAN FULL A4 === */
     .page {
       width: 210mm;
       height: 297mm;
       margin: 0 auto;
       background: #fff;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 0 6px rgba(0,0,0,0.15); /* cuma keliatan di layar */
     }
 
-    /* padding dalam = "margin" konten dokumen */
     .page-inner {
-      padding: 5mm 20mm 35mm 20mm; /* ATAS DIKURANGI → HEADER NAIK */
+      padding: 27.5mm 21.5mm 25mm 21.5mm;
       height: 100%;
     }
 
-    /* === KOP (HEADER) === */
-    .kop {
-      margin-bottom: 6mm;
-    }
-
-    .kop-flex {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .kop-left img {
-      height: 45px;
-      display: block;
-    }
-
-    .kop-right {
-      text-align: right;
-    }
-
-    .kop-right img {
-      height: 45px;
-      display: block;
-    }
-
-    .kop-line {
-      margin-top: 4mm;
-      border-bottom: 2px solid #000;
-    }
-
-    /* === JUDUL === */
-    .judul-wrapper {
+    .title {
       text-align: center;
-      margin-top: 8mm;
-      margin-bottom: 10mm;
-    }
-
-    .judul-wrapper h2 {
-      margin: 0;
-      font-size: 15pt;
+      font-size: 18pt;
+      font-weight: bold;
       text-decoration: underline;
-      font-weight: 700;
+      margin: 0 0 14mm 0;
     }
 
-    .judul-wrapper .nomor {
-      margin-top: 3mm;
-      font-size: 11pt;
+    .info-row {
+      display: grid;
+      grid-template-columns: 28% 3% auto;
+      margin-bottom: 3mm;
     }
 
-    /* === TABEL INFO === */
-    .info-section {
-      margin-top: 0;
+    .info-colon { text-align: center; }
+
+    .info-row-nominal-top {
+      display: grid;
+      grid-template-columns: 28% 3% auto;
+      margin-bottom: 0;
     }
 
-    .info-table {
-      width: 100%;
-      border-collapse: collapse;
+    .info-row-nominal-bottom {
+      display: grid;
+      grid-template-columns: 28% 3% auto;
+      margin-top: 1mm;
+      margin-bottom: 3mm;
     }
 
-    .info-table td {
-      padding: 4px 0;
-      vertical-align: top;
-      font-size: 11pt;
-    }
-
-    .info-label {
-      width: 25%;
-    }
-
-    .info-colon {
-      width: 3%;
-      text-align: center;
-    }
-
-    .info-value {
-      width: 72%;
-    }
-
-    .with-line {
-      border-bottom: 1px solid #000;
-      padding-bottom: 2px;
-      min-height: 16px;
-    }
-
-    .with-line--multiline {
-      min-height: 18px;
-    }
-
-    /* === TANDA TANGAN DI BAWAH === */
     .ttd-wrapper {
-      position: absolute;
-      right: 20mm;        /* sejajar padding kanan */
-      bottom: 40mm;       /* jarak dari footer */
+      margin-top: 35mm;
       text-align: center;
     }
 
-    .ttd-block {
-      width: 60mm;
-      font-size: 11pt;
-    }
-
-    .ttd-role {
-      margin-bottom: 15px;
-    }
-
-    .ttd-sign {
-      height: 55px;
-      margin-bottom: 6px;
-    }
-
-    .ttd-sign img {
-      max-height: 100%;
-      max-width: 100%;
-      display: block;
-      margin: 0 auto;
-    }
-
-    .ttd-name {
-      margin-top: 2px;
-    }
-
-    /* === FOOTER GAMBAR NEMPEL PALING BAWAH === */
-    .footer-img {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
-
-    .footer-img img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
+    .ttd-role { margin-bottom: 15mm; }
+    .ttd-sign { height: 55px; margin-bottom:5mm; }
   </style>
 </head>
 <body>
@@ -192,120 +75,82 @@
 <div class="page">
   <div class="page-inner">
 
-    <!-- KOP -->
-    <div class="kop">
-      <div class="kop-flex">
-        <div class="kop-left">
-          <img src="{{ asset('storage/akhlak.png') }}" alt="AKHLAK">
-        </div>
-        <div class="kop-right">
-          <img src="{{ asset('storage/pelni.png') }}" alt="PELNI">
-        </div>
+    <h1 class="title">SURAT SERAH TERIMA DOKUMEN</h1>
+
+    <div class="info">
+
+      <div class="info-row">
+        <div>Judul Dokumen</div>
+        <div class="info-colon">:</div>
+        <div>pengadaan</div>
       </div>
-      <div class="kop-line"></div>
-    </div>
 
-    <!-- JUDUL -->
-    <div class="judul-wrapper">
-      <h2>SURAT SERAH TERIMA DOKUMEN</h2>
-      <div class="nomor">
-        Nomor: {{ $document->number ?? '...............................' }}
+      <div class="info-row">
+        <div>Nomor Dokumen</div>
+        <div class="info-colon">:</div>
+        <div>11.04/SANDI/APPS/2025</div>
       </div>
+
+      <div class="info-row">
+        <div>Tanggal</div>
+        <div class="info-colon">:</div>
+        <div>04 November 2025</div>
+      </div>
+
+      <div class="info-row">
+        <div>Divisi</div>
+        <div class="info-colon">:</div>
+        <div>Komersial asset</div>
+      </div>
+
+      <div class="info-row">
+        <div>Pengirim</div>
+        <div class="info-colon">:</div>
+        <div>fito</div>
+      </div>
+
+      <div class="info-row">
+        <div>Penerima</div>
+        <div class="info-colon">:</div>
+        <div>sandi</div>
+      </div>
+
+      <div class="info-row-nominal-top">
+        <div>Nominal</div>
+        <div class="info-colon">:</div>
+        <div></div>
+      </div>
+
+      <div class="info-row-nominal-bottom">
+        <div></div>
+        <div></div>
+        <div>Rp 28.374.237</div>
+      </div>
+
+      <div class="info-row">
+        <div>Tujuan</div>
+        <div class="info-colon">:</div>
+        <div>PT.PELNI</div>
+      </div>
+
+      <div class="info-row">
+        <div>Catatan</div>
+        <div class="info-colon">:</div>
+        <div>jancokkkkkk fucek</div>
+      </div>
+
     </div>
 
-    <!-- INFO -->
-    <div class="info-section">
-      <table class="info-table">
-        <tr>
-          <td class="info-label">Judul Dokumen</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line with-line--multiline">
-            {{ $document->title ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">No Dokumen</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            {{ $document->number ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Tanggal</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            {{ $document->date?->translatedFormat('l, d F Y') ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Divisi</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            {{ $document->division ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Pengirim</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            {{ $document->sender ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Penerima</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            {{ $document->receiver ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Nominal</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line">
-            @if(!is_null($document->amount_idr))
-              Rp {{ number_format((int) $document->amount_idr, 0, ',', '.') }}
-            @else
-              &nbsp;
-            @endif
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Tujuan</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line with-line--multiline">
-            {{ $document->destination ?? ' ' }}
-          </td>
-        </tr>
-        <tr>
-          <td class="info-label">Catatan</td>
-          <td class="info-colon">:</td>
-          <td class="info-value with-line with-line--multiline">
-            {{ $document->description ?? ' ' }}
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- TANDA TANGAN -->
     <div class="ttd-wrapper">
-      <div class="ttd-block">
-        <div class="ttd-role">Penerima,</div>
-        <div class="ttd-sign">
-          @if(!empty($document->signature_path))
-            <img src="{{ asset('storage/'.$document->signature_path) }}" alt="Tanda Tangan Penerima">
-          @endif
-        </div>
-        <div class="ttd-name">
-          ( {{ $document->receiver ?: '..............................' }} )
-        </div>
+      <div class="ttd-role">Penerima</div>
+
+      <div class="ttd-sign">
+        <!-- kosong karena di file DOCX kosong -->
       </div>
+
+      <div>( sandi )</div>
     </div>
 
-  </div>
-
-  <!-- FOOTER -->
-  <div class="footer-img">
-    <img src="{{ asset('storage/footer.png') }}" alt="Footer">
   </div>
 </div>
 

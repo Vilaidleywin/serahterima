@@ -23,6 +23,7 @@ class Document extends Model
         'signature_path',
         'photo_path',
         'signed_at',
+        'reject_reason',
         'user_id',
         'signed_by',
     ];
