@@ -11,13 +11,13 @@
       </div>
 
       @php
-        $isRejected = strtoupper($document->status) === 'REJECTED';
-        $isSigned = filled($document->signature_path);
-        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
+        $isRejected   = strtoupper($document->status) === 'REJECTED';
+        $isSigned     = filled($document->signature_path);
+        $isSubmitted  = strtoupper($document->status) === 'SUBMITTED';
         $isPhotoTaken = filled($document->photo_path);
 
-        // Delete hanya ketika masih DRAFT (tidak submitted dan tidak rejected)
-        $canDelete = !$isRejected && !$isSubmitted;
+        // Delete boleh selama tidak REJECTED (DRAFT & SUBMITTED)
+        $canDelete = !$isRejected;
       @endphp
 
       <div class="d-flex gap-2">
@@ -25,9 +25,8 @@
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
-        {{-- Edit dikunci bila SUBMITTED (REJECTED tetap bisa edit) --}}
-        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary {{ $isSubmitted ? 'disabled' : '' }}"
-          @if($isSubmitted) aria-disabled="true" tabindex="-1" @endif>
+        {{-- Edit tetap boleh, termasuk saat sudah SUBMITTED --}}
+        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary">
           <i class="ti ti-edit"></i> Edit
         </a>
       </div>
@@ -200,7 +199,7 @@
             <i class="ti ti-printer"></i> Cetak Tanda Terima
           </a>
 
-          {{-- Hapus Dokumen: hanya jika tidak REJECTED dan tidak SUBMITTED (DRAFT saja) --}}
+          {{-- Hapus Dokumen: DRAFT & SUBMITTED, asalkan tidak REJECTED --}}
           @if($canDelete)
             <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
               <i class="ti ti-trash me-1"></i> Hapus Dokumen

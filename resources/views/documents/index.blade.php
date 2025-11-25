@@ -123,10 +123,12 @@
               $hasSigned   = !empty($d->signed_at);
               $hasPhoto    = !empty($d->photo_path);
 
-              $canEdit     = !$isSubmitted;
+              // === HANYA BAGIAN INI YANG DIUBAH ===
+              $canEdit     = !$isRejected;
               $canSign     = !$isSubmitted && !$isRejected && !$hasSigned;
               $canPhoto    = !$isRejected;
-              $canDelete   = !$isSubmitted && !$isRejected;
+              $canDelete   = !$isRejected;
+              // === END PERUBAHAN ===
             @endphp
 
             <tr>
@@ -160,7 +162,7 @@
                       </a>
                     </li>
 
-                    {{-- Edit: boleh kecuali SUBMITTED --}}
+                    {{-- Edit: boleh selama tidak REJECTED --}}
                     @if($canEdit)
                       <li>
                         <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
@@ -178,7 +180,6 @@
                       </li>
                     @endif
 
-                    <li><hr class="dropdown-divider"></li>
 
                     {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
                     @if(!$hasPhoto)
@@ -196,8 +197,10 @@
                         </li>
                       @endif
                     @endif
+                    
+                    <li><hr class="dropdown-divider"></li>
 
-                    {{-- Delete: hanya kalau masih DRAFT --}}
+                    {{-- Delete: boleh selama tidak REJECTED (DRAFT & SUBMITTED) --}}
                     @if($canDelete)
                       <li>
                         <button
