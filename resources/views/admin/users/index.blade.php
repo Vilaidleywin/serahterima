@@ -28,17 +28,7 @@
     </div>
   </div>
 
-  @if(session('success'))
-    <div class="alert alert-success py-2 small mb-3">
-      {{ session('success') }}
-    </div>
-  @endif
-
-  @if(session('error'))
-    <div class="alert alert-danger py-2 small mb-3">
-      {{ session('error') }}
-    </div>
-  @endif
+  {{-- ALERT BOOTSTRAP DIHAPUS, BIAR PAKAI TOAST DARI app.blade --}}
 
   {{-- FILTER BAR --}}
   <form id="userFilterForm" method="GET" class="mb-3">

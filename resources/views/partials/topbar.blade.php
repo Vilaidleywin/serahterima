@@ -380,8 +380,8 @@
           confirmText: 'Ya, logout',
           cancelText: 'Batal',
           // jarak antar tombol pakai util Bootstrap (ms/me)
-          confirmClass: 'btn btn-danger ms-3',
-          cancelClass: 'btn btn-outline-secondary me-3'
+          confirmClass: 'btn btn-danger ms-2',
+          cancelClass: 'btn btn-outline-secondary '
         }).then((r) => {
           if (r.isConfirmed) form.submit();
         });

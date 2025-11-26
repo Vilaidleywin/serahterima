@@ -33,7 +33,6 @@ class DocumentController extends Controller
         'Menajemen Resiko',
         'Manager Treasury',
         'Resepsionis',
-        'Other'
     ];
 
     public static function divisions(): array
@@ -46,6 +45,34 @@ class DocumentController extends Controller
     {
         $num = preg_replace('/[^0-9]/', '', (string)$val);
         return $num === '' ? 0.0 : (float)$num;
+    }
+
+    /**
+     * Pecah nilai destination menjadi:
+     *  - [0] => divisi tujuan (bisa dari DIVISIONS atau custom)
+     *  - [1] => deskripsi tujuan (dalam kurung) kalau ada
+     *
+     * Contoh:
+     *  "IT Internal (Ruang 201)" => ["IT Internal", "Ruang 201"]
+     *  "IT Internal"             => ["IT Internal", null]
+     */
+    private function splitDestination(?string $destination): array
+    {
+        $division = null;
+        $desc = null;
+
+        if ($destination) {
+            // Pola: "Divisi (Deskripsi)"
+            if (preg_match('/^(.*?)\s*\((.*)\)$/', $destination, $m)) {
+                $division = trim($m[1]);
+                $desc     = trim($m[2]);
+            } else {
+                // kalau tidak ada (), anggap seluruh nilai sebagai "divisi tujuan"
+                $division = trim($destination);
+            }
+        }
+
+        return [$division, $desc];
     }
 
     // ============================== PRINTS/PHOTO ==============================
@@ -487,6 +514,18 @@ class DocumentController extends Controller
 
     public function edit(Document $document)
     {
+        // pecah destination menjadi [divisi_tujuan, deskripsi_tujuan]
+        [$divisionTujuan, $destinationDesc] = $this->splitDestination($document->destination);
+
+        // kalau nilai "divisi tujuan" bukan salah satu dari DIVISIONS, anggap sebagai Other
+        $divisionValue = $divisionTujuan;
+        $divisionOther = null;
+
+        if ($divisionTujuan && !in_array($divisionTujuan, self::DIVISIONS, true)) {
+            $divisionValue = 'Other';
+            $divisionOther = $divisionTujuan;
+        }
+
         return view('documents.edit', [
             'title' => 'Edit Dokumen',
             'breadcrumb' => [
@@ -494,8 +533,11 @@ class DocumentController extends Controller
                 ['label' => 'Data Dokumen', 'url' => route('documents.index')],
                 ['label' => 'Edit Dokumen'],
             ],
-            'document'  => $document,
-            'divisions' => self::DIVISIONS,
+            'document'        => $document,
+            'divisions'       => self::DIVISIONS,
+            'divisionValue'   => $divisionValue,
+            'divisionOther'   => $divisionOther,
+            'destinationDesc' => $destinationDesc,
         ]);
     }
 
@@ -519,27 +561,39 @@ class DocumentController extends Controller
             ->with('success', 'Dokumen telah ditolak.');
     }
 
-
-
     public function update(Request $request, Document $document)
     {
         // tandai dulu apakah dokumen sebelumnya REJECTED
         $wasRejected = $document->status === 'REJECTED';
 
         $data = $request->validate([
-            'number'      => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
-            'title'       => ['required', 'string', 'max:255'],
-            'sender'      => ['required', 'string', 'max:255'],
-            'receiver'    => ['nullable', 'string', 'max:100'],
-            'destination' => ['nullable', 'string', 'max:255'],
-            'amount_idr'  => ['nullable'],
-            'date'        => ['nullable', 'date'],
-            'description' => ['nullable', 'string'],
-            'file'        => ['nullable', 'file', 'max:5120'],
+            'number'               => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
+            'title'                => ['required', 'string', 'max:255'],
+            'sender'               => ['required', 'string', 'max:255'],
+            'receiver'             => ['nullable', 'string', 'max:100'],
+            'destination_desc'     => ['nullable', 'string', 'max:255'],
+            'division_tujuan'      => ['required', 'string', 'max:100'],
+            'division_tujuan_other'=> ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
+            'amount_idr'           => ['nullable'],
+            'date'                 => ['nullable', 'date'],
+            'description'          => ['nullable', 'string'],
+            'file'                 => ['nullable', 'file', 'max:5120'],
         ]);
 
+        // --- rakit ulang destination sama persis dengan store() ---
+        $divisiTujuan = $request->input('division_tujuan');
+        if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
+            $divisiTujuan = $request->input('division_tujuan_other');
+        }
+
+        $tujuanDeskripsi = $request->input('destination_desc');
+        $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
+
+        // bersihkan key yang bukan kolom di tabel
+        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc']);
+
         // proses amount
-        if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '') {
+        if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '' && $data['amount_idr'] !== null) {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
             unset($data['amount_idr']);
@@ -572,7 +626,6 @@ class DocumentController extends Controller
                 ? 'Dokumen berhasil diperbarui dan status dikembalikan ke DRAFT.'
                 : 'Dokumen berhasil diperbarui!');
     }
-
 
     public function destroy(Document $document)
     {

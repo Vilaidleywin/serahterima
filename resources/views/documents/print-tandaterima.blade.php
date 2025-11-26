@@ -2,155 +2,64 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>SURAT SERAH TERIMA DOKUMEN – 11.04/SANDI/APPS/2025</title>
-
+  <title>Tanda Terima – {{ $document->number }}</title>
+  <link rel="stylesheet" href="{{ asset('css/print-tandaterima.css') }}">
   <style>
-    * { box-sizing: border-box; }
-
+    @page { size: A4; margin: 0; }
     html, body {
-      margin: 0;
-      padding: 0;
-      font-family: "Calibri","Segoe UI",Arial,sans-serif;
-      font-size: 11pt;
-      background: #fff;
-    }
-
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
-
-    .page {
       width: 210mm;
       height: 297mm;
-      margin: 0 auto;
-      background: #fff;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
     }
-
-    .page-inner {
-      padding: 27.5mm 21.5mm 25mm 21.5mm;
-      height: 100%;
-    }
-
-    .title {
-      text-align: center;
-      font-size: 18pt;
-      font-weight: bold;
-      text-decoration: underline;
-      margin: 0 0 14mm 0;
-    }
-
-    .info-row {
-      display: grid;
-      grid-template-columns: 28% 3% auto;
-      margin-bottom: 3mm;
-    }
-
-    .info-colon { text-align: center; }
-
-    .info-row-nominal-top {
-      display: grid;
-      grid-template-columns: 28% 3% auto;
-      margin-bottom: 0;
-    }
-
-    .info-row-nominal-bottom {
-      display: grid;
-      grid-template-columns: 28% 3% auto;
-      margin-top: 1mm;
-      margin-bottom: 3mm;
-    }
-
-    .ttd-wrapper {
-      margin-top: 35mm;
-      text-align: center;
-    }
-
-    .ttd-role { margin-bottom: 15mm; }
-    .ttd-sign { height: 55px; margin-bottom:5mm; }
+    body { background: #fff; }
   </style>
 </head>
 <body>
 
 <div class="page">
-  <div class="page-inner">
-
-    <h1 class="title">SURAT SERAH TERIMA DOKUMEN</h1>
-
-    <div class="info">
-
-      <div class="info-row">
-        <div>Judul Dokumen</div>
-        <div class="info-colon">:</div>
-        <div>pengadaan</div>
-      </div>
-
-      <div class="info-row">
-        <div>Nomor Dokumen</div>
-        <div class="info-colon">:</div>
-        <div>11.04/SANDI/APPS/2025</div>
-      </div>
-
-      <div class="info-row">
-        <div>Tanggal</div>
-        <div class="info-colon">:</div>
-        <div>04 November 2025</div>
-      </div>
-
-      <div class="info-row">
-        <div>Divisi</div>
-        <div class="info-colon">:</div>
-        <div>Komersial asset</div>
-      </div>
-
-      <div class="info-row">
-        <div>Pengirim</div>
-        <div class="info-colon">:</div>
-        <div>fito</div>
-      </div>
-
-      <div class="info-row">
-        <div>Penerima</div>
-        <div class="info-colon">:</div>
-        <div>sandi</div>
-      </div>
-
-      <div class="info-row-nominal-top">
-        <div>Nominal</div>
-        <div class="info-colon">:</div>
-        <div></div>
-      </div>
-
-      <div class="info-row-nominal-bottom">
-        <div></div>
-        <div></div>
-        <div>Rp 28.374.237</div>
-      </div>
-
-      <div class="info-row">
-        <div>Tujuan</div>
-        <div class="info-colon">:</div>
-        <div>PT.PELNI</div>
-      </div>
-
-      <div class="info-row">
-        <div>Catatan</div>
-        <div class="info-colon">:</div>
-        <div>jancokkkkkk fucek</div>
-      </div>
-
+  <!-- KOP -->
+  <div class="kop">
+    <div class="kop-flex">
+      <div class="kop-left"><img src="{{ asset('storage/akhlak.png') }}" alt="AKHLAK"></div>
+      <div class="kop-right"><img src="{{ asset('storage/pelni.png') }}" alt="PELNI SERVICES"></div>
     </div>
+  </div>
 
-    <div class="ttd-wrapper">
-      <div class="ttd-role">Penerima</div>
+  <div class="content">
+    <h2>SURAT SERAH TERIMA DOKUMEN</h2>
+    <table>
+      <tr><td>Judul Dokumen</td><td>: {{ $document->title ?? '-' }}</td></tr>
+      <tr><td>No Dokumen</td><td>: {{ $document->number ?? '-' }}</td></tr>
+      <tr><td>Tanggal</td><td>: {{ $document->date?->translatedFormat('l, d F Y') ?? '-' }}</td></tr>
+      <tr><td>Divisi</td><td>: {{ $document->division ?? '-' }}</td></tr>
+      <tr><td>Pengirim</td><td>: {{ $document->sender ?? '-' }}</td></tr>
+      <tr><td>Penerima</td><td>: {{ $document->receiver ?? '-' }}</td></tr>
+      <tr><td>Nominal</td><td>: {{ $document->amount_idr ?? '-' }}</td></tr>
+      <tr><td>Tujuan</td><td>: {{ $document->destination ?? '-' }}</td></tr>
+      <tr><td>Catatan</td><td>: {{ $document->description ?? '-' }}</td></tr>
+    </table>
 
-      <div class="ttd-sign">
-        <!-- kosong karena di file DOCX kosong -->
+    <!-- TANDA TANGAN -->
+    <div class="ttd-single">
+      <div class="ttd-col">
+        <div class="ttd-role">Penerima,</div>
+        <div class="ttd-sign">
+          @if(!empty($document->signature_path))
+            <img src="{{ asset('storage/'.$document->signature_path) }}" alt="Tanda Tangan Penerima">
+          @endif
+        </div>
+        <div class="ttd-name">
+          ( {{ $document->receiver ?: '................................' }} )
+        </div>
       </div>
-
-      <div>( sandi )</div>
     </div>
+  </div>
 
+  <!-- FOOTER IMAGE -->
+  <div class="footer-img">
+    <img src="{{ asset('storage/footer.png') }}" alt="Footer">
   </div>
 </div>
 

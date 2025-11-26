@@ -24,6 +24,7 @@ class Document extends Model
         'photo_path',
         'signed_at',
         'reject_reason',
+        'division_destination',
         'user_id',
         'signed_by',
     ];

@@ -369,6 +369,40 @@
       });
     </script>
   @endif
+  {{-- Flash toast --}}
+
+@if (session('success'))
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: @json(session('success')),
+        showConfirmButton: false,
+        timer: 2200,
+        timerProgressBar: true
+      });
+    });
+  </script>
+@endif
+
+@if (session('error'))
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: @json(session('error')),
+        showConfirmButton: false,
+        timer: 2600,
+        timerProgressBar: true
+      });
+    });
+  </script>
+@endif
+
 
   @stack('scripts')
 </body>
