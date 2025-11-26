@@ -153,6 +153,29 @@
             <input type="text" class="form-control" value="user" disabled>
             <small class="text-muted">Role saat ini dikunci sebagai <strong>user</strong>.</small>
           </div>
+
+          {{-- Status Akun --}}
+          <div class="col-md-6">
+            <label for="is_active" class="form-label">Status Akun</label>
+
+            @php
+              $statusVal = old('is_active', $user->is_active ?? 1);
+            @endphp
+
+            <select id="is_active" name="is_active"
+                    class="form-select @error('is_active') is-invalid @enderror">
+              <option value="1" {{ (string)$statusVal === '1' ? 'selected' : '' }}>Aktif</option>
+              <option value="0" {{ (string)$statusVal === '0' ? 'selected' : '' }}>Nonaktif</option>
+            </select>
+
+            @error('is_active')<div class="invalid-feedback">{{ $message }}</div>@enderror
+
+            <small class="text-muted">
+              {{ $isEdit
+                ? 'Nonaktifkan jika ingin membekukan akses user tanpa menghapus akun.'
+                : 'Biarkan Aktif untuk mengizinkan user login.' }}
+            </small>
+          </div>
         </div>
       </form>
     </div>

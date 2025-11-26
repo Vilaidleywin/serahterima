@@ -51,11 +51,17 @@ Route::middleware('auth')->group(function () {
 | ADMIN AREA (auth + role admin)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin_internal,admin_komersial']) // pakai | jika spatie
+Route::middleware(['auth', 'role:admin_internal,admin_komersial'])
     ->prefix('admin')->name('admin.')
     ->group(function () {
+        // CRUD user
         Route::resource('users', UserController::class)->except(['show']);
+
+        // ⬇️ route toggle status user
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
+            ->name('users.toggle-status');
     });
+
 
 /*
 |--------------------------------------------------------------------------

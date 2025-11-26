@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'division',
         'created_by',
+        'is_active',
     ];
     public function creator()
     {
@@ -48,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 }

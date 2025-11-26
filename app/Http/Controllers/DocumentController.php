@@ -444,7 +444,7 @@ class DocumentController extends Controller
             'amount_idr'     => ['required'],
             'date'           => ['required', 'date'],
             'description'    => ['nullable', 'string'],
-            'file'           => ['nullable', 'file', 'max:5120'],
+            'file'           => ['required', 'file', 'max:5120'],
         ]);
 
         // defensive: remove any client-provided division keys (do not trust client)

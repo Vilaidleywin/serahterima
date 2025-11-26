@@ -39,15 +39,19 @@
       {{-- KOLOM 1: Pencarian + tombol Filter & Reset di bawahnya --}}
       <div class="col-md-4">
         <label class="form-label mb-1 small text-muted">Pencarian</label>
-        <input name="search" value="{{ request('search') }}" class="form-control search" placeholder="Cari dokumen...">
+        <input
+          name="search"
+          value="{{ request('search') }}"
+          class="form-control search"
+          id="docSearchInput"
+          placeholder="Cari dokumen..."
+        >
 
-        {{-- Tombol-tombol di bawah pencarian --}}
         <div class="d-flex flex-wrap gap-2 mt-2">
           <button type="submit" class="btn btn-primary">
             <i class="ti ti-filter me-1"></i> Filter
           </button>
 
-          {{-- Reset pakai AJAX --}}
           <a href="#" id="btnFilterReset" class="btn btn-outline-secondary">
             <i class="ti ti-filter-off me-1"></i> Reset
           </a>
@@ -123,17 +127,14 @@
               $hasSigned   = !empty($d->signed_at);
               $hasPhoto    = !empty($d->photo_path);
 
-              // === HANYA BAGIAN INI YANG DIUBAH ===
               $canEdit     = !$isRejected;
               $canSign     = !$isSubmitted && !$isRejected && !$hasSigned;
               $canPhoto    = !$isRejected;
               $canDelete   = !$isRejected;
-              // === END PERUBAHAN ===
             @endphp
 
             <tr>
               <td class="fw-semibold">{{ $rowNumber }}</td>
-
               <td>{{ $d->number ?? '-' }}</td>
               <td>{{ $d->title ?? '-' }}</td>
               <td>{{ $d->sender ?? '-' }}</td>
@@ -155,14 +156,14 @@
                   </button>
 
                   <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    {{-- Always allow Detail --}}
+                    {{-- Detail --}}
                     <li>
                       <a class="dropdown-item" href="{{ route('documents.show', $d) }}">
                         <i class="ti ti-eye me-2"></i> Detail
                       </a>
                     </li>
 
-                    {{-- Edit: boleh selama tidak REJECTED --}}
+                    {{-- Edit --}}
                     @if($canEdit)
                       <li>
                         <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
@@ -171,7 +172,7 @@
                       </li>
                     @endif
 
-                    {{-- Tanda Tangan: hanya kalau masih DRAFT & belum tanda tangan --}}
+                    {{-- Tanda tangan --}}
                     @if($canSign)
                       <li>
                         <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
@@ -180,8 +181,7 @@
                       </li>
                     @endif
 
-
-                    {{-- Ambil Foto: tidak boleh kalau REJECTED, dan hilang kalau sudah ada foto --}}
+                    {{-- Ambil foto --}}
                     @if(!$hasPhoto)
                       @if($canPhoto)
                         <li>
@@ -197,10 +197,10 @@
                         </li>
                       @endif
                     @endif
-                    
+
                     <li><hr class="dropdown-divider"></li>
 
-                    {{-- Delete: boleh selama tidak REJECTED (DRAFT & SUBMITTED) --}}
+                    {{-- Hapus --}}
                     @if($canDelete)
                       <li>
                         <button
@@ -216,14 +216,12 @@
                   </ul>
                 </div>
 
-                {{-- FORM DELETE --}}
                 <form id="delete-form-{{ $d->id }}" action="{{ route('documents.destroy', $d) }}" method="POST"
                   class="d-none">
                   @csrf
                   @method('DELETE')
                 </form>
               </td>
-
             </tr>
           @empty
             <tr>
@@ -238,7 +236,6 @@
     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
       style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
 
-      {{-- Rows per page --}}
       <form method="get" class="d-inline-flex align-items-center gap-2 mb-0">
         <input type="hidden" name="search" value="{{ request('search') }}">
         <input type="hidden" name="status" value="{{ request('status') }}">
@@ -253,12 +250,10 @@
         <span>rows / page</span>
       </form>
 
-      {{-- Showing info --}}
       <div class="text-muted small flex-grow-1 text-center mb-0">
         Showing {{ $documents->firstItem() ?? 0 }} to {{ $documents->lastItem() ?? 0 }} of {{ $documents->total() }} rows
       </div>
 
-      {{-- Pagination --}}
       <div class="mb-0">
         <nav>
           <ul class="pagination mb-0">
@@ -279,108 +274,210 @@
         </nav>
       </div>
     </div>
+
   </div> {{-- /#table-wrapper --}}
 @endsection
 
 @push('scripts')
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // ====== AJAX FILTER & RESET (refresh cuma bagian table-wrapper) ======
-      const filterForm     = document.getElementById('filterForm');
-      const btnFilterReset = document.getElementById('btnFilterReset');
-      const tableWrapper   = document.getElementById('table-wrapper');
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const filterForm     = document.getElementById('filterForm');
+  const btnFilterReset = document.getElementById('btnFilterReset');
+  const tableWrapper   = document.getElementById('table-wrapper');
+  const searchInput    = document.getElementById('docSearchInput');
 
-      if (!filterForm || !btnFilterReset || !tableWrapper) {
-        return;
-      }
+  if (!filterForm || !btnFilterReset || !tableWrapper) return;
 
-      function loadTable(url) {
-        fetch(url, {
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  function buildQuery() {
+    const params = new URLSearchParams(new FormData(filterForm)).toString();
+    return "{{ route('documents.index') }}" + (params ? '?' + params : '');
+  }
+
+  function renderSkeleton() {
+    tableWrapper.innerHTML = `
+      <div class="card-soft p-3" style="border:1px solid #d9dee3; border-radius:10px;">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+      </div>
+    `;
+  }
+
+  function loadTable(url) {
+    // aktifkan spinner
+    tableWrapper.classList.add('is-loading');
+
+    // animasi keluar
+    tableWrapper.style.transition = 'opacity .2s ease, transform .2s ease';
+    tableWrapper.style.opacity = '0';
+    tableWrapper.style.transform = 'translateY(6px)';
+
+    setTimeout(() => {
+      renderSkeleton();
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc    = parser.parseFromString(html, 'text/html');
+          const fresh  = doc.querySelector('#table-wrapper');
+
+          if (fresh) {
+            tableWrapper.innerHTML = fresh.innerHTML;
+          }
+
+          // matikan spinner
+          tableWrapper.classList.remove('is-loading');
+
+          // animasi masuk
+          tableWrapper.style.opacity   = '0';
+          tableWrapper.style.transform = 'translateY(6px)';
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              tableWrapper.style.opacity   = '1';
+              tableWrapper.style.transform = 'translateY(0)';
+            });
+          });
         })
-          .then(res => res.text())
-          .then(html => {
-            const parser    = new DOMParser();
-            const doc       = parser.parseFromString(html, 'text/html');
-            const newWrapper = doc.querySelector('#table-wrapper');
-            if (newWrapper) {
-              tableWrapper.innerHTML = newWrapper.innerHTML;
-            }
-          })
-          .catch(err => console.error(err));
-      }
+        .catch(err => {
+          console.error(err);
+          tableWrapper.classList.remove('is-loading');
+        });
+    }, 150);
+  }
 
-      // submit filter tanpa reload full page
-      filterForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const params = new URLSearchParams(new FormData(filterForm)).toString();
-        const url = "{{ route('documents.index') }}" + (params ? ('?' + params) : '');
-        loadTable(url);
-      });
+  // tombol Filter
+  filterForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    loadTable(buildQuery());
+  });
 
-      // reset filter tanpa reload full page
-      btnFilterReset.addEventListener('click', function (e) {
-        e.preventDefault();
-        filterForm.reset();
-        loadTable("{{ route('documents.index') }}");
-      });
+  // Tombol Reset
+  btnFilterReset.addEventListener('click', function (e) {
+    e.preventDefault();
+    filterForm.reset();
+    loadTable("{{ route('documents.index') }}");
+  });
 
-      // pagination di dalam #table-wrapper pakai AJAX juga
-      document.addEventListener('click', function (e) {
-        const link = e.target.closest('#table-wrapper .pagination a');
-        if (!link) return;
+  // Live search dengan debounce
+  if (searchInput) {
+    let debounceTimer = null;
 
-        if (link.getAttribute('href') === '#' || link.parentElement.classList.contains('disabled')) {
-          e.preventDefault();
-          return;
-        }
-
-        e.preventDefault();
-        loadTable(link.href);
-      });
+    searchInput.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadTable(buildQuery());
+      }, 400);
     });
-  </script>
 
-  <style>
-    .outline-secondary {
-      border: 1px solid #6c757d;
-      color: #6c757d;
-      background: transparent;
-    }
-
-    .outline-secondary:hover {
-      background-color: #6c757d !important;
-      color: white !important;
-    }
-
-    .filter-buttons {
-      margin-top: 12px;
-    }
-
-    @media (min-width: 768px) {
-      .filter-buttons {
-        margin-top: 18px;
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadTable(buildQuery());
       }
+    });
+  }
+
+  // Pagination AJAX
+  document.addEventListener('click', function (e) {
+    const link = e.target.closest('#table-wrapper .pagination a');
+    if (!link) return;
+
+    if (link.getAttribute('href') === '#' || link.parentElement.classList.contains('disabled')) {
+      e.preventDefault();
+      return;
     }
 
-    /* Kebab button ala screenshot: putih, rounded, border halus */
-    .btn-kebab {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      border: 1px solid #e2e8f0;
-      background-color: #ffffff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
+    e.preventDefault();
+    loadTable(link.href);
+  });
+});
+</script>
+@endpush
 
-    .btn-kebab:hover {
-      background-color: #eef2ff;
-      border-color: #c7d2fe;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
-    }
-  </style>
+@push('styles')
+<style>
+  .outline-secondary {
+    border: 1px solid #6c757d;
+    color: #6c757d;
+    background: transparent;
+  }
+  .outline-secondary:hover {
+    background-color: #6c757d !important;
+    color: white !important;
+  }
+
+  .btn-kebab {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .btn-kebab:hover {
+    background-color: #eef2ff;
+    border-color: #c7d2fe;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  }
+
+  /* Skeleton premium */
+  .skeleton {
+    background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .skeleton-title {
+    height: 22px;
+    width: 30%;
+    margin-bottom: 16px;
+  }
+  .skeleton-row {
+    height: 14px;
+    width: 100%;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* SPINNER premium di pojok kanan atas #table-wrapper */
+  #table-wrapper {
+    position: relative;
+  }
+  #table-wrapper::after {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 2px 6px rgba(15,23,42,0.15);
+    border: 3px solid #e5e7eb;
+    border-top-color: #4f46e5;
+    border-right-color: #4f46e5;
+    opacity: 0;
+    animation: spin 0.7s linear infinite;
+    transition: opacity .15s ease;
+    pointer-events: none;
+  }
+  #table-wrapper.is-loading::after {
+    opacity: 1;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
 @endpush

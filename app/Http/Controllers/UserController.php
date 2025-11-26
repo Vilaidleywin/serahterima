@@ -57,11 +57,16 @@ class UserController extends Controller
             'email'    => ['required', 'email', 'max:150', 'unique:users,email'],
             'division' => ['required', 'string', 'max:100'],
             'password' => ['required', 'min:8'],
+            // optional: kalau kamu kasih field status di form (aktif/nonaktif)
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         $data['password']   = Hash::make($data['password']);
         $data['role']       = 'user';        // kunci role tetap user
         $data['created_by'] = auth()->id();  // tetap disimpan
+
+        // default: aktif kalau field tidak dikirim
+        $data['is_active'] = $request->boolean('is_active', true);
 
         User::create($data);
 
@@ -91,10 +96,22 @@ class UserController extends Controller
 
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:100'],
-            'username' => ['required', 'alpha_dash', 'max:50', Rule::unique('users', 'username')->ignore($user->id)],
-            'email'    => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
+            'username' => [
+                'required',
+                'alpha_dash',
+                'max:50',
+                Rule::unique('users', 'username')->ignore($user->id),
+            ],
+            'email'    => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
             'division' => ['required', 'string', 'max:100'],
             'password' => ['nullable', 'min:8'],
+            // optional: kalau kamu kasih field status di form edit
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if (!empty($data['password'])) {
@@ -106,6 +123,11 @@ class UserController extends Controller
         // tidak boleh ubah kepemilikan & role lewat form
         unset($data['created_by']);
         $data['role'] = 'user';
+
+        // kalau form nggak kirim is_active, pakai nilai lama
+        $data['is_active'] = $request->has('is_active')
+            ? $request->boolean('is_active')
+            : $user->is_active;
 
         $user->update($data);
 
@@ -129,5 +151,24 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'User berhasil dihapus.');
+    }
+
+    // ⬇️⬇️ METHOD BARU: toggle aktif/nonaktif
+    public function toggleStatus(User $user)
+    {
+        // amankan: jangan ubah status admin*
+        if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
+            return back()->with('error', 'User dengan role admin tidak dapat diubah statusnya.');
+        }
+
+        // opsional: jangan izinkan user mengubah status dirinya sendiri
+        if (auth()->id() === $user->id) {
+            return back()->with('error', 'Tidak bisa mengubah status akun diri sendiri.');
+        }
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        return back()->with('success', 'Status user berhasil diperbarui.');
     }
 }

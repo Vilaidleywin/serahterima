@@ -2,66 +2,73 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // GET /login
     public function showLogin()
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
+
         return view('auth.login');
     }
 
-    // POST /login
+    // 👉 TAMBAHKAN INI
+    public function homeRedirect()
+    {
+        // kalau sudah login, lempar ke dashboard
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        // kalau belum login, lempar ke halaman login
+        return redirect()->route('login');
+    }
+    // 👉 SAMPAI SINI
+
     public function login(Request $request)
     {
-        // Validasi input
-        $credentials = $request->validate([
-            'login'    => ['required', 'string'], // bisa username atau email
+        $data = $request->validate([
+            'login'    => ['required'],
             'password' => ['required'],
         ]);
 
-        // Cek apakah input adalah email atau username
-        $loginType = filter_var($credentials['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $login = $data['login'];
 
-        // Coba login berdasarkan jenis input
-        if (Auth::attempt(
-            [$loginType => $credentials['login'], 'password' => $credentials['password']],
-            $request->boolean('remember')
-        )) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+        $user = User::where('email', $login)
+            ->orWhere('username', $login)
+            ->first();
+
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return back()
+                ->withErrors(['login' => 'Email/Username atau password salah.'])
+                ->withInput();
         }
 
-        // Jika gagal login
-        return back()
-            ->withErrors([
-                'login' => ucfirst($loginType) . ' atau password salah.',
-            ])
-            ->withInput($request->only('login', 'remember'));
+        if (!$user->is_active) {
+            return back()
+                ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
+                ->withInput();
+        }
+
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('dashboard'));
     }
 
-    // POST /logout
     public function logout(Request $request)
     {
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
-    }
-
-    // GET /
-    public function homeRedirect()
-    {
-        if (!auth()->check()) return redirect()->route('login');
-
-        return match (auth()->user()->role) {
-            'admin_internal', 'admin_komersial' => redirect()->route('admin.users.index'),
-            default => redirect()->route('dashboard'),
-        };
     }
 }
