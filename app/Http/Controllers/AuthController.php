@@ -32,35 +32,40 @@ class AuthController extends Controller
     // 👉 SAMPAI SINI
 
     public function login(Request $request)
-    {
-        $data = $request->validate([
-            'login'    => ['required'],
-            'password' => ['required'],
-        ]);
+{
+    $data = $request->validate([
+        'login'    => ['required'],
+        'password' => ['required'],
+    ]);
 
-        $login = $data['login'];
+    $login = $data['login'];
 
-        $user = User::where('email', $login)
-            ->orWhere('username', $login)
-            ->first();
+    $user = User::where('email', $login)
+        ->orWhere('username', $login)
+        ->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
-            return back()
-                ->withErrors(['login' => 'Email/Username atau password salah.'])
-                ->withInput();
-        }
-
-        if (!$user->is_active) {
-            return back()
-                ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
-                ->withInput();
-        }
-
-        Auth::login($user, $request->boolean('remember'));
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard'));
+    if (!$user || !Hash::check($data['password'], $user->password)) {
+        return back()
+            ->withErrors(['login' => 'Email/Username atau password salah.'])
+            ->withInput();
     }
+
+    if (!$user->is_active) {
+        return back()
+            ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
+            ->withInput();
+    }
+
+    // Login dulu
+    Auth::login($user, $request->boolean('remember'));
+    $request->session()->regenerate();
+
+    // 🔥 MODE DITABRAK: tendang semua session lain user ini
+    Auth::logoutOtherDevices($data['password']);
+
+    return redirect()->intended(route('dashboard'));
+}
+
 
     public function logout(Request $request)
     {

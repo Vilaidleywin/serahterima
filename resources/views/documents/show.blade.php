@@ -11,9 +11,9 @@
       </div>
 
       @php
-        $isRejected   = strtoupper($document->status) === 'REJECTED';
-        $isSigned     = filled($document->signature_path);
-        $isSubmitted  = strtoupper($document->status) === 'SUBMITTED';
+        $isRejected = strtoupper($document->status) === 'REJECTED';
+        $isSigned = filled($document->signature_path);
+        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
         $isPhotoTaken = filled($document->photo_path);
 
         // Delete boleh selama tidak REJECTED (DRAFT & SUBMITTED)
@@ -108,8 +108,9 @@
 
           <div class="mb-3">
             <h6 class="fw-semibold text-uppercase text-muted small mb-1">Catatan</h6>
-            <div style="white-space: pre-line;">{{ $document->description ?: '-' }}</div>
+            <div class="document-notes">{{ $document->description ?: '-' }}</div>
           </div>
+
 
           @if($document->file_path)
             <div class="mb-2">
@@ -193,11 +194,14 @@
           </ul>
           <hr>
 
-          {{-- Cetak --}}
-          <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
-            class="btn btn-outline-secondary w-100 mb-2 mt-3">
-            <i class="ti ti-printer"></i> Cetak Tanda Terima
-          </a>
+          {{-- Cetak: hanya muncul kalau dokumen belum REJECTED --}}
+          @if(!$isRejected)
+            <a href="{{ route('documents.print-tandaterima', $document) }}" target="_blank"
+              class="btn btn-outline-secondary w-100 mb-2 mt-3">
+              <i class="ti ti-printer"></i> Cetak Tanda Terima
+            </a>
+          @endif
+
 
           {{-- Hapus Dokumen: DRAFT & SUBMITTED, asalkan tidak REJECTED --}}
           @if($canDelete)
@@ -385,6 +389,15 @@
       margin-bottom: 0.25rem;
       white-space: pre-line;
     }
+
+    .document-notes {
+      white-space: pre-line;
+      /* biar \n tetap jadi baris baru */
+      word-break: break-word;
+      /* kalau satu “kata” kepanjangan, dipaksa patah */
+      overflow-wrap: anywhere;
+      /* kalau masih ngeyel, patahin di mana saja */
+    }
   </style>
 @endpush
 
@@ -414,6 +427,6 @@
           rejectModal.show();
         }
       @endif
-      });
+            });
   </script>
 @endpush
