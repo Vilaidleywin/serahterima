@@ -143,10 +143,37 @@ class DashboardController extends Controller
         $createdMonth = $docFactory()->whereDate('date', '>=', $month)->count();
 
         // === Line chart: 12 bulan === (use 'date' column range for each month)
-        $months     = collect(range(11, 0))->map(fn($i) => Carbon::now()->startOfMonth()->subMonths($i));
-        $lineLabels = $months->map(fn($m) => $m->format('Y-m'))->values()->toArray();
-        $lineData   = $months->map(fn($m) => $docFactory()
-            ->whereBetween('date', [$m->copy(), $m->copy()->endOfMonth()])->count())->values()->toArray();
+        $months = collect(range(11, 0))->map(
+            fn($i) => Carbon::now()->startOfMonth()->subMonths($i)
+        );
+
+        $lineLabels = $months
+            ->map(fn($m) => $m->format('Y-m'))
+            ->values()
+            ->toArray();
+
+        $lineData = $months
+            ->map(function ($m) use ($docFactory) {
+                return $docFactory()
+                    ->whereBetween('date', [
+                        $m->copy()->startOfMonth(),
+                        $m->copy()->endOfMonth(),
+                    ])
+                    ->count();
+            })
+            ->values()
+            ->toArray();
+
+        // RANGE TANGGAL PER BULAN (UNTUK KLIK CHART -> FILTER DI /documents)
+        $lineRanges = $months
+            ->map(function ($m) {
+                return [
+                    'start' => $m->copy()->startOfMonth()->toDateString(), // contoh: 2025-01-01
+                    'end'   => $m->copy()->endOfMonth()->toDateString(),   // contoh: 2025-01-31
+                ];
+            })
+            ->values()
+            ->toArray();
 
         // === Overdue SUBMITTED (filtered) ===
         $overdueDays = 7;
@@ -157,9 +184,18 @@ class DashboardController extends Controller
         // === Bar (bulan ini) ===
         $barLabels = ['DRAFT', 'SUBMITTED', 'REJECTED'];
         $barData = [
-            $docFactory()->where('status', 'DRAFT')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
-            $docFactory()->where('status', 'SUBMITTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
-            $docFactory()->where('status', 'REJECTED')->whereMonth('date', now()->month)->whereYear('date', now()->year)->count(),
+            $docFactory()->where('status', 'DRAFT')
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->count(),
+            $docFactory()->where('status', 'SUBMITTED')
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->count(),
+            $docFactory()->where('status', 'REJECTED')
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->count(),
         ];
 
         // === Donut (urut SUBMITTED, REJECTED, DRAFT agar cocok dengan legend warna di view) ===
@@ -193,6 +229,7 @@ class DashboardController extends Controller
             'submittedOverdue' => $submittedOverdue,
             'lineLabels'       => $lineLabels,
             'lineData'         => $lineData,
+            'lineRanges'       => $lineRanges,   // <<< INI YANG BARU BUAT CLICK CHART
             'barLabels'        => $barLabels,
             'barData'          => $barData,
             'donut'            => $donut,

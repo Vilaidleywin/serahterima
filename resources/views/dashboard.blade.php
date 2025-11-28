@@ -193,9 +193,11 @@
       if (lineEl) {
         const labels = @json($lineLabels ?? []);
         const data = @json($lineData ?? []);
+        const ranges = @json($lineRanges ?? []); // { start, end } per bulan
+
         const ctx = lineEl.getContext('2d');
 
-        new Chart(lineEl, {
+        const lineChart = new Chart(lineEl, {
           type: 'line',
           data: {
             labels: arr(labels),
@@ -203,13 +205,61 @@
               data: arr(data),
               borderColor: 'rgba(46,90,172,1)',
               backgroundColor: gradient(ctx, 'rgba(46,90,172,1)'),
-              fill: true, borderWidth: 2, tension: .35, pointRadius: 2
+              fill: true,
+              borderWidth: 2,
+              tension: .35,
+              pointRadius: 2
             }]
           },
           options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            interaction: {
+              mode: 'nearest',
+              intersect: false
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: { beginAtZero: true, ticks: { precision: 0 } }
+            },
+
+            // HAND POINTER (kalau ada titik terdekat)
+            onHover: function (evt) {
+              const points = this.getElementsAtEventForMode(
+                evt,
+                'nearest',
+                { intersect: false },
+                true
+              );
+              evt.native.target.style.cursor = points.length ? 'pointer' : 'default';
+            },
+
+            // CLICK DI TITIK / GARIS / TOOLTIP -> FILTER BULAN ITU
+            onClick: function (evt) {
+              const points = this.getElementsAtEventForMode(
+                evt,
+                'nearest',
+                { intersect: false },
+                true
+              );
+              if (!points.length) return;
+
+              const idx = points[0].index;
+              const range = (ranges || [])[idx];
+              if (!range) return;
+
+              const baseUrl = `{{ route('documents.index') }}`;
+              const params = new URLSearchParams({
+                date_from: range.start,
+                date_to: range.end,
+              });
+
+              window.location.href = `${baseUrl}?${params.toString()}`;
+            }
           }
         });
       }
@@ -269,7 +319,6 @@
         });
       }
 
-      /* ===== DONUT (share total) – ikut urutan SUBMITTED, REJECTED, DRAFT ===== */
       /* ===== DONUT (share total) – robust, tidak ketuker ===== */
       const donutEl = document.getElementById('donutChart');
       if (donutEl) {
