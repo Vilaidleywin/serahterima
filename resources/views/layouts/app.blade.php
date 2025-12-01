@@ -329,7 +329,7 @@
         confirmText: 'Ya, logout',
         cancelText: 'Batal',
         confirmClass: 'btn btn-danger ms-2',
-        cancelClass: 'btn btn-outline-secondary me-2'
+        cancelClass: 'btn btn-outline-secondary ms-2'
       }).then((r) => {
         if (r.isConfirmed) {
           document.getElementById('logout-form')?.submit();

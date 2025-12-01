@@ -10,14 +10,17 @@
 <body>
 
   @php
-      // Pastikan $docDate selalu Carbon instance
-      $docDate = $document->date instanceof \Carbon\Carbon
-          ? $document->date
-          : \Carbon\Carbon::parse($document->date ?? now());
+    // Pastikan $docDate adalah instance Carbon
+    $docDate = $document->date instanceof \Carbon\Carbon
+      ? $document->date
+      : \Carbon\Carbon::parse($document->date ?? now());
   @endphp
 
   <div class="page">
-    <!-- KOP -->
+
+    <!-- ======================= -->
+    <!--           KOP           -->
+    <!-- ======================= -->
     <div class="kop">
       <div class="kop-flex">
         <div class="kop-left">
@@ -29,8 +32,11 @@
       </div>
     </div>
 
-    <!-- KONTEN -->
+    <!-- ======================= -->
+    <!--         KONTEN          -->
+    <!-- ======================= -->
     <div class="content">
+
       <h2>SURAT SERAH TERIMA DOKUMEN</h2>
 
       <p class="intro">
@@ -38,6 +44,7 @@
         dengan rincian sebagai berikut:
       </p>
 
+      <!-- TABLE META -->
       <table class="meta-table">
         <tbody>
           <tr>
@@ -76,7 +83,7 @@
             <td class="label">Nominal</td>
             <td class="colon">:</td>
             <td class="value">
-              @if($document->amount_idr !== null)
+              @if ($document->amount_idr !== null)
                 Rp. {{ number_format($document->amount_idr, 0, ',', '.') }}
               @else
                 -
@@ -96,37 +103,39 @@
         </tbody>
       </table>
 
-      <!-- BLOK TANDA TANGAN: Kota, tanggal + ttd + nama + jabatan -->
+      <!-- ======================= -->
+      <!--     BLOK TANDA TANGAN   -->
+      <!-- ======================= -->
       <div class="ttd-single">
         <div class="ttd-col">
 
-          {{-- Kota + tanggal --}}
           <div class="ttd-place-date">
             {{ ($document->city ?? 'Jakarta') . ', ' . $docDate->translatedFormat('d F Y') }}
           </div>
 
-          {{-- Tanda tangan --}}
-          <div class="ttd-sign">
-            @if(!empty($document->signature_path))
+          <div class="ttd-sign {{ empty($document->signature_path) ? 'ttd-sign--empty' : '' }}">
+            @if (!empty($document->signature_path))
               <img src="{{ asset('storage/' . $document->signature_path) }}" alt="Tanda Tangan Penerima">
             @endif
           </div>
 
-          {{-- Nama (bold + underline) --}}
+
           <div class="ttd-name">
             {{ $document->receiver ?? '................................' }}
           </div>
 
-          {{-- Jabatan --}}
           <div class="ttd-role-text">
             Penerima
           </div>
 
         </div>
       </div>
+
     </div>
 
-    <!-- FOOTER IMAGE -->
+    <!-- ======================= -->
+    <!--        FOOTER           -->
+    <!-- ======================= -->
     <div class="footer-img">
       <img src="{{ asset('storage/footer.png') }}" alt="Footer">
     </div>

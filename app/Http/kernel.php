@@ -26,7 +26,6 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
-
         ],
 
         'api' => [
@@ -38,7 +37,7 @@ class Kernel extends HttpKernel
     /**
      * Laravel 11/12: pakai $middlewareAliases (BUKAN $routeMiddleware).
      */
-    protected $middlewareAliases = [
+    protected $routeMiddleware = [
         'auth'             => \App\Http\Middleware\Authenticate::class,
         'auth.basic'       => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'cache.headers'    => \Illuminate\Http\Middleware\SetCacheHeaders::class,
@@ -49,7 +48,7 @@ class Kernel extends HttpKernel
         'throttle'         => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified'         => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
-        // ✅ alias custom kita
         'role'             => \App\Http\Middleware\RoleMiddleware::class,
+        'single.session'   => \App\Http\Middleware\CheckSingleSession::class,
     ];
 }

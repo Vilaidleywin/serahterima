@@ -11,61 +11,90 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        if (Auth::check()) {
-            return redirect()->route('dashboard');
+        // Kalau belum login, tampilkan form
+        if (!Auth::check()) {
+            return view('auth.login');
         }
 
-        return view('auth.login');
+        // Kalau SUDAH login, arahkan sesuai role
+        $user = Auth::user();
+
+        switch ($user->role) {
+            case 'admin_internal':
+            case 'admin_komersial':
+                return redirect()->route('dashboard');
+
+            case 'user':
+            default:
+                return redirect()->route('dashboard');
+        }
     }
 
-    // 👉 TAMBAHKAN INI
     public function homeRedirect()
     {
-        // kalau sudah login, lempar ke dashboard
-        if (Auth::check()) {
-            return redirect()->route('dashboard');
+        if (!Auth::check()) {
+            return redirect()->route('login');
         }
 
-        // kalau belum login, lempar ke halaman login
-        return redirect()->route('login');
+        $user = Auth::user();
+
+        switch ($user->role) {
+            case 'admin_internal':
+            case 'admin_komersial':
+                return redirect()->route('dashboard');
+
+            case 'user':
+            default:
+                return redirect()->route('dashboard');
+        }
     }
-    // 👉 SAMPAI SINI
 
     public function login(Request $request)
-{
-    $data = $request->validate([
-        'login'    => ['required'],
-        'password' => ['required'],
-    ]);
+    {
+        $data = $request->validate([
+            'login'    => ['required'],
+            'password' => ['required'],
+        ]);
 
-    $login = $data['login'];
+        $login = $data['login'];
 
-    $user = User::where('email', $login)
-        ->orWhere('username', $login)
-        ->first();
+        $user = User::where('email', $login)
+            ->orWhere('username', $login)
+            ->first();
 
-    if (!$user || !Hash::check($data['password'], $user->password)) {
-        return back()
-            ->withErrors(['login' => 'Email/Username atau password salah.'])
-            ->withInput();
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return back()
+                ->withErrors(['login' => 'Email/Username atau password salah.'])
+                ->withInput();
+        }
+
+        if (!$user->is_active) {
+            return back()
+                ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
+                ->withInput();
+        }
+
+        // 🔐 Login
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        // ⬇️⬇️ TAMBAH DI SINI ⬇️⬇️
+        // Simpan session ID baru ke database (kolom session_id di tabel users)
+        $user->session_id = session()->getId();
+        $user->save();
+        // ⬆️⬆️ SAMPAI SINI ⬆️⬆️
+
+        // Mode “ditabrak”: tendang session lain user ini
+        Auth::logoutOtherDevices($data['password']);
+
+        // Default redirect beda tergantung role
+        $defaultRedirect = match ($user->role) {
+            'admin_internal', 'admin_komersial' => route('dashboard'),
+            default                             => route('dashboard'),
+        };
+
+        return redirect($defaultRedirect);
     }
-
-    if (!$user->is_active) {
-        return back()
-            ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
-            ->withInput();
-    }
-
-    // Login dulu
-    Auth::login($user, $request->boolean('remember'));
-    $request->session()->regenerate();
-
-    // 🔥 MODE DITABRAK: tendang semua session lain user ini
-    Auth::logoutOtherDevices($data['password']);
-
-    return redirect()->intended(route('dashboard'));
-}
-
 
     public function logout(Request $request)
     {

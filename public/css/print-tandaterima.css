@@ -105,6 +105,8 @@ h2 {
 
 /* ====== BLOK TANDA TANGAN ====== */
 
+/* ====== BLOK TANDA TANGAN ====== */
+
 .ttd-single {
   margin-top: 20mm;
 }
@@ -122,6 +124,12 @@ h2 {
 .ttd-sign {
   text-align: center;
   margin-bottom: 4mm;
+
+  /* FIX: ruang tanda tangan selalu ada */
+  min-height: 25mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .ttd-sign img {
@@ -129,6 +137,15 @@ h2 {
   max-height: 25mm;
 }
 
+/* kalau BELUM ada tanda tangan digital */
+.ttd-sign--empty::before {
+  content: "";
+  display: block;
+  width: 60mm;
+  border-bottom: 0.3pt solid #000;
+}
+
+/* nama & jabatan */
 .ttd-name {
   text-align: center;
   font-weight: 700;
@@ -140,6 +157,7 @@ h2 {
   text-align: center;
   font-weight: 400;
 }
+
 
 /* ====== FOOTER ====== */
 .footer-img {

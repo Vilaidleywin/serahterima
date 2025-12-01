@@ -36,10 +36,10 @@ Route::get('/', [AuthController::class, 'homeRedirect'])->name('home.redirect');
 
 /*
 |--------------------------------------------------------------------------
-| DASHBOARD & PROFILE (auth)
+| DASHBOARD & PROFILE (auth + single.session)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'auth.session'])->group(function () {
+Route::middleware(['auth', 'single.session'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,55 +48,56 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN AREA (auth + role admin)
+| ADMIN AREA (auth + single.session + role admin)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin_internal,admin_komersial'])
+Route::middleware(['auth', 'single.session', 'role:admin_internal,admin_komersial'])
     ->prefix('admin')->name('admin.')
     ->group(function () {
         // CRUD user
         Route::resource('users', UserController::class)->except(['show']);
 
-        // ⬇️ route toggle status user
+        // route toggle status user
         Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])
             ->name('users.toggle-status');
     });
 
-
 /*
 |--------------------------------------------------------------------------
-| DOCUMENTS (auth + role user [+ admin?])
+| DOCUMENTS (auth + single.session + role user)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])->prefix('documents')->name('documents.')->group(function () {
+Route::middleware(['auth', 'single.session', 'role:user'])
+    ->prefix('documents')
+    ->name('documents.')
+    ->group(function () {
 
-    // aksi tambahan
-    Route::post('bulk', [DocumentController::class, 'bulk'])->name('bulk');
+        // aksi tambahan
+        Route::post('bulk', [DocumentController::class, 'bulk'])->name('bulk');
 
-    Route::get('{document}/print',        [DocumentController::class, 'print'])->name('print');
-    Route::get('{document}/print-pdf',    [DocumentController::class, 'printPdf'])->name('print-pdf');
-    Route::get('{document}/tanda-terima', [DocumentController::class, 'printTandaTerima'])->name('print-tandaterima');
+        Route::get('{document}/print',        [DocumentController::class, 'print'])->name('print');
+        Route::get('{document}/print-pdf',    [DocumentController::class, 'printPdf'])->name('print-pdf');
+        Route::get('{document}/tanda-terima', [DocumentController::class, 'printTandaTerima'])->name('print-tandaterima');
 
-    Route::post('{document}/reject',      [DocumentController::class, 'reject'])->name('reject');
+        Route::post('{document}/reject',      [DocumentController::class, 'reject'])->name('reject');
 
-    Route::get('{document}/photo',        [DocumentController::class, 'photo'])->name('photo');
-    Route::post('{document}/photo',       [DocumentController::class, 'photoStore'])->name('photo.store');
+        Route::get('{document}/photo',        [DocumentController::class, 'photo'])->name('photo');
+        Route::post('{document}/photo',       [DocumentController::class, 'photoStore'])->name('photo.store');
 
-    Route::get('{document}/sign',         [DocumentController::class, 'sign'])->name('sign');
-    Route::post('{document}/sign',        [DocumentController::class, 'signStore'])->name('sign.store');
+        Route::get('{document}/sign',         [DocumentController::class, 'sign'])->name('sign');
+        Route::post('{document}/sign',        [DocumentController::class, 'signStore'])->name('sign.store');
 
-    // resource CRUD utama (pakai '' bukan '/')
-    Route::resource('', DocumentController::class)
-        ->parameters(['' => 'document'])
-        ->names([
-            'index'   => 'index',
-            'create'  => 'create',
-            'store'   => 'store',
-            'show'    => 'show',
-            'edit'    => 'edit',
-            'update'  => 'update',
-            'destroy' => 'destroy',
-        ]);
-});
+        Route::resource('', DocumentController::class)
+            ->parameters(['' => 'document'])
+            ->names([
+                'index'   => 'index',
+                'create'  => 'create',
+                'store'   => 'store',
+                'show'    => 'show',
+                'edit'    => 'edit',
+                'update'  => 'update',
+                'destroy' => 'destroy',
+            ]);
+    });
 
 // HAPUS route lama yang bentrok seperti prefix('serahterima')->resource('documents', ...)

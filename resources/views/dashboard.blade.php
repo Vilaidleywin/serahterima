@@ -2,7 +2,6 @@
 
 @push('styles')
   <style>
-    /* ===== Tampilan lembut seperti contoh ===== */
     body {
       background: #f3f4f6;
     }
@@ -10,7 +9,6 @@
     :root {
       --soft-bg: #ffffff;
       --soft-br: #e5e7eb;
-      /* gray-200 */
       --soft-shadow: 0 8px 24px rgba(0, 0, 0, .06);
     }
 
@@ -44,19 +42,14 @@
       font-weight: 600;
     }
 
-    .pill-gray {
-      background: #6B7280;
-      color: #fff;
-    }
+    .pill-gray  { background: #6B7280; color: #fff; }
+    .pill-green { background: #22C55E; color: #fff; }
+    .pill-red   { background: #EF4444; color: #fff; }
 
-    .pill-green {
-      background: #22C55E;
-      color: #fff;
-    }
-
-    .pill-red {
-      background: #EF4444;
-      color: #fff;
+    /* ini udah ga dipake buat teks, tapi biarin aja ga ngaruh */
+    #donutCenter {
+      font-size: 1.6rem;
+      transform: translateY(2px);
     }
   </style>
 @endpush
@@ -72,7 +65,6 @@
   {{-- Row 1: Ringkasan --}}
   <div class="row g-3 mb-3">
     @php
-      // Pastikan ada nilai draft walaupun controller belum kirim
       $draftSafe = isset($draft) ? $draft : max(0, (int) $total - (int) $submitted - (int) $rejected);
 
       $tiles = [
@@ -122,8 +114,9 @@
         <div class="fw-semibold mb-2">Share Status (total)</div>
         <div style="height:200px; position:relative">
           <canvas id="donutChart"></canvas>
+          {{-- div ini dibiarkan kosong, teks sekarang digambar langsung di chart --}}
           <div id="donutCenter"
-            style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700;">
+               style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700;">
           </div>
         </div>
       </div>
@@ -192,12 +185,12 @@
       const lineEl = document.getElementById('lineChart');
       if (lineEl) {
         const labels = @json($lineLabels ?? []);
-        const data = @json($lineData ?? []);
+        const data   = @json($lineData ?? []);
         const ranges = @json($lineRanges ?? []); // { start, end } per bulan
 
         const ctx = lineEl.getContext('2d');
 
-        const lineChart = new Chart(lineEl, {
+        new Chart(lineEl, {
           type: 'line',
           data: {
             labels: arr(labels),
@@ -226,34 +219,24 @@
               x: { grid: { display: false } },
               y: { beginAtZero: true, ticks: { precision: 0 } }
             },
-
-            // HAND POINTER (kalau ada titik terdekat)
-            onHover: function (evt) {
+            onHover(evt) {
               const points = this.getElementsAtEventForMode(
-                evt,
-                'nearest',
-                { intersect: false },
-                true
+                evt, 'nearest', { intersect: false }, true
               );
               evt.native.target.style.cursor = points.length ? 'pointer' : 'default';
             },
-
-            // CLICK DI TITIK / GARIS / TOOLTIP -> FILTER BULAN ITU
-            onClick: function (evt) {
+            onClick(evt) {
               const points = this.getElementsAtEventForMode(
-                evt,
-                'nearest',
-                { intersect: false },
-                true
+                evt, 'nearest', { intersect: false }, true
               );
               if (!points.length) return;
 
-              const idx = points[0].index;
+              const idx   = points[0].index;
               const range = (ranges || [])[idx];
               if (!range) return;
 
               const baseUrl = `{{ route('documents.index') }}`;
-              const params = new URLSearchParams({
+              const params  = new URLSearchParams({
                 date_from: range.start,
                 date_to: range.end,
               });
@@ -264,25 +247,23 @@
         });
       }
 
-      /* ===== BAR (bulan ini) – paksa urutan SUBMITTED, REJECTED, DRAFT ===== */
+      /* ===== BAR (bulan ini) ===== */
       const barEl = document.getElementById('barChart');
       if (barEl) {
-        const rawLabels = @json($barLabels ?? []);   // dari controller (bisa acak)
-        const rawData = @json($barData ?? []);
+        const rawLabels = @json($barLabels ?? []);
+        const rawData   = @json($barData ?? []);
         const wantOrder = ['SUBMITTED', 'REJECTED', 'DRAFT'];
 
-        // buat map {label: nilai}
         const map = {};
         rawLabels.forEach((l, i) => { map[l] = Number(rawData[i] || 0); });
 
-        // reorder sesuai urutan yang diinginkan
         const labels = wantOrder;
-        const data = labels.map(l => map[l] ?? 0);
+        const data   = labels.map(l => map[l] ?? 0);
 
         const palette = {
           SUBMITTED: { bg: '#22C55ECC', border: '#22C55E' },
-          REJECTED: { bg: '#EF4444CC', border: '#EF4444' },
-          DRAFT: { bg: '#6B7280CC', border: '#6B7280' }
+          REJECTED : { bg: '#EF4444CC', border: '#EF4444' },
+          DRAFT    : { bg: '#6B7280CC', border: '#6B7280' }
         };
         const bgColors = labels.map(l => palette[l].bg);
         const brColors = labels.map(l => palette[l].border);
@@ -290,73 +271,108 @@
         new Chart(barEl, {
           type: 'bar',
           data: {
-            labels, datasets: [{
+            labels,
+            datasets: [{
               data,
               backgroundColor: bgColors,
               borderColor: brColors,
-              borderWidth: 2, borderRadius: 10, hoverBorderWidth: 3
+              borderWidth: 2,
+              borderRadius: 10,
+              hoverBorderWidth: 3
             }]
           },
           options: {
-            responsive: true, maintainAspectRatio: false,
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
               datalabels: {
-                color: '#111827', anchor: 'end', align: 'start',
+                color: '#111827',
+                anchor: 'end',
+                align: 'start',
                 font: { weight: '600' },
                 formatter: v => (typeof v === 'number' && v > 0) ? v : ''
               }
             },
-            onClick: (e, els) => {
+            onClick(e, els) {
               if (els.length) {
                 const status = labels[els[0].index];
-                const base = `{{ route('documents.index') }}`;
+                const base   = `{{ route('documents.index') }}`;
                 window.location.href = `${base}?status=${encodeURIComponent(status)}`;
               }
             },
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } }
+            scales: {
+              x: { grid: { display: false } },
+              y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } }
+            }
           }
         });
       }
 
-      /* ===== DONUT (share total) – robust, tidak ketuker ===== */
+      /* ===== DONUT (share total) ===== */
       const donutEl = document.getElementById('donutChart');
       if (donutEl) {
         const rawLabels = @json(($donut['labels'] ?? []) ?: []);
-        const rawData = @json(($donut['data'] ?? []) ?: []);
+        const rawData   = @json(($donut['data']   ?? []) ?: []);
 
-        // Normalisasi label agar case/spasi tidak bikin salah mapping
         const norm = s => String(s ?? '').trim().toUpperCase();
 
-        // Buat map jumlah per label (normalized)
         const map = {};
         rawLabels.forEach((l, i) => {
           map[norm(l)] = Number(rawData[i] ?? 0);
         });
 
-        // Urutan final yang diinginkan
         const labels = ['SUBMITTED', 'REJECTED', 'DRAFT'];
+        const data   = labels.map(l => map[norm(l)] ?? 0);
 
-        // Ambil data sesuai label (aman walau input beda case/spasi)
-        const data = labels.map(l => map[norm(l)] ?? 0);
-
-        // Tampilkan total di tengah
-        const total = data.reduce((a, b) => a + (+b || 0), 0);
-        const center = document.getElementById('donutCenter');
-        if (center) center.textContent = total;
-
-        // Warna diikat ke label agar tidak salah meski urutan berubah
         const palette = {
           SUBMITTED: '#22C55ECC',
-          REJECTED: '#EF4444CC',
-          DRAFT: '#6B7280CC'
+          REJECTED : '#EF4444CC',
+          DRAFT    : '#6B7280CC'
         };
         const bgColors = labels.map(l => palette[l]);
 
+        // plugin buat teks di tengah, pakai center point chart
+        const centerTextPlugin = {
+          id: 'centerText',
+          afterDraw(chart, args, opts) {
+            const { ctx } = chart;
+            const meta    = chart.getDatasetMeta(0);
+            if (!meta || !meta.data || !meta.data.length) return;
+
+            const centerX = meta.data[0].x;
+            const centerY = meta.data[0].y;
+            const total   = data.reduce((a, b) => a + (+b || 0), 0);
+
+            ctx.save();
+            ctx.font = 'bold 26px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = '#111827';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(total, centerX, centerY);
+            ctx.restore();
+          }
+        };
+
         new Chart(donutEl, {
           type: 'doughnut',
-          data: { labels, datasets: [{ data, backgroundColor: bgColors }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: bgColors,
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' }
+            },
+            cutout: '70%' // lubang agak gede biar angka enak keliatan
+          },
+          plugins: [centerTextPlugin]
         });
       }
 
@@ -364,6 +380,8 @@
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initCharts, { once: true });
-    } else { initCharts(); }
+    } else {
+      initCharts();
+    }
   </script>
 @endpush
