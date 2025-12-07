@@ -9,18 +9,13 @@ class CheckSingleSession
 {
     public function handle($request, Closure $next)
     {
-        $user = Auth::user();
+        // ... kode yang sudah ada di middleware lu (JANGAN DIHAPUS)
 
-        if ($user) {
-            // Kalau session_id di DB beda dengan session sekarang → tendang
-            if ($user->session_id !== session()->getId()) {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                return redirect()->route('login')
-                    ->with('error', 'Akun Anda login di perangkat lain.');
-            }
+        // === Tambahkan ini sebelum return $next($request); ===
+        if (Auth::check()) {
+            $user = Auth::user();
+            $user->last_seen = now();
+            $user->save();
         }
 
         return $next($request);

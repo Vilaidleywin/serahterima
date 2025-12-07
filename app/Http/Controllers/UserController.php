@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\DocumentController;
+use Illuminate\Support\Facades\DB;
+
 
 class UserController extends Controller
 {
@@ -148,10 +150,19 @@ class UserController extends Controller
             return back()->with('error', 'Tidak bisa menghapus diri sendiri.');
         }
 
-        $user->delete();
+        DB::transaction(function () use ($user) {
+            // hapus semua log login user ini dulu
+            DB::table('user_logins')
+                ->where('user_id', $user->id)
+                ->delete();
+
+            // baru hapus user
+            $user->delete();
+        });
 
         return back()->with('success', 'User berhasil dihapus.');
     }
+
 
     // ⬇️⬇️ METHOD BARU: toggle aktif/nonaktif
     public function toggleStatus(User $user)

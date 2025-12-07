@@ -26,6 +26,7 @@ class User extends Authenticatable
         'division',
         'created_by',
         'is_active',
+        'last_seen',
     ];
     public function creator()
     {
@@ -47,6 +48,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'last_seen' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',

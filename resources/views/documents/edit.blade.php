@@ -58,7 +58,8 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold">Divisi Tujuan Dokumen</label>
           <select name="division_tujuan"
-                  class="form-select @error('division_tujuan') is-invalid @enderror">
+                  class="form-select @error('division_tujuan') is-invalid @enderror"
+                  id="division-tujuan-select">
             <option value="">-- Pilih Divisi --</option>
             @foreach($divisions as $d)
               <option value="{{ $d }}"
@@ -81,6 +82,7 @@
           <label class="form-label fw-semibold">Divisi Tujuan (Other)</label>
           <input type="text"
                  name="division_tujuan_other"
+                 id="division_tujuan_other"
                  class="form-control @error('division_tujuan_other') is-invalid @enderror"
                  placeholder="Isi bila memilih Other"
                  value="{{ old('division_tujuan_other', $divisionOther ?? '') }}">
@@ -88,14 +90,38 @@
         </div>
 
         {{-- KETERANGAN TUJUAN / TEMPAT --}}
-        <div class="col-md-12">
+        <div class="col-md-6">
           <label class="form-label fw-semibold">Keterangan Tujuan / Tempat</label>
-          <input type="text"
-                 name="destination_desc"
-                 class="form-control @error('destination_desc') is-invalid @enderror"
-                 placeholder="Contoh: Ruang Meeting Lt. 2, Pelabuhan X, dll"
-                 value="{{ old('destination_desc', $destinationDesc ?? '') }}">
+          <select name="destination_desc"
+                  class="form-select @error('destination_desc') is-invalid @enderror"
+                  id="destination-desc-select">
+            <option value="">-- Pilih Keterangan --</option>
+            @foreach($destinationOptions as $opt)
+              <option value="{{ $opt }}"
+                {{ old('destination_desc', $destinationDesc ?? '') === $opt ? 'selected' : '' }}>
+                {{ $opt }}
+              </option>
+            @endforeach
+            <option value="Other"
+              {{ old('destination_desc', $destinationDesc ?? '') === 'Other' ? 'selected' : '' }}>
+              Other
+            </option>
+          </select>
           @error('destination_desc') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        </div>
+
+        {{-- KETERANGAN TUJUAN (OTHER) --}}
+        <div class="col-md-6"
+             id="destination-desc-other-group"
+             style="{{ old('destination_desc', $destinationDesc ?? '') === 'Other' ? '' : 'display:none;' }}">
+          <label class="form-label fw-semibold">Keterangan Tujuan (Other)</label>
+          <input type="text"
+                 name="destination_desc_other"
+                 id="destination_desc_other"
+                 class="form-control @error('destination_desc_other') is-invalid @enderror"
+                 placeholder="Isi bila memilih Other"
+                 value="{{ old('destination_desc_other', $destinationDescOther ?? '') }}">
+          @error('destination_desc_other') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
         {{-- NOMINAL --}}
@@ -120,7 +146,7 @@
 
         {{-- FILE (OPSIONAL) --}}
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Lampiran (Opsional)</label>
+          <label class="form-label fw-semibold">Lampiran (Wajib)</label>
           <input type="file"
                  name="file"
                  class="form-control @error('file') is-invalid @enderror">
@@ -158,23 +184,47 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const select = document.querySelector('select[name="division_tujuan"]');
-  const group  = document.getElementById('division-other-group');
+  // division other toggle
+  const divisionSelect = document.getElementById('division-tujuan-select');
+  const divisionOtherGroup = document.getElementById('division-other-group');
+  const divisionOtherInput = document.getElementById('division_tujuan_other');
 
-  if (!select || !group) return;
-
-  function toggleOther() {
-    if (select.value === 'Other') {
-      group.style.display = '';
+  function toggleDivisionOther() {
+    if (!divisionSelect || !divisionOtherGroup) return;
+    if (divisionSelect.value === 'Other') {
+      divisionOtherGroup.style.display = '';
+      if (divisionOtherInput) divisionOtherInput.setAttribute('required', 'required');
     } else {
-      group.style.display = 'none';
-      const input = group.querySelector('input[name="division_tujuan_other"]');
-      if (input) input.value = ''; // kosongkan kalau ganti dari Other ke divisi lain
+      divisionOtherGroup.style.display = 'none';
+      if (divisionOtherInput) {
+        divisionOtherInput.removeAttribute('required');
+        divisionOtherInput.value = '';
+      }
     }
   }
+  divisionSelect?.addEventListener('change', toggleDivisionOther);
+  toggleDivisionOther();
 
-  select.addEventListener('change', toggleOther);
-  toggleOther();
+  // destination desc other toggle
+  const destSelect = document.getElementById('destination-desc-select');
+  const destOtherGroup = document.getElementById('destination-desc-other-group');
+  const destOtherInput = document.getElementById('destination_desc_other');
+
+  function toggleDestOther() {
+    if (!destSelect || !destOtherGroup) return;
+    if (destSelect.value === 'Other') {
+      destOtherGroup.style.display = '';
+      if (destOtherInput) destOtherInput.setAttribute('required', 'required');
+    } else {
+      destOtherGroup.style.display = 'none';
+      if (destOtherInput) {
+        destOtherInput.removeAttribute('required');
+        destOtherInput.value = '';
+      }
+    }
+  }
+  destSelect?.addEventListener('change', toggleDestOther);
+  toggleDestOther();
 });
 </script>
 @endpush

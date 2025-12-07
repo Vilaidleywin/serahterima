@@ -108,8 +108,8 @@
             <th>Nama Dokumen</th>
             <th>Pengirim</th>
             <th>Penerima</th>
-            <th>Divisi</th>
-            <th>Tujuan</th>
+            <th>Divisi </th>
+            <th>Divisi Tujuan (Tujuan)</th>
             <th style="width:140px">Nominal (Rp)</th>
             <th style="width:120px">Tanggal</th>
             <th style="width:120px">Status</th>

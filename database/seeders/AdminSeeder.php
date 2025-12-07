@@ -16,7 +16,7 @@ class AdminSeeder extends Seeder
             ['email' => 'fitogantengaja@gmail.com'],
             [
                 'name' => 'Fito Ganteng',
-                'username'   => 'fito-ganteng',
+                'username'   => 'fitoganteng',
                 'password' => Hash::make('password123'),
                 'role' => 'admin_internal',
                 'division' => 'IT Internal',

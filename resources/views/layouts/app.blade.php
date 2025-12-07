@@ -183,48 +183,53 @@
     <nav class="menu">
       @php
         $u = auth()->user();
-        $isAdmin = false;
-        if ($u) {
-          if (method_exists($u, 'hasRole')) {
-            try {
-              $isAdmin = $u->hasRole(['admin_internal', 'admin_komersial']);
-            } catch (\Throwable $e) {
-            }
-          }
-          if (!$isAdmin)
-            $isAdmin = in_array(($u->role ?? ''), ['admin_internal', 'admin_komersial'], true);
-        }
+        $role = $u->role ?? null;
+        $isAdmin = in_array($role, ['admin_internal', 'admin_komersial'], true);
       @endphp
 
+      {{-- =======================================
+      ADMIN MENU
+      ======================================== --}}
       @if ($isAdmin)
-        <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+        <a class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+          href="{{ route('admin.dashboard') }}">
           <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
         </a>
+
         @if (Route::has('admin.users.index'))
           <a class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
             href="{{ route('admin.users.index') }}">
             <i class="ti ti-users"></i> <span>Pengguna</span>
           </a>
         @endif
+
+        {{-- =======================================
+        USER MENU
+        ======================================== --}}
       @else
         <a class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
           <i class="ti ti-layout-dashboard"></i> <span>Dashboard</span>
         </a>
+
         @if (Route::has('documents.index'))
           <a class="menu-item {{ request()->routeIs('documents.index') ? 'active' : '' }}"
             href="{{ route('documents.index') }}">
             <i class="ti ti-folder"></i> <span>Data Dokumen</span>
           </a>
         @endif
+
         @if (Route::has('documents.create'))
           <a class="menu-item {{ request()->routeIs('documents.create') ? 'active' : '' }}"
             href="{{ route('documents.create') }}">
             <i class="ti ti-file-plus"></i> <span>Input Dokumen</span>
           </a>
         @endif
+
       @endif
 
-      {{-- Logout --}}
+      {{-- =======================================
+      LOGOUT
+      ======================================== --}}
       <form id="logout-form" action="{{ route('logout') }}" method="POST" class="mt-auto">
         @csrf
         <button type="button" id="btn-logout" class="menu-item w-100 border-0 bg-transparent text-start">
@@ -233,6 +238,7 @@
       </form>
     </nav>
   </aside>
+
 
   {{-- MAIN --}}
   <main class="content">
@@ -371,37 +377,37 @@
   @endif
   {{-- Flash toast --}}
 
-@if (session('success'))
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: @json(session('success')),
-        showConfirmButton: false,
-        timer: 2200,
-        timerProgressBar: true
+  @if (session('success'))
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: @json(session('success')),
+          showConfirmButton: false,
+          timer: 2200,
+          timerProgressBar: true
+        });
       });
-    });
-  </script>
-@endif
+    </script>
+  @endif
 
-@if (session('error'))
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'error',
-        title: @json(session('error')),
-        showConfirmButton: false,
-        timer: 2600,
-        timerProgressBar: true
+  @if (session('error'))
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'error',
+          title: @json(session('error')),
+          showConfirmButton: false,
+          timer: 2600,
+          timerProgressBar: true
+        });
       });
-    });
-  </script>
-@endif
+    </script>
+  @endif
 
 
   @stack('scripts')

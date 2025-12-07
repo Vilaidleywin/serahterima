@@ -3,7 +3,10 @@
   $avatar = $user->avatar
     ? asset('storage/' . $user->avatar)
     : 'https://cdn-icons-png.flaticon.com/512/3177/3177440.png';
+
+  $isAdmin = in_array(($user->role ?? ''), ['admin_internal', 'admin_komersial'], true);
 @endphp
+
 
 
 <header class="topbar d-flex justify-content-between align-items-center px-3" role="banner" aria-label="Topbar">
@@ -15,7 +18,8 @@
     </button>
 
     {{-- Brand / judul --}}
-    <a href="{{ route('dashboard') }}" class="text-decoration-none d-flex align-items-center gap-2">
+    <a href="{{ $isAdmin ? route('admin.dashboard') : route('dashboard') }}"
+      class="text-decoration-none d-flex align-items-center gap-2">
       <img src="{{ asset('images/logo2.png') }}" alt="Logo"
         style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:3px">
       <strong class="text-dark">Serah Terima</strong>
@@ -111,11 +115,12 @@
 
     <div class="mobile-drawer-body">
       @if ($isAdmin)
-        {{-- MENU ADMIN --}}
-        <a href="{{ route('dashboard') }}" class="mobile-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+        <a href="{{ route('admin.dashboard') }}"
+          class="mobile-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}">
           <i class="ti ti-home-2"></i>
           <span>Dashboard</span>
         </a>
+
 
         @if (Route::has('admin.users.index'))
           <a href="{{ route('admin.users.index') }}"
@@ -167,169 +172,7 @@
 
 <div id="mobileNavBackdrop" class="mobile-drawer-backdrop d-lg-none" hidden></div>
 
-<style>
-  :root {
-    --topbar-h: 72px;
-    --nav-bg: #1f3555;
-    --nav-bg-2: #192c49;
-    --nav-text: #e8eef7;
-    --nav-hover: #2a476f;
-  }
 
-  /* TOPBAR */
-  .topbar {
-    position: fixed;
-    inset: 0 0 auto 0;
-    height: var(--topbar-h);
-    z-index: 1200;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  /* Pastikan di layout utama, konten dibungkus dengan class "app-main" */
-  .app-main {
-    padding-top: var(--topbar-h);
-  }
-
-  .topbar .btn-user {
-    padding: 6px 10px;
-    border-radius: 999px;
-  }
-
-  .dropdown-menu {
-    border-radius: 14px;
-    padding: 8px;
-    min-width: 220px;
-  }
-
-  .dropdown-item {
-    padding: .65rem .85rem;
-    border-radius: 10px;
-  }
-
-  .dropdown-item:hover {
-    background: #f3f4f6;
-  }
-
-  .menu-compact {
-    min-width: 220px;
-  }
-
-  .menu-backdrop {
-    display: none !important;
-  }
-
-  /* === MOBILE DRAWER FULL-SCREEN ala GLPI === */
-  .mobile-drawer {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    pointer-events: none;
-  }
-
-  .mobile-drawer-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    max-width: 100vw;
-    background: var(--nav-bg);
-    color: var(--nav-text);
-    display: flex;
-    flex-direction: column;
-    transform: translateY(-100%);
-    transition: transform .22s ease;
-    box-shadow: none;
-  }
-
-  .mobile-drawer-header {
-    padding: .9rem 1rem;
-    background: var(--nav-bg-2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, .12);
-  }
-
-  .mobile-brand-logo {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-  }
-
-  .mobile-drawer-body {
-    padding: .5rem .5rem 1rem;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .mobile-link {
-    display: flex;
-    align-items: center;
-    gap: .6rem;
-    padding: .75rem 1rem;
-    border-radius: 12px;
-    color: inherit;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: .95rem;
-  }
-
-  .mobile-link i {
-    width: 20px;
-    text-align: center;
-    opacity: .9;
-  }
-
-  .mobile-link:hover {
-    background: var(--nav-hover);
-  }
-
-  .mobile-link.is-active {
-    background: #163157;
-  }
-
-  .mobile-separator {
-    height: 1px;
-    background: rgba(255, 255, 255, .15);
-    margin: .6rem 0;
-  }
-
-  .mobile-drawer-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .25);
-    backdrop-filter: blur(1px);
-    z-index: 1199;
-  }
-
-  .mobile-drawer-backdrop[hidden] {
-    display: none !important;
-  }
-
-  .mobile-drawer.open {
-    pointer-events: auto;
-  }
-
-  .mobile-drawer.open .mobile-drawer-inner {
-    transform: translateY(0);
-  }
-
-  /* Hide sidebar di mobile – konten full */
-  @media (max-width: 992px) {
-
-    .sidebar,
-    .sidebar.open,
-    .sidebar-backdrop {
-      display: none !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-  }
-</style>
 
 <script>
   (function () {

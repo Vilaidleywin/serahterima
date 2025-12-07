@@ -14,7 +14,11 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+
+        // 👉 PAKSA UPDATE LAST SEEN BERJALAN DI SEMUA REQUEST
+        // \App\Http\Middleware\UpdateLastSeen::class,
     ];
+
 
     // Groups
     protected $middlewareGroups = [
@@ -27,6 +31,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
         ],
+
 
         'api' => [
             'throttle:api',

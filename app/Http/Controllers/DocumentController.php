@@ -51,10 +51,6 @@ class DocumentController extends Controller
      * Pecah nilai destination menjadi:
      *  - [0] => divisi tujuan (bisa dari DIVISIONS atau custom)
      *  - [1] => deskripsi tujuan (dalam kurung) kalau ada
-     *
-     * Contoh:
-     *  "IT Internal (Ruang 201)" => ["IT Internal", "Ruang 201"]
-     *  "IT Internal"             => ["IT Internal", null]
      */
     private function splitDestination(?string $destination): array
     {
@@ -62,12 +58,10 @@ class DocumentController extends Controller
         $desc = null;
 
         if ($destination) {
-            // Pola: "Divisi (Deskripsi)"
             if (preg_match('/^(.*?)\s*\((.*)\)$/', $destination, $m)) {
                 $division = trim($m[1]);
                 $desc     = trim($m[2]);
             } else {
-                // kalau tidak ada (), anggap seluruh nilai sebagai "divisi tujuan"
                 $division = trim($destination);
             }
         }
@@ -136,13 +130,11 @@ class DocumentController extends Controller
         $tz  = 'Asia/Jakarta';
         $now = Carbon::now($tz);
 
-        // Per page whitelist
         $per = (int) $req->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50], true) ? $per : 15;
 
         $q = Document::query();
 
-        // --- enforce viewer scope: non-admin only sees documents of their own division ---
         $user = Auth::user();
         $isAdmin = $user && (method_exists($user, 'isAdmin') ? $user->isAdmin() : (($user->role ?? '') === 'admin'));
 
@@ -151,14 +143,12 @@ class DocumentController extends Controller
             if ($userDivision) {
                 $q->where('division', $userDivision);
             } else {
-                // user has no division -> return empty set
                 $q->whereNull('id');
             }
         } else {
             $userDivision = null;
         }
 
-        // --------------------------- FULL TEXT SEARCH --------------------------
         if ($raw = trim((string) $req->input('search'))) {
             $s = Str::of($raw)->lower()->toString();
 
@@ -224,24 +214,11 @@ class DocumentController extends Controller
             });
         }
 
-        // ------------------------------ FILTERS --------------------------------
         if ($st = $req->input('status'))  $q->where('status', $st);
-
-        // Destination filter must use destination_filter param to avoid confusion with owner division
         if ($dest = $req->input('destination_filter')) {
             $q->where('destination', 'like', "%{$dest}%");
         }
 
-        /**
-         * QUICK PERIOD (periode cepat) + TANGGAL DOKUMEN
-         *
-         * View kirim:
-         *   - period: null | yesterday | last_week | last_month
-         *   - date_from, date_to: tanggal manual
-         *
-         * Quick period akan mengisi date_from/date_to kalau user belum isi manual.
-         * Semua filter ini diarahkan ke kolom `date` (bukan created_at).
-         */
         $dateFrom = $req->input('date_from');
         $dateTo   = $req->input('date_to');
 
@@ -256,7 +233,6 @@ class DocumentController extends Controller
                     break;
 
                 case 'last_week':
-                    // minggu lalu (Senin–Minggu minggu sebelumnya)
                     $start = $now->copy()->subWeek()->startOfWeek(Carbon::MONDAY);
                     $end   = $now->copy()->subWeek()->endOfWeek(Carbon::SUNDAY);
                     break;
@@ -267,16 +243,10 @@ class DocumentController extends Controller
                     break;
             }
 
-            // Hanya auto-set kalau user belum isi manual di form
-            if ($start && !$dateFrom) {
-                $dateFrom = $start->toDateString();
-            }
-            if ($end && !$dateTo) {
-                $dateTo = $end->toDateString();
-            }
+            if ($start && !$dateFrom) $dateFrom = $start->toDateString();
+            if ($end && !$dateTo) $dateTo = $end->toDateString();
         }
 
-        // created_at range (kalau suatu saat ada filter created_from/created_to di UI)
         if ($from = $req->input('created_from')) {
             $q->whereDate('created_at', '>=', $from);
         }
@@ -284,7 +254,6 @@ class DocumentController extends Controller
             $q->whereDate('created_at', '<=', $to);
         }
 
-        // date range utama pakai kolom `date`
         if ($dateFrom) {
             $q->whereDate('date', '>=', $dateFrom);
         }
@@ -292,7 +261,6 @@ class DocumentController extends Controller
             $q->whereDate('date', '<=', $dateTo);
         }
 
-        // overdue filter (SUBMITTED yang lewat X hari)
         if ($overdue = $req->integer('overdue_days')) {
             $cutoff = $now->copy()->subDays($overdue)->toDateString();
             $q->where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
@@ -311,14 +279,13 @@ class DocumentController extends Controller
             ->paginate($per)
             ->withQueryString();
 
-        // Ambil list tujuan (destination) yang TERLIHAT oleh user saat ini (sesuai scope di atas)
         $divisions = $q->getModel()->newQuery()
             ->when(!$isAdmin, function ($query) use ($userDivision) {
                 return $query->where('division', $userDivision);
             })
             ->select('destination')->distinct()->pluck('destination')->filter()->values();
 
-        // ======================= summary / charts data (filtered by userDivision) =======================
+        // summary / charts data...
         $countsQuery = Document::query();
         if (!$isAdmin) {
             $countsQuery->where('division', $userDivision);
@@ -398,7 +365,7 @@ class DocumentController extends Controller
         $createdWeek  = $createdWeekQuery->count();
         $createdMonth = $createdMonthQuery->count();
 
-        $overdueDays = (int) $req->integer('overdue_days', 7); // default 7 hari
+        $overdueDays = (int) $req->integer('overdue_days', 7);
         $cutoff = $now->copy()->subDays($overdueDays)->toDateString();
 
         $submittedOverdueQuery = Document::where('status', 'SUBMITTED')->where(function ($w) use ($cutoff) {
@@ -424,8 +391,6 @@ class DocumentController extends Controller
             'documents' => $documents,
             'per_page'  => $per,
             'divisions' => $divisions,
-
-            // Ringkasan & chart data
             'total'     => $total,
             'submitted' => $submitted,
             'rejected'  => $rejected,
@@ -435,7 +400,6 @@ class DocumentController extends Controller
             'barData'   => $barData,
             'lineLabels' => $lineLabels,
             'lineData'  => $lineData,
-
             'createdToday'       => $createdToday,
             'createdWeek'        => $createdWeek,
             'createdMonth'       => $createdMonth,
@@ -461,37 +425,39 @@ class DocumentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'number'         => ['required', 'string', 'max:50', 'unique:documents,number'],
-            'title'          => ['required', 'string', 'max:255'],
-            'sender'         => ['required', 'string', 'max:100'],
-            'receiver'       => ['required', 'string', 'max:100'],
-            'destination_desc' => ['nullable', 'string', 'max:255'],
-            'division_tujuan'       => ['required', 'string', 'max:100'],
-            'division_tujuan_other' => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
-            'amount_idr'     => ['required'],
-            'date'           => ['required', 'date'],
-            'description'    => ['nullable', 'string'],
-            'file'           => ['required', 'file', 'max:5120'],
+            'number'                  => ['required', 'string', 'max:50', 'unique:documents,number'],
+            'title'                   => ['required', 'string', 'max:255'],
+            'sender'                  => ['required', 'string', 'max:100'],
+            'receiver'                => ['required', 'string', 'max:100'],
+            'destination_desc'        => ['nullable', 'string', 'max:255'],
+            'destination_desc_other'  => ['required_if:destination_desc,Other', 'nullable', 'string', 'max:255'],
+            'division_tujuan'         => ['required', 'string', 'max:100'],
+            'division_tujuan_other'   => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
+            'amount_idr'              => ['required'],
+            'date'                    => ['required', 'date'],
+            'description'             => ['nullable', 'string'],
+            'file'                    => ['required', 'file', 'max:5120'],
         ]);
 
-        // defensive: remove any client-provided division keys (do not trust client)
         $data = Arr::except($data, ['division', 'owner_division_input']);
 
-        // 1. Ambil Divisi Tujuan dari input (untuk kolom destination saja)
+        // 1. Divisi Tujuan final
         $divisiTujuan = $request->input('division_tujuan');
         if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
             $divisiTujuan = $request->input('division_tujuan_other');
         }
+        $data['division_destination'] = $divisiTujuan;
 
-        // 2. Simpan Divisi Tujuan ke kolom 'destination' (kompromi skema)
+        // 2. Deskripsi tujuan final
         $tujuanDeskripsi = $request->input('destination_desc');
+        if (strtoupper((string)$tujuanDeskripsi) === 'OTHER' && $request->filled('destination_desc_other')) {
+            $tujuanDeskripsi = $request->input('destination_desc_other');
+        }
+
+        // 3. Simpan ke kolom destination
         $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
 
-        // 3. PAKSA Divisi dokumen (kolom 'division') diisi dengan Divisi Pembuat (User yang login)
-        //    Namun karena 'division' tidak fillable kami akan set langsung pada model setelah create
-        //    untuk mencegah client overwrite.
-        // Membersihkan data input yang tidak ada di database sebelum Document::create
-        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc']);
+        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc'], $data['destination_desc_other']);
 
         $data['amount_idr'] = $this->sanitizeAmount($request->input('amount_idr'));
         $data['status']     = 'DRAFT';
@@ -502,10 +468,8 @@ class DocumentController extends Controller
 
         $data['user_id'] = Auth::id() ?? null;
 
-        // buat record
         $document = Document::create($data);
 
-        // set division secara eksplisit pada model hasil create (karena division tidak fillable)
         $document->division = Auth::user()->division ?? 'UNKNOWN';
         $document->save();
 
@@ -517,13 +481,26 @@ class DocumentController extends Controller
         // pecah destination menjadi [divisi_tujuan, deskripsi_tujuan]
         [$divisionTujuan, $destinationDesc] = $this->splitDestination($document->destination);
 
-        // kalau nilai "divisi tujuan" bukan salah satu dari DIVISIONS, anggap sebagai Other
         $divisionValue = $divisionTujuan;
         $divisionOther = null;
 
         if ($divisionTujuan && !in_array($divisionTujuan, self::DIVISIONS, true)) {
             $divisionValue = 'Other';
             $divisionOther = $divisionTujuan;
+        }
+
+        // Siapkan daftar opsi tujuan umum (bisa kamu ganti/ambil dari DB jika mau)
+        $destinationOptions = [
+            'Cyber 1',
+            'Gudang Cakung',
+            'PID Kemayoran',
+        ];
+
+        // jika deskripsi bukan salah satu option, anggap sebagai Other dan isi destinationDescOther
+        $destinationDescOther = null;
+        if ($destinationDesc && !in_array($destinationDesc, $destinationOptions, true)) {
+            $destinationDescOther = $destinationDesc;
+            $destinationDesc = 'Other';
         }
 
         return view('documents.edit', [
@@ -538,6 +515,8 @@ class DocumentController extends Controller
             'divisionValue'   => $divisionValue,
             'divisionOther'   => $divisionOther,
             'destinationDesc' => $destinationDesc,
+            'destinationOptions' => $destinationOptions,
+            'destinationDescOther' => $destinationDescOther,
         ]);
     }
 
@@ -553,7 +532,7 @@ class DocumentController extends Controller
 
         $document->status        = 'REJECTED';
         $document->reject_reason = $validated['reject_reason'];
-        $document->rejected_at   = now('Asia/Jakarta');   // <<< TAMBAHKAN INI
+        $document->rejected_at   = now('Asia/Jakarta');
         $document->save();
 
         return redirect()
@@ -563,43 +542,51 @@ class DocumentController extends Controller
 
     public function update(Request $request, Document $document)
     {
-        // tandai dulu apakah dokumen sebelumnya REJECTED
         $wasRejected = $document->status === 'REJECTED';
 
         $data = $request->validate([
-            'number'               => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
-            'title'                => ['required', 'string', 'max:255'],
-            'sender'               => ['required', 'string', 'max:255'],
-            'receiver'             => ['nullable', 'string', 'max:100'],
-            'destination_desc'     => ['nullable', 'string', 'max:255'],
-            'division_tujuan'      => ['required', 'string', 'max:100'],
-            'division_tujuan_other'=> ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
-            'amount_idr'           => ['nullable'],
-            'date'                 => ['nullable', 'date'],
-            'description'          => ['nullable', 'string'],
-            'file'                 => ['nullable', 'file', 'max:5120'],
+            'number'                  => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
+            'title'                   => ['required', 'string', 'max:255'],
+            'sender'                  => ['required', 'string', 'max:255'],
+            'receiver'                => ['nullable', 'string', 'max:100'],
+            'destination_desc'        => ['nullable', 'string', 'max:255'],
+            'destination_desc_other'  => ['required_if:destination_desc,Other', 'nullable', 'string', 'max:255'],
+            'division_tujuan'         => ['required', 'string', 'max:100'],
+            'division_tujuan_other'   => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
+            'amount_idr'              => ['nullable'],
+            'date'                    => ['nullable', 'date'],
+            'description'             => ['nullable', 'string'],
         ]);
 
-        // --- rakit ulang destination sama persis dengan store() ---
+        // file wajib hanya ketika dokumen belum punya file_path
+        if (empty($document->file_path)) {
+            $rules['file'] = ['required', 'file', 'max:5120'];
+        } else {
+            $rules['file'] = ['nullable', 'file', 'max:5120'];
+        }
+
+        $data = $request->validate($rules);
+        
         $divisiTujuan = $request->input('division_tujuan');
         if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
             $divisiTujuan = $request->input('division_tujuan_other');
         }
 
         $tujuanDeskripsi = $request->input('destination_desc');
+        if (strtoupper((string)$tujuanDeskripsi) === 'OTHER' && $request->filled('destination_desc_other')) {
+            $tujuanDeskripsi = $request->input('destination_desc_other');
+        }
+
         $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
 
-        // bersihkan key yang bukan kolom di tabel
-        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc']);
+        unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc'], $data['destination_desc_other']);
 
-        // proses amount
         if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '' && $data['amount_idr'] !== null) {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
             unset($data['amount_idr']);
         }
 
-        // upload file baru jika ada
         if ($request->hasFile('file')) {
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
@@ -607,17 +594,14 @@ class DocumentController extends Controller
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
-        // Pastikan update tidak mengubah kolom 'division'
         if (array_key_exists('division', $data)) {
             unset($data['division']);
         }
 
-        // Jika sebelumnya REJECTED → otomatis reset ke DRAFT
         if ($wasRejected) {
             $data['status'] = 'DRAFT';
         }
 
-        // Simpan perubahan
         $document->update($data);
 
         return redirect()

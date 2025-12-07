@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -22,11 +23,11 @@ class AuthController extends Controller
         switch ($user->role) {
             case 'admin_internal':
             case 'admin_komersial':
-                return redirect()->route('dashboard');
+                return redirect()->route('admin.dashboard');   // <<< admin
 
             case 'user':
             default:
-                return redirect()->route('dashboard');
+                return redirect()->route('dashboard');         // <<< user
         }
     }
 
@@ -41,11 +42,11 @@ class AuthController extends Controller
         switch ($user->role) {
             case 'admin_internal':
             case 'admin_komersial':
-                return redirect()->route('dashboard');
+                return redirect()->route('admin.dashboard');   // <<< admin ke /admin/dashboard
 
             case 'user':
             default:
-                return redirect()->route('dashboard');
+                return redirect()->route('dashboard');         // <<< user ke /dashboard
         }
     }
 
@@ -68,28 +69,39 @@ class AuthController extends Controller
                 ->withInput();
         }
 
-        if (!$user->is_active) {
+        if (isset($user->is_active) && !$user->is_active) {
             return back()
                 ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
                 ->withInput();
         }
 
-        // 🔐 Login
+        // === LOGIN SUKSES ===
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        // ⬇️⬇️ TAMBAH DI SINI ⬇️⬇️
-        // Simpan session ID baru ke database (kolom session_id di tabel users)
+        // simpan session id di tabel users (punyamu)
         $user->session_id = session()->getId();
         $user->save();
-        // ⬆️⬆️ SAMPAI SINI ⬆️⬆️
 
-        // Mode “ditabrak”: tendang session lain user ini
+        // logout device lain
         Auth::logoutOtherDevices($data['password']);
 
-        // Default redirect beda tergantung role
+        // ====== LOG LOGIN KE TABEL user_logins ======
+        // DB::table('user_logins')->updateOrInsert(
+        //     ['user_id' => $user->id],
+        //     [
+        //         'ip'         => $request->ip(),
+        //         'user_agent' => $request->userAgent(),
+        //         'updated_at' => now(),
+        //         'created_at' => now(),
+        //     ]
+        // );
+
+        // ============================================
+
+        // Bedakan redirect berdasarkan role
         $defaultRedirect = match ($user->role) {
-            'admin_internal', 'admin_komersial' => route('dashboard'),
+            'admin_internal', 'admin_komersial' => route('admin.dashboard'),
             default                             => route('dashboard'),
         };
 
