@@ -30,6 +30,21 @@
             box-shadow: var(--shadow);
         }
 
+        .btn-link {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+        padding: 2px 4px;
+        border-radius: 6px;
+        transition: .2s ease;
+        }
+
+        .btn-link:hover {
+            color: var(--primary-600);
+            background: rgba(30,58,138,.08);
+            text-decoration: underline;
+        }
+
         .tile {
             display: flex;
             align-items: center;
@@ -41,7 +56,7 @@
             box-shadow: 0 8px 20px rgba(2, 6, 23, .08);
             position: relative;
             overflow: hidden;
-        }
+}
 
         .tile:after {
             content: "";
