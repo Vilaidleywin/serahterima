@@ -206,11 +206,11 @@ class AdminDashboardController extends Controller
             $totalLoginsThisMonth  = $uniqueLoginsThisMonth;
         }
 
-        // === USER ONLINE: last_seen dalam N menit terakhir ===
-        $onlineWindowMinutes = 5;
+        // === USER ONLINE: last_seen FIX 5 DETIK ===
+        $onlineWindowSeconds = 5;
 
         $onlineUsers = User::whereNotNull('last_seen')
-            ->where('last_seen', '>=', now()->subMinutes($onlineWindowMinutes))
+            ->where('last_seen', '>=', now()->subSeconds($onlineWindowSeconds))
             ->count();
 
         return view('dashboard.admin', [
@@ -251,10 +251,10 @@ class AdminDashboardController extends Controller
      */
     public function onlineUsersCount()
     {
-        $onlineWindowMinutes = 5;
+        $onlineWindowSeconds = 5;
 
         $onlineUsers = User::whereNotNull('last_seen')
-            ->where('last_seen', '>=', now()->subMinutes($onlineWindowMinutes))
+            ->where('last_seen', '>=', now()->subSeconds($onlineWindowSeconds))
             ->count();
 
         return response()->json([

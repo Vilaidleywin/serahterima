@@ -359,7 +359,7 @@
         });
       });
     </script>
-  @endif
+  @endif  
   @if (session('error'))
     <script>
       window.addEventListener('DOMContentLoaded', () => {
