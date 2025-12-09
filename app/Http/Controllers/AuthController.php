@@ -12,22 +12,20 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        // Kalau belum login, tampilkan form
         if (!Auth::check()) {
             return view('auth.login');
         }
 
-        // Kalau SUDAH login, arahkan sesuai role
         $user = Auth::user();
 
         switch ($user->role) {
             case 'admin_internal':
             case 'admin_komersial':
-                return redirect()->route('admin.dashboard');   // <<< admin
+                return redirect()->route('admin.dashboard');
 
             case 'user':
             default:
-                return redirect()->route('dashboard');         // <<< user
+                return redirect()->route('dashboard');
         }
     }
 
@@ -42,11 +40,11 @@ class AuthController extends Controller
         switch ($user->role) {
             case 'admin_internal':
             case 'admin_komersial':
-                return redirect()->route('admin.dashboard');   // <<< admin ke /admin/dashboard
+                return redirect()->route('admin.dashboard');
 
             case 'user':
             default:
-                return redirect()->route('dashboard');         // <<< user ke /dashboard
+                return redirect()->route('dashboard');
         }
     }
 
@@ -79,30 +77,16 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        // simpan session id di tabel users (punyamu)
-        $user->session_id = session()->getId();
-        $user->save();
+        // === SET USER ONLINE ===
+       
 
-        // logout device lain
+        // Logout device lain
         Auth::logoutOtherDevices($data['password']);
 
-        // ====== LOG LOGIN KE TABEL user_logins ======
-        // DB::table('user_logins')->updateOrInsert(
-        //     ['user_id' => $user->id],
-        //     [
-        //         'ip'         => $request->ip(),
-        //         'user_agent' => $request->userAgent(),
-        //         'updated_at' => now(),
-        //         'created_at' => now(),
-        //     ]
-        // );
-
-        // ============================================
-
-        // Bedakan redirect berdasarkan role
+        // Redirect berdasarkan role
         $defaultRedirect = match ($user->role) {
             'admin_internal', 'admin_komersial' => route('admin.dashboard'),
-            default                             => route('dashboard'),
+            default => route('dashboard'),
         };
 
         return redirect($defaultRedirect);
@@ -110,6 +94,14 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // === SET OFFLINE SAAT LOGOUT ===
+        if (Auth::check()) {
+            Auth::user()->update([
+                'is_online' => false,
+                'last_seen' => now(),
+            ]);
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();

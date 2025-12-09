@@ -46,7 +46,7 @@ class AdminDashboardController extends Controller
                 ->value($roleColumn)
             : '-';
 
-        // ==== Divisi terbanyak (ini yang dipakai kartu kuning) ====
+        // Divisi terbanyak
         $divisionColumn = Schema::hasColumn('users', 'division') ? 'division' : null;
 
         $topDivision = $divisionColumn
@@ -56,9 +56,8 @@ class AdminDashboardController extends Controller
                 ->orderByDesc('jml')
                 ->value($divisionColumn)
             : null;
-        // ==========================================================
 
-        // Pilih sumber aktivitas: tabel user_logins (jika ada) atau fallback ke created_at user
+        // Pilih sumber aktivitas: tabel user_logins (jika ada)
         $useLoginTable = Schema::hasTable('user_logins');
 
         // --------- BULANAN (12 bulan terakhir) ----------
@@ -83,13 +82,13 @@ class AdminDashboardController extends Controller
         }
 
         $lineLabelsMonthly = $months->map(fn($m) => $m->translatedFormat('M Y'))->values();
-        $lineDataMonthly = $months->map(fn($m) => $rawMonth[$m->format('Y-m')] ?? 0)->values();
+        $lineDataMonthly   = $months->map(fn($m) => $rawMonth[$m->format('Y-m')] ?? 0)->values();
 
-        // --------- MINGGUAN (12 minggu terakhir) ----------
+        // --------- MINGGUAN ----------
         $startWeek = now()->startOfWeek()->subWeeks(11);
         $weeks = collect(range(0, 11))->map(function ($i) use ($startWeek) {
             $wkStart = $startWeek->copy()->addWeeks($i);
-            $wkEnd = $wkStart->copy()->endOfWeek();
+            $wkEnd   = $wkStart->copy()->endOfWeek();
             return ['start' => $wkStart, 'end' => $wkEnd];
         });
 
@@ -98,62 +97,62 @@ class AdminDashboardController extends Controller
         $lineDataWeekly = $weeks->map(function ($w) use ($useLoginTable) {
             $s = $w['start']->startOfDay();
             $e = $w['end']->endOfDay();
+
             if ($useLoginTable) {
                 return DB::table('user_logins')
                     ->whereBetween('created_at', [$s, $e])
                     ->count();
-            } else {
-                return User::whereBetween('created_at', [$s, $e])->count();
             }
+
+            return User::whereBetween('created_at', [$s, $e])->count();
         })->values();
 
-        // --------- HARIAN (30 hari terakhir) ----------
-        $startDay = now()->startOfDay()->subDays(29); // total 30 days
+        // --------- HARIAN ----------
+        $startDay = now()->startOfDay()->subDays(29);
         $days = collect(range(0, 29))->map(fn($i) => $startDay->copy()->addDays($i));
 
         $lineLabelsDaily = $days->map(fn($d) => $d->translatedFormat('d M'))->values();
         $lineDataDaily = $days->map(function ($d) use ($useLoginTable) {
             $s = $d->copy()->startOfDay();
             $e = $d->copy()->endOfDay();
+
             if ($useLoginTable) {
                 return DB::table('user_logins')
                     ->whereBetween('created_at', [$s, $e])
                     ->count();
-            } else {
-                return User::whereBetween('created_at', [$s, $e])->count();
             }
+
+            return User::whereBetween('created_at', [$s, $e])->count();
         })->values();
 
         // Pengguna terbaru
-        $selectCols = collect(['id', 'name', 'username', 'role', 'status', 'is_active', 'active', 'disabled_at'])
+        $selectCols = collect(['id', 'name', 'username', 'role', 'status', 'is_active', 'active', 'disabled_at', 'is_online'])
             ->filter(fn($c) => Schema::hasColumn('users', $c))
             ->values()
             ->all();
 
-        if (!in_array('id', $selectCols)) {
-            $selectCols[] = 'id';
-        }
-        if (!in_array('name', $selectCols)) {
-            $selectCols[] = 'name';
-        }
+        if (!in_array('id', $selectCols)) $selectCols[] = 'id';
+        if (!in_array('name', $selectCols)) $selectCols[] = 'name';
 
         $latestUsers = User::latest()
             ->take(5)
             ->get($selectCols)
             ->map(function ($u) {
-                $isActive = null;
 
+                // STATUS AKTIF (bukan online)
                 if (isset($u->is_active)) {
                     $isActive = (bool) $u->is_active;
                 } elseif (isset($u->active)) {
                     $isActive = (bool) $u->active;
                 } elseif (isset($u->status)) {
-                    $isActive = in_array($u->status, ['Aktif', 'active', 'ACTIVE', 1, '1', true], true);
+                    $isActive = in_array($u->status, ['Aktif','active','ACTIVE',1,'1',true], true);
                 } elseif (isset($u->disabled_at)) {
                     $isActive = $u->disabled_at === null;
+                } else {
+                    $isActive = true;
                 }
 
-                $u->is_active_view = $isActive ?? true;
+                $u->is_active_view = $isActive;
 
                 return $u;
             });
@@ -161,6 +160,7 @@ class AdminDashboardController extends Controller
         // Ringkasan minggu ini
         $weekStart = Carbon::now()->startOfWeek();
         $newThisWeek = User::where('created_at', '>=', $weekStart)->count();
+
         $deactivatedThisWeek = $hasDisabledAt
             ? User::where('disabled_at', '>=', $weekStart)->count()
             : ($hasIsActive
@@ -168,50 +168,33 @@ class AdminDashboardController extends Controller
                 : ($hasActive
                     ? User::where('updated_at', '>=', $weekStart)->where('active', 0)->count()
                     : ($hasStatus
-                        ? User::where('updated_at', '>=', $weekStart)->whereIn('status', ['Nonaktif', 'inactive', 'INACTIVE', 0, '0', false])->count()
+                        ? User::where('updated_at', '>=', $weekStart)->whereIn('status', ['Nonaktif','inactive','INACTIVE',0,'0',false])->count()
                         : 0)));
 
-        // === Ringkasan HARI INI: total login & user unik yg login ===
+        // Hari ini
         $todayStart = now()->startOfDay();
         $todayEnd   = now()->endOfDay();
 
         if ($useLoginTable) {
-            $totalLoginsToday = DB::table('user_logins')
-                ->whereBetween('created_at', [$todayStart, $todayEnd])
-                ->count();
-
-            $uniqueLoginsToday = DB::table('user_logins')
-                ->whereBetween('created_at', [$todayStart, $todayEnd])
-                ->distinct('user_id')
-                ->count('user_id');
+            $totalLoginsToday = DB::table('user_logins')->whereBetween('created_at', [$todayStart,$todayEnd])->count();
+            $uniqueLoginsToday = DB::table('user_logins')->whereBetween('created_at', [$todayStart,$todayEnd])->distinct('user_id')->count('user_id');
         } else {
-            $uniqueLoginsToday = User::whereBetween('created_at', [$todayStart, $todayEnd])->count();
+            $uniqueLoginsToday = User::whereBetween('created_at', [$todayStart,$todayEnd])->count();
             $totalLoginsToday  = $uniqueLoginsToday;
         }
 
-        // === Ringkasan bulan ini: total login & user unik yg login ===
+        // Bulan ini
         $monthStart = now()->startOfMonth();
-
         if ($useLoginTable) {
-            $totalLoginsThisMonth = DB::table('user_logins')
-                ->where('created_at', '>=', $monthStart)
-                ->count();
-
-            $uniqueLoginsThisMonth = DB::table('user_logins')
-                ->where('created_at', '>=', $monthStart)
-                ->distinct('user_id')
-                ->count('user_id');
+            $totalLoginsThisMonth  = DB::table('user_logins')->where('created_at','>=',$monthStart)->count();
+            $uniqueLoginsThisMonth = DB::table('user_logins')->where('created_at','>=',$monthStart)->distinct('user_id')->count('user_id');
         } else {
-            $uniqueLoginsThisMonth = User::where('created_at', '>=', $monthStart)->count();
+            $uniqueLoginsThisMonth = User::where('created_at','>=',$monthStart)->count();
             $totalLoginsThisMonth  = $uniqueLoginsThisMonth;
         }
 
-        // === USER ONLINE: last_seen FIX 5 DETIK ===
-        $onlineWindowSeconds = 5;
-
-        $onlineUsers = User::whereNotNull('last_seen')
-            ->where('last_seen', '>=', now()->subSeconds($onlineWindowSeconds))
-            ->count();
+        // === USER ONLINE — FIX ONLY THIS ===
+        $onlineUsers = User::where('is_online', 1)->count();
 
         return view('dashboard.admin', [
             'title'                 => 'Manajemen Pengguna',
@@ -220,45 +203,33 @@ class AdminDashboardController extends Controller
             'inactiveUsers'         => $inactiveUsers,
             'topRole'               => $topRole ?? '-',
             'topDivision'           => $topDivision,
-            // kirim semua dataset
             'lineLabelsMonthly'     => $lineLabelsMonthly,
             'lineDataMonthly'       => $lineDataMonthly,
             'lineLabelsWeekly'      => $lineLabelsWeekly,
             'lineDataWeekly'        => $lineDataWeekly,
             'lineLabelsDaily'       => $lineLabelsDaily,
             'lineDataDaily'         => $lineDataDaily,
-            // fallback lama
             'lineLabels'            => $lineLabelsMonthly,
             'lineData'              => $lineDataMonthly,
             'latestUsers'           => $latestUsers,
             'newThisWeek'           => $newThisWeek,
             'deactivatedThisWeek'   => $deactivatedThisWeek,
-            // HARI INI
             'totalLoginsToday'      => $totalLoginsToday,
             'uniqueLoginsToday'     => $uniqueLoginsToday,
-            // BULAN INI
             'totalLoginsThisMonth'  => $totalLoginsThisMonth,
             'uniqueLoginsThisMonth' => $uniqueLoginsThisMonth,
-            // initial view default: daily
             'initialView'           => 'daily',
-            // USER ONLINE
             'onlineUsers'           => $onlineUsers,
         ]);
     }
 
     /**
-     * Endpoint kecil buat AJAX realtime "User Online"
+     * Endpoint AJAX realtime User Online
      */
     public function onlineUsersCount()
     {
-        $onlineWindowSeconds = 5;
-
-        $onlineUsers = User::whereNotNull('last_seen')
-            ->where('last_seen', '>=', now()->subSeconds($onlineWindowSeconds))
-            ->count();
-
         return response()->json([
-            'online' => $onlineUsers,
+            'online' => User::where('is_online', 1)->count(),
         ]);
     }
 }

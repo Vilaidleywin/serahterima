@@ -26,6 +26,7 @@ class User extends Authenticatable
         'division',
         'created_by',
         'is_active',
+        'is_online',
         'last_seen',
     ];
     public function creator()
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_online' => 'boolean',
         ];
     }
 }
