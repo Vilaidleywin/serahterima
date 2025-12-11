@@ -16,11 +16,9 @@ class UserController extends Controller
     {
         $q = User::query();
 
-        // ambil per_page dari query, default 15 & whitelist
         $per_page = (int) $request->integer('per_page', 15);
         $per_page = in_array($per_page, [10, 15, 25, 50], true) ? $per_page : 15;
 
-        // pencarian: nama, username, email, role, division
         if ($s = (string) $request->query('search', '')) {
             $like = "%{$s}%";
             $q->where(function ($w) use ($like) {
@@ -46,7 +44,6 @@ class UserController extends Controller
     {
         return view('admin.users.form', [
             'mode'      => 'create',
-            // ambil daftar divisi statis dari DocumentController
             'divisions' => DocumentController::divisions(),
         ]);
     }
@@ -59,20 +56,17 @@ class UserController extends Controller
             'email'    => ['required', 'email', 'max:150', 'unique:users,email'],
             'division' => ['required', 'string', 'max:100'],
             'password' => ['required', 'min:8'],
-            // optional: kalau kamu kasih field status di form (aktif/nonaktif)
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $data['password']   = Hash::make($data['password']);
-        $data['role']       = 'user';        // kunci role tetap user
-        $data['created_by'] = auth()->id();  // tetap disimpan
+        $data['role']       = 'user';        
+        $data['created_by'] = auth()->id();  
 
-        // default: aktif kalau field tidak dikirim
         $data['is_active'] = $request->boolean('is_active', true);
 
         User::create($data);
 
-        // pakai 'success' biar keluar SweetAlert toast
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'User berhasil dibuat.');
@@ -89,7 +83,6 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        // Larang update untuk user dengan role admin/admin_internal/admin_komersial
         if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
             return redirect()
                 ->route('admin.users.index')
@@ -112,7 +105,6 @@ class UserController extends Controller
             ],
             'division' => ['required', 'string', 'max:100'],
             'password' => ['nullable', 'min:8'],
-            // optional: kalau kamu kasih field status di form edit
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -122,11 +114,9 @@ class UserController extends Controller
             unset($data['password']);
         }
 
-        // tidak boleh ubah kepemilikan & role lewat form
         unset($data['created_by']);
         $data['role'] = 'user';
 
-        // kalau form nggak kirim is_active, pakai nilai lama
         $data['is_active'] = $request->has('is_active')
             ? $request->boolean('is_active')
             : $user->is_active;
@@ -140,23 +130,19 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        // Larang hapus user admin/admin_internal/admin_komersial
         if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
             return back()->with('error', 'User dengan role admin tidak dapat dihapus.');
         }
 
-        // tetap: tidak boleh hapus diri sendiri
         if (auth()->id() === $user->id) {
             return back()->with('error', 'Tidak bisa menghapus diri sendiri.');
         }
 
         DB::transaction(function () use ($user) {
-            // hapus semua log login user ini dulu
             DB::table('user_logins')
                 ->where('user_id', $user->id)
                 ->delete();
 
-            // baru hapus user
             $user->delete();
         });
 
@@ -164,15 +150,12 @@ class UserController extends Controller
     }
 
 
-    // ⬇️⬇️ METHOD BARU: toggle aktif/nonaktif
     public function toggleStatus(User $user)
     {
-        // amankan: jangan ubah status admin*
         if (in_array($user->role, ['admin', 'admin_internal', 'admin_komersial'], true)) {
             return back()->with('error', 'User dengan role admin tidak dapat diubah statusnya.');
         }
 
-        // opsional: jangan izinkan user mengubah status dirinya sendiri
         if (auth()->id() === $user->id) {
             return back()->with('error', 'Tidak bisa mengubah status akun diri sendiri.');
         }

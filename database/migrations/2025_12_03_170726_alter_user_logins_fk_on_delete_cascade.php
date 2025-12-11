@@ -9,10 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('user_logins', function (Blueprint $table) {
-            // Hapus foreign key lama
-            $table->dropForeign(['user_id']); // ini sama dengan 'user_logins_user_id_foreign'
+            $table->dropForeign(['user_id']); 
 
-            // Bikin lagi dengan ON DELETE CASCADE
             $table->foreign('user_id')
                 ->references('id')
                 ->on('users')
@@ -23,7 +21,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('user_logins', function (Blueprint $table) {
-            // Balik ke versi tanpa cascade (opsional, bebas mau gimana)
             $table->dropForeign(['user_id']);
 
             $table->foreign('user_id')

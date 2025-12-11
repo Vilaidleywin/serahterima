@@ -350,7 +350,6 @@
 
                     <div class="mb-1">
                         <div class="kpi-number" id="onlineCount">{{ $onlineUsers }}</div>
-                        <div class="kpi-subtext">aktif dalam 5 menit terakhir</div>
                     </div>
 
                     <div class="kpi-subtext" style="border-top:1px dashed #e5e7eb;padding-top:.4rem;margin-top:.4rem;">

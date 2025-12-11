@@ -433,7 +433,7 @@ class DocumentController extends Controller
             'destination_desc_other'  => ['required_if:destination_desc,Other', 'nullable', 'string', 'max:255'],
             'division_tujuan'         => ['required', 'string', 'max:100'],
             'division_tujuan_other'   => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
-            'amount_idr'              => ['required'],
+            'amount_idr'              => ['nullable'],
             'date'                    => ['required', 'date'],
             'description'             => ['nullable', 'string'],
             'file'                    => ['required', 'file', 'max:5120'],
@@ -544,21 +544,26 @@ class DocumentController extends Controller
     {
         $wasRejected = $document->status === 'REJECTED';
 
-        $data = $request->validate([
+        // ========== VALIDASI ==========
+
+        $rules = [
             'number'                  => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
             'title'                   => ['required', 'string', 'max:255'],
             'sender'                  => ['required', 'string', 'max:255'],
             'receiver'                => ['nullable', 'string', 'max:100'],
+
             'destination_desc'        => ['nullable', 'string', 'max:255'],
             'destination_desc_other'  => ['required_if:destination_desc,Other', 'nullable', 'string', 'max:255'],
+
             'division_tujuan'         => ['required', 'string', 'max:100'],
             'division_tujuan_other'   => ['required_if:division_tujuan,Other', 'nullable', 'string', 'max:100'],
-            'amount_idr'              => ['nullable'],
+
+            'amount_idr'              => ['nullable'],  // <-- TIDAK WAJIB
             'date'                    => ['nullable', 'date'],
             'description'             => ['nullable', 'string'],
-        ]);
+        ];
 
-        // file wajib hanya ketika dokumen belum punya file_path
+        // FILE Wajib hanya saat belum ada
         if (empty($document->file_path)) {
             $rules['file'] = ['required', 'file', 'max:5120'];
         } else {
@@ -566,27 +571,33 @@ class DocumentController extends Controller
         }
 
         $data = $request->validate($rules);
-        
+
+        // ========== OLAH DATA ==========
+
+        // Divisi Tujuan
         $divisiTujuan = $request->input('division_tujuan');
-        if (strtoupper((string)$divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
-            $divisiTujuan = $request->input('division_tujuan_other');
+        if (strtoupper($divisiTujuan) === 'OTHER' && $request->filled('division_tujuan_other')) {
+            $divisiTujuan = $request->division_tujuan_other;
         }
 
+        // Keterangan Tujuan
         $tujuanDeskripsi = $request->input('destination_desc');
-        if (strtoupper((string)$tujuanDeskripsi) === 'OTHER' && $request->filled('destination_desc_other')) {
-            $tujuanDeskripsi = $request->input('destination_desc_other');
+        if (strtoupper($tujuanDeskripsi) === 'OTHER' && $request->filled('destination_desc_other')) {
+            $tujuanDeskripsi = $request->destination_desc_other;
         }
 
-        $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ({$tujuanDeskripsi})" : ""));
+        $data['destination'] = trim($divisiTujuan . ($tujuanDeskripsi ? " ($tujuanDeskripsi)" : ""));
 
         unset($data['division_tujuan'], $data['division_tujuan_other'], $data['destination_desc'], $data['destination_desc_other']);
 
-        if (array_key_exists('amount_idr', $data) && $data['amount_idr'] !== '' && $data['amount_idr'] !== null) {
+        // Nominal
+        if (!empty($data['amount_idr'])) {
             $data['amount_idr'] = $this->sanitizeAmount($data['amount_idr']);
         } else {
             unset($data['amount_idr']);
         }
 
+        // Upload file baru
         if ($request->hasFile('file')) {
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 Storage::disk('public')->delete($document->file_path);
@@ -594,13 +605,11 @@ class DocumentController extends Controller
             $data['file_path'] = $request->file('file')->store('documents', 'public');
         }
 
-        if (array_key_exists('division', $data)) {
-            unset($data['division']);
-        }
-
-        if ($wasRejected) {
+        // Jika sebelumnya REJECTED → kembali jadi DRAFT
+        if (in_array($document->status, ['SUBMITTED', 'REJECTED'])) {
             $data['status'] = 'DRAFT';
         }
+
 
         $document->update($data);
 
@@ -610,6 +619,7 @@ class DocumentController extends Controller
                 ? 'Dokumen berhasil diperbarui dan status dikembalikan ke DRAFT.'
                 : 'Dokumen berhasil diperbarui!');
     }
+
 
     public function destroy(Document $document)
     {

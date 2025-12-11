@@ -153,7 +153,7 @@
 
         {{-- CATATAN --}}
         <div class="col-12">
-          <label class="form-label fw-semibold">Catatan</label>
+          <label class="form-label fw-semibold">Catatan (Optional)</label>
           <textarea name="description"
                     rows="3"
                     class="form-control search">{{ old('description') }}</textarea>

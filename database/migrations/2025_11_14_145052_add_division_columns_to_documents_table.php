@@ -6,19 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
-        // Tambah created_by_division kalau belum ada
         if (!Schema::hasColumn('documents', 'created_by_division')) {
             Schema::table('documents', function (Blueprint $table) {
                 $table->string('created_by_division')->nullable()->after('division');
             });
         }
 
-        // Tambah target_division kalau belum ada
         if (!Schema::hasColumn('documents', 'target_division')) {
             Schema::table('documents', function (Blueprint $table) {
                 $table->string('target_division')->nullable()->after('created_by_division');

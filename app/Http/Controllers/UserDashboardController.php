@@ -13,7 +13,6 @@ class UserDashboardController extends Controller
         $user = auth()->user();
         $userDivision = $user->division ?? null;
 
-        // selalu return fresh Query Builder
         $docFactory = function () use ($userDivision) {
             $q = Document::query();
             if ($userDivision) {
@@ -22,13 +21,11 @@ class UserDashboardController extends Controller
             return $q;
         };
 
-        // Ringkasan status
         $draft     = $docFactory()->where('status', 'DRAFT')->count();
         $submitted = $docFactory()->where('status', 'SUBMITTED')->count();
         $rejected  = $docFactory()->where('status', 'REJECTED')->count();
         $total     = $draft + $submitted + $rejected;
 
-        // Range waktu
         $today = Carbon::today();
         $week  = Carbon::now()->startOfWeek();
         $month = Carbon::now()->startOfMonth();
@@ -37,7 +34,7 @@ class UserDashboardController extends Controller
         $createdWeek  = $docFactory()->whereDate('date', '>=', $week)->count();
         $createdMonth = $docFactory()->whereDate('date', '>=', $month)->count();
 
-        // Line chart 12 bulan
+        /* ======================= MONTHLY ======================= */
         $months = collect(range(11, 0))->map(
             fn($i) => Carbon::now()->startOfMonth()->subMonths($i)
         );
@@ -69,44 +66,116 @@ class UserDashboardController extends Controller
             ->values()
             ->toArray();
 
-        // Overdue SUBMITTED
+        $lineLabelsMonthly = $lineLabels;
+        $lineDataMonthly   = $lineData;
+        $lineRangesMonthly = $lineRanges;  // <-- FIX WAJIB ADA
+
+
+        /* ======================= DAILY ======================= */
+        $days = collect(range(29, 0))->map(
+            fn($i) => Carbon::today()->subDays($i)
+        );
+
+        $lineLabelsDaily = $days
+            ->map(fn($d) => $d->format('d M'))
+            ->values()
+            ->toArray();
+
+        $lineDataDaily = $days
+            ->map(fn($d) =>
+                $docFactory()->whereDate('date', $d)->count()
+            )
+            ->values()
+            ->toArray();
+
+        $lineRangesDaily = $days
+            ->map(fn($d) => [
+                'start' => $d->toDateString(),
+                'end'   => $d->toDateString(),
+            ])
+            ->values()
+            ->toArray();
+
+        /* ======================= WEEKLY ======================= */
+        $weeks = collect(range(11, 0))->map(
+            fn($i) => Carbon::now()->startOfWeek()->subWeeks($i)
+        );
+
+        $lineLabelsWeekly = $weeks
+            ->map(fn($w) => 'Minggu ' . $w->format('d M'))
+            ->values()
+            ->toArray();
+
+        $lineDataWeekly = $weeks
+            ->map(function ($w) use ($docFactory) {
+                return $docFactory()
+                    ->whereBetween('date', [
+                        $w->copy()->startOfWeek(),
+                        $w->copy()->endOfWeek(),
+                    ])
+                    ->count();
+            })
+            ->values()
+            ->toArray();
+
+        $lineRangesWeekly = $weeks
+            ->map(fn($w) => [
+                'start' => $w->copy()->startOfWeek()->toDateString(),
+                'end'   => $w->copy()->endOfWeek()->toDateString(),
+            ])
+            ->values()
+            ->toArray();
+
+
+        /* ======================= OTHER STATS ======================= */
+
         $overdueDays = 7;
+
         $submittedOverdue = $docFactory()
             ->where('status', 'SUBMITTED')
-            ->where('date', '<', now()->subDays($overdueDays))->count();
+            ->where('date', '<', now()->subDays($overdueDays))
+            ->count();
 
-        // Bar chart bulan ini
         $barLabels = ['DRAFT', 'SUBMITTED', 'REJECTED'];
         $barData = [
             $docFactory()->where('status', 'DRAFT')
                 ->whereMonth('date', now()->month)
                 ->whereYear('date', now()->year)
                 ->count(),
+
             $docFactory()->where('status', 'SUBMITTED')
                 ->whereMonth('date', now()->month)
                 ->whereYear('date', now()->year)
                 ->count(),
+
             $docFactory()->where('status', 'REJECTED')
                 ->whereMonth('date', now()->month)
                 ->whereYear('date', now()->year)
                 ->count(),
         ];
 
-        // Donut
         $donut = [
             'labels' => ['SUBMITTED', 'REJECTED', 'DRAFT'],
             'data'   => [$submitted, $rejected, $draft],
         ];
 
-        // Tabel terbaru
         $per = (int) $request->integer('per_page', 15);
         $per = in_array($per, [10, 15, 25, 50]) ? $per : 15;
 
         $latest = $docFactory()
-            ->orderByDesc('date')->orderByDesc('id')
-            ->paginate($per)->withQueryString();
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate($per)
+            ->withQueryString();
 
-        $destinations = $docFactory()->select('destination')->distinct()->pluck('destination')->filter()->values();
+        $destinations = $docFactory()
+            ->select('destination')
+            ->distinct()
+            ->pluck('destination')
+            ->filter()
+            ->values();
+
+        $initialView = 'monthly';
 
         return view('dashboard', [
             'title'            => 'Dashboard',
@@ -119,15 +188,34 @@ class UserDashboardController extends Controller
             'createdMonth'     => $createdMonth,
             'overdueDays'      => $overdueDays,
             'submittedOverdue' => $submittedOverdue,
-            'lineLabels'       => $lineLabels,
-            'lineData'         => $lineData,
-            'lineRanges'       => $lineRanges,
-            'barLabels'        => $barLabels,
-            'barData'          => $barData,
-            'donut'            => $donut,
-            'latest'           => $latest,
-            'per_page'         => $per,
-            'divisions'        => $destinations,
+
+            /* DAILY */
+            'lineLabelsDaily'   => $lineLabelsDaily,
+            'lineDataDaily'     => $lineDataDaily,
+            'lineRangesDaily'   => $lineRangesDaily,
+
+            /* WEEKLY */
+            'lineLabelsWeekly'  => $lineLabelsWeekly,
+            'lineDataWeekly'    => $lineDataWeekly,
+            'lineRangesWeekly'  => $lineRangesWeekly,
+
+            /* MONTHLY */
+            'lineLabelsMonthly' => $lineLabelsMonthly,
+            'lineDataMonthly'   => $lineDataMonthly,
+            'lineRangesMonthly' => $lineRangesMonthly,
+
+            /* OLD MONTHLY (masih dipakai beberapa chart) */
+            'lineLabels' => $lineLabels,
+            'lineData'   => $lineData,
+            'lineRanges' => $lineRanges,
+
+            'barLabels' => $barLabels,
+            'barData'   => $barData,
+            'donut'     => $donut,
+            'latest'    => $latest,
+            'per_page'  => $per,
+            'divisions' => $destinations,
+            'initialView' => $initialView,
         ]);
     }
 }
