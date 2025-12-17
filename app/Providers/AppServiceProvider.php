@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Paksa https kalau APP_URL mengandung ngrok atau lagi production
         if (app()->environment('production') || str_contains(config('app.url'), 'ngrok-free.dev')) {
-            URL::forceScheme('https');
+            URL::forceScheme('http');
         }
     }
 }

@@ -19,7 +19,6 @@ class AdminSeeder extends Seeder
                 'username'   => 'fitoganteng',
                 'password' => Hash::make('password123'),
                 'role' => 'admin_internal',
-                'division' => 'IT Internal',
                 'created_by' => 1,
             ]
         );
