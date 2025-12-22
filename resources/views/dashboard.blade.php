@@ -76,7 +76,6 @@
     </div>
   </div>
 
-  {{-- ROW 1 --}}
   <div class="row g-3 mb-3">
     @php
       $draftSafe = $draft ?? max(0, $total - $submitted - $rejected);
@@ -101,7 +100,6 @@
     @endforeach
   </div>
 
-  {{-- ROW 2 --}}
   <div class="row g-3 mb-3">
     <div class="col-lg-7">
       <div class="card-soft p-3 h-100">
@@ -129,7 +127,6 @@
     </div>
 
     <div class="col-lg-5">
-      {{-- BAR CHART --}}
       <div class="card-soft p-3 mb-3">
         <div class="fw-semibold mb-2">Distribusi Status (bulan ini)</div>
         <div style="height:220px"><canvas id="barChart"></canvas></div>
@@ -141,7 +138,6 @@
         </div>
       </div>
 
-      {{-- DONUT --}}
       <div class="card-soft p-3">
         <div class="fw-semibold mb-2">Share Status (total)</div>
         <div style="height:200px; position:relative">
@@ -153,7 +149,6 @@
 
 
 
-  {{-- ROW 3 --}}
   <div class="row g-3">
     <div class="col-md-3">
       <a href="{{ route('documents.index', ['period' => 'today']) }}" class="text-decoration-none">
@@ -207,10 +202,6 @@
     }
 
     function initCharts() {
-
-      /* ===========================================================
-         PREPARE DATA DAILY / WEEKLY / MONTHLY (from Controller)
-      =========================================================== */
       window.lineLabels_daily = @json($lineLabelsDaily);
       window.lineData_daily = @json($lineDataDaily);
       window.lineRanges_daily = @json($lineRangesDaily);
@@ -224,9 +215,6 @@
       window.lineRanges_monthly = @json($lineRangesMonthly);
 
 
-      /* ===========================================================
-         LINE CHART
-      =========================================================== */
       const lineEl = document.getElementById('lineChart');
 
       if (lineEl) {
@@ -265,7 +253,6 @@
           }
         });
 
-        /* CLICK — redirect */
         lineEl.addEventListener('click', function (evt) {
           const pts = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true);
           if (!pts.length) return;
@@ -278,7 +265,6 @@
           window.location.href = `${base}?date_from=${r.start}&date_to=${r.end}`;
         });
 
-        /* SWITCH MODE (dropdown) */
         document.querySelectorAll('.view-select').forEach(el => {
           el.addEventListener('click', e => {
             e.preventDefault();
@@ -306,9 +292,6 @@
       }
 
 
-      /* ===========================================================
-         BAR & DONUT — versi kamu, tidak saya ubah
-      =========================================================== */
 
       const barEl = document.getElementById('barChart');
       if (barEl) {
@@ -387,13 +370,8 @@
             cutout: '70%'
           }
         });
-
       }
-
     }
-
-
-
     document.readyState === "loading"
       ? document.addEventListener("DOMContentLoaded", initCharts)
       : initCharts();

@@ -109,7 +109,6 @@
       </div>
     @endif
 
-    {{-- USERNAME / EMAIL --}}
     <div class="mb-3">
       <label for="login" class="form-label">Email atau Username</label>
       <input type="text" class="form-control" id="login" name="login"
@@ -117,14 +116,12 @@
              placeholder="Masukkan Email atau Username">
     </div>
 
-    {{-- PASSWORD --}}
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
       <input type="password" class="form-control" id="password" name="password"
              required placeholder="Masukkan Password">
     </div>
 
-    {{-- REMEMBER ME --}}
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" value="1"
@@ -136,7 +133,6 @@
       </div>
     </div>
 
-    {{-- LOGIN BUTTON --}}
     <button type="submit" class="btn btn-login py-2">LOGIN</button>
 
   </form>

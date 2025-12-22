@@ -6,7 +6,6 @@
       <h2 class="fw-bold mb-0">Data Dokumen</h2>
       <div class="text-muted small">Rekap semua bukti serah terima</div>
 
-      {{-- Keterangan filter aktif --}}
       @if(request()->filled('search') || request()->filled('status') || request()->filled('date_from') || request()->filled('date_to'))
         <div class="mt-1 small text-primary">
           <strong>Filter aktif:</strong>
@@ -32,11 +31,9 @@
     </div>
   </div>
 
-  {{-- FILTER BAR --}}
   <form id="filterForm" method="get" class="mb-3">
     <div class="row g-3 align-items-end">
 
-      {{-- KOLOM 1: Pencarian + tombol Filter & Reset di bawahnya --}}
       <div class="col-md-4">
         <label class="form-label mb-1 small text-muted">Pencarian</label>
         <input
@@ -58,7 +55,6 @@
         </div>
       </div>
 
-      {{-- KOLOM 2: Status --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Status</label>
         <select name="status" class="form-select search">
@@ -69,7 +65,6 @@
         </select>
       </div>
 
-      {{-- KOLOM 3: Periode cepat --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Periode cepat</label>
         <select name="period" id="datePreset" class="form-select">
@@ -80,13 +75,11 @@
         </select>
       </div>
 
-      {{-- KOLOM 4: Tanggal dari --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal dari</label>
         <input type="date" name="date_from" value="{{ request('date_from') }}" class="form-control">
       </div>
 
-      {{-- KOLOM 5: Tanggal sampai --}}
       <div class="col-md-2">
         <label class="form-label mb-1 small text-muted">Tanggal sampai</label>
         <input type="date" name="date_to" value="{{ request('date_to') }}" class="form-control">
@@ -95,10 +88,8 @@
     </div>
   </form>
 
-  {{-- WRAPPER: bagian ini saja yang di-refresh via AJAX --}}
   <div id="table-wrapper">
 
-    {{-- TABLE --}}
     <div class="card-soft p-2" style="border:1px solid #d9dee3; border-radius:10px; overflow:auto; max-height:600px;">
       <table class="table table-striped table-hover align-middle mb-0">
         <thead>
@@ -156,14 +147,12 @@
                   </button>
 
                   <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    {{-- Detail --}}
                     <li>
                       <a class="dropdown-item" href="{{ route('documents.show', $d) }}">
                         <i class="ti ti-eye me-2"></i> Detail
                       </a>
                     </li>
 
-                    {{-- Edit --}}
                     @if($canEdit)
                       <li>
                         <a class="dropdown-item" href="{{ route('documents.edit', $d) }}">
@@ -172,7 +161,6 @@
                       </li>
                     @endif
 
-                    {{-- Tanda tangan --}}
                     @if($canSign)
                       <li>
                         <a class="dropdown-item" href="{{ route('documents.sign', $d) }}">
@@ -181,7 +169,6 @@
                       </li>
                     @endif
 
-                    {{-- Ambil foto --}}
                     @if(!$hasPhoto)
                       @if($canPhoto)
                         <li>
@@ -200,7 +187,6 @@
 
                     <li><hr class="dropdown-divider"></li>
 
-                    {{-- Hapus --}}
                     @if($canDelete)
                       <li>
                         <button
@@ -231,8 +217,6 @@
         </tbody>
       </table>
     </div>
-
-    {{-- FOOTER PAGINATION --}}
     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 py-2 px-1"
       style="border-top:1px solid #e3e8ef; font-size:14px; color:#6b7280;">
 
@@ -275,7 +259,7 @@
       </div>
     </div>
 
-  </div> {{-- /#table-wrapper --}}
+  </div> 
 @endsection
 
 @push('scripts')
@@ -306,10 +290,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function loadTable(url) {
-    // aktifkan spinner
     tableWrapper.classList.add('is-loading');
 
-    // animasi keluar
     tableWrapper.style.transition = 'opacity .2s ease, transform .2s ease';
     tableWrapper.style.opacity = '0';
     tableWrapper.style.transform = 'translateY(6px)';
@@ -328,10 +310,8 @@ document.addEventListener('DOMContentLoaded', function () {
             tableWrapper.innerHTML = fresh.innerHTML;
           }
 
-          // matikan spinner
           tableWrapper.classList.remove('is-loading');
 
-          // animasi masuk
           tableWrapper.style.opacity   = '0';
           tableWrapper.style.transform = 'translateY(6px)';
 
@@ -349,20 +329,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 150);
   }
 
-  // tombol Filter
   filterForm.addEventListener('submit', function (e) {
     e.preventDefault();
     loadTable(buildQuery());
   });
 
-  // Tombol Reset
   btnFilterReset.addEventListener('click', function (e) {
     e.preventDefault();
     filterForm.reset();
     loadTable("{{ route('documents.index') }}");
   });
 
-  // Live search dengan debounce
   if (searchInput) {
     let debounceTimer = null;
 
@@ -381,7 +358,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Pagination AJAX
   document.addEventListener('click', function (e) {
     const link = e.target.closest('#table-wrapper .pagination a');
     if (!link) return;
@@ -428,7 +404,6 @@ document.addEventListener('DOMContentLoaded', function () {
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
   }
 
-  /* Skeleton premium */
   .skeleton {
     background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
     background-size: 200% 100%;
@@ -450,7 +425,6 @@ document.addEventListener('DOMContentLoaded', function () {
     100% { background-position: -200% 0; }
   }
 
-  /* SPINNER premium di pojok kanan atas #table-wrapper */
   #table-wrapper {
     position: relative;
   }
