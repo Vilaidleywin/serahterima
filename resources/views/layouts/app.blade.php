@@ -316,8 +316,25 @@
         text: 'Data akan hilang secara permanen dan tidak bisa dikembalikan.',
         confirmText: 'Ya, hapus',
         cancelText: 'Batal',
-        confirmClass: 'btn btn-danger me-2',
-        cancelClass: 'btn btn-outline-secondary'
+        confirmClass: 'btn btn-danger ms-2',
+        cancelClass: 'btn btn-outline-secondary ms-2'
+      }).then((r) => {
+        if (r.isConfirmed) {
+          const f = document.getElementById(`delete-form-${id}`);
+          if (f) f.submit();
+        }
+      });
+    };
+
+    window.confirmDeleteUser = function (id, label) {
+      confirmWithSwal({
+        icon: 'warning',
+        title: 'Hapus pengguna?',
+        text: `Pengguna ${label} akan dihapus permanen dan tidak bisa dikembalikan.`,
+        confirmText: 'Ya, hapus pengguna',
+        cancelText: 'Batal',
+        confirmClass: 'btn btn-danger ms-2',
+        cancelClass: 'btn btn-outline-secondary ms-2'
       }).then((r) => {
         if (r.isConfirmed) {
           const f = document.getElementById(`delete-form-${id}`);
@@ -359,7 +376,7 @@
         });
       });
     </script>
-  @endif  
+  @endif
   @if (session('error'))
     <script>
       window.addEventListener('DOMContentLoaded', () => {
