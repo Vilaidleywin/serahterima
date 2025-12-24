@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +22,7 @@
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.35);
+      background: rgba(0, 0, 0, 0.35);
       backdrop-filter: blur(2px);
       z-index: 0;
     }
@@ -80,6 +81,7 @@
         margin: 0 1rem;
         padding: 1.5rem;
       }
+
       .login-container h1 {
         font-size: 1.7rem;
       }
@@ -92,6 +94,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="overlay"></div>
 
@@ -111,32 +114,40 @@
 
     <div class="mb-3">
       <label for="login" class="form-label">Email atau Username</label>
-      <input type="text" class="form-control" id="login" name="login"
-             value="{{ old('login') }}" required autofocus
-             placeholder="Masukkan Email atau Username">
+      <input type="text" class="form-control" id="login" name="login" value="{{ old('login') }}" required autofocus
+        placeholder="Masukkan Email atau Username">
     </div>
 
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
-      <input type="password" class="form-control" id="password" name="password"
-             required placeholder="Masukkan Password">
+      <input type="password" class="form-control" id="password" name="password" required
+        placeholder="Masukkan Password">
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="1"
-               id="remember" name="remember" 
-               {{ old('remember') ? 'checked' : '' }}>
+        <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
         <label class="form-check-label remember-label" for="remember">
           Save me
         </label>
       </div>
     </div>
 
-    <button type="submit" class="btn btn-login py-2">LOGIN</button>
+    <button type="submit" class="btn btn-login py-2"
+      onclick="this.disabled=true; this.innerText='Loading...'; this.form.submit();">
+      LOGIN
+    </button>
 
   </form>
+  <script>
+    document.querySelector('form').addEventListener('submit', function () {
+      const btn = this.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.innerText = 'Loading...';
+    });
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -18,15 +17,10 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        switch ($user->role) {
-            case 'admin_internal':
-            case 'admin_komersial':
-                return redirect()->route('admin.dashboard');
-
-            case 'user':
-            default:
-                return redirect()->route('dashboard');
-        }
+        return match ($user->role) {
+            'admin_internal', 'admin_komersial' => redirect()->route('admin.dashboard'),
+            default => redirect()->route('dashboard'),
+        };
     }
 
     public function homeRedirect()
@@ -37,15 +31,10 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        switch ($user->role) {
-            case 'admin_internal':
-            case 'admin_komersial':
-                return redirect()->route('admin.dashboard');
-
-            case 'user':
-            default:
-                return redirect()->route('dashboard');
-        }
+        return match ($user->role) {
+            'admin_internal', 'admin_komersial' => redirect()->route('admin.dashboard'),
+            default => redirect()->route('dashboard'),
+        };
     }
 
     public function login(Request $request)
@@ -55,46 +44,41 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $login = $data['login'];
-
-        $user = User::where('email', $login)
-            ->orWhere('username', $login)
+        $user = User::where('email', $data['login'])
+            ->orWhere('username', $data['login'])
             ->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
-            return back()
-                ->withErrors(['login' => 'Email/Username atau password salah.'])
-                ->withInput();
+            return back()->withErrors([
+                'login' => 'Email/Username atau password salah.'
+            ])->withInput();
         }
 
         if (isset($user->is_active) && !$user->is_active) {
-            return back()
-                ->withErrors(['login' => 'Akun Anda telah dinonaktifkan.'])
-                ->withInput();
+            return back()->withErrors([
+                'login' => 'Akun Anda telah dinonaktifkan.'
+            ])->withInput();
         }
 
-        // === LOGIN SUKSES ===
+        // ================= LOGIN =================
         Auth::login($user, $request->boolean('remember'));
+
+        // regenerate session (WAJIB)
         $request->session()->regenerate();
 
-        // === SET USER ONLINE ===
-       
+        // ⚠️ TIDAK ADA LOG LOGIN DI SINI
+        // ⚠️ TIDAK ADA UserLogin::create()
+        // ⚠️ TIDAK ADA Cache
+        // ⚠️ SEMUA LOG LOGIN DITANGANI Event Listener
 
-        // Logout device lain
-        Auth::logoutOtherDevices($data['password']);
-
-        // Redirect berdasarkan role
-        $defaultRedirect = match ($user->role) {
+        return redirect(match ($user->role) {
             'admin_internal', 'admin_komersial' => route('admin.dashboard'),
             default => route('dashboard'),
-        };
-
-        return redirect($defaultRedirect);
+        });
     }
 
     public function logout(Request $request)
     {
-        // === SET OFFLINE SAAT LOGOUT ===
         if (Auth::check()) {
             Auth::user()->update([
                 'is_online' => false,

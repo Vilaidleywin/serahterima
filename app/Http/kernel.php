@@ -16,7 +16,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
 
         // 👉 PAKSA UPDATE LAST SEEN BERJALAN DI SEMUA REQUEST
-        // \App\Http\Middleware\UpdateLastSeen::class,
+        \App\Http\Middleware\UpdateLastSeen::class,
     ];
 
 
@@ -30,6 +30,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
+            
         ],
 
 
@@ -42,7 +43,7 @@ class Kernel extends HttpKernel
     /**
      * Laravel 11/12: pakai $middlewareAliases (BUKAN $routeMiddleware).
      */
-    protected $routeMiddleware = [
+    protected $middlewareAliases = [
         'auth'             => \App\Http\Middleware\Authenticate::class,
         'auth.basic'       => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'cache.headers'    => \Illuminate\Http\Middleware\SetCacheHeaders::class,
