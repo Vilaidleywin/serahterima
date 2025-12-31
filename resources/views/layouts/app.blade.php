@@ -169,6 +169,16 @@
         margin-left: 0;
       }
     }
+
+    .app-footer {
+      text-align: center;
+      padding: 14px 10px;
+      font-size: 13px;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      margin-top: 24px;
+      background: transparent;
+    }
   </style>
 </head>
 
@@ -241,10 +251,18 @@
 
 
   {{-- MAIN --}}
-  <main class="content">
+  <main class="content d-flex flex-column">
     @include('partials.topbar')
-    @yield('content')
+
+    <div class="flex-grow-1">
+      @yield('content')
+    </div>
+
+    <footer class="app-footer">
+      © {{ date('Y') }} Sandi Ganteng. All rights reserved.
+    </footer>
   </main>
+
 
   {{-- Scripts --}}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -428,6 +446,7 @@
 
 
   @stack('scripts')
+
 </body>
 
 </html>

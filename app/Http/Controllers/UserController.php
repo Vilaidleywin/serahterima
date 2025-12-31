@@ -60,8 +60,8 @@ class UserController extends Controller
         ]);
 
         $data['password']   = Hash::make($data['password']);
-        $data['role']       = 'user';        
-        $data['created_by'] = auth()->id();  
+        $data['role']       = 'user';
+        $data['created_by'] = auth()->id();
 
         $data['is_active'] = $request->boolean('is_active', true);
 
@@ -139,16 +139,24 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($user) {
-            DB::table('user_logins')
-                ->where('user_id', $user->id)
-                ->delete();
 
+            // 1️⃣ PUTUS FK users.created_by
+            $user->createdUsers()->update(['created_by' => null]);
+
+            // 2️⃣ PUTUS FK documents
+            DB::table('documents')->where('created_by', $user->id)->update(['created_by' => null]);
+            DB::table('documents')->where('signed_by', $user->id)->update(['signed_by' => null]);
+            DB::table('documents')->where('user_id', $user->id)->update(['user_id' => null]);
+
+            // 3️⃣ HAPUS LOGIN HISTORY
+            DB::table('user_logins')->where('user_id', $user->id)->delete();
+
+            // 4️⃣ BARU HAPUS USER
             $user->delete();
         });
 
         return back()->with('success', 'User berhasil dihapus.');
     }
-
 
     public function toggleStatus(User $user)
     {
