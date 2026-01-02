@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -60,16 +61,17 @@ class AuthController extends Controller
             ])->withInput();
         }
 
-        // ================= LOGIN =================
+        // LOGIN
         Auth::login($user, $request->boolean('remember'));
 
-        // regenerate session (WAJIB)
+        // WAJIB agar session konsisten
         $request->session()->regenerate();
 
-        // ⚠️ TIDAK ADA LOG LOGIN DI SINI
-        // ⚠️ TIDAK ADA UserLogin::create()
-        // ⚠️ TIDAK ADA Cache
-        // ⚠️ SEMUA LOG LOGIN DITANGANI Event Listener
+        // 🔥 PUTUS SEMUA SESSION LAMA (1 AKUN = 1 DEVICE)
+        DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->where('id', '!=', session()->getId())
+            ->delete();
 
         return redirect(match ($user->role) {
             'admin_internal', 'admin_komersial' => route('admin.dashboard'),
@@ -77,17 +79,16 @@ class AuthController extends Controller
         });
     }
 
+
     public function logout(Request $request)
     {
         if (Auth::check()) {
-            Auth::user()->update([
-                'is_online' => false,
-                'last_seen' => now(),
-            ]);
+            Auth::user()->forceFill([
+                'last_seen' => now()->subMinutes(10),
+            ])->save();
         }
 
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

@@ -16,7 +16,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
 
         // 👉 PAKSA UPDATE LAST SEEN BERJALAN DI SEMUA REQUEST
-        \App\Http\Middleware\UpdateLastSeen::class,
+        // \App\Http\Middleware\UpdateLastSeen::class,
     ];
 
 
@@ -30,9 +30,9 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \Illuminate\Session\Middleware\AuthenticateSession::class,
-            
+            \App\Http\Middleware\EnsureSingleSession::class,
+            \App\Http\Middleware\UpdateLastSeen::class,
         ],
-
 
         'api' => [
             'throttle:api',

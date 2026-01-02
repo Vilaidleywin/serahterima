@@ -10,16 +10,11 @@ use App\Http\Controllers\UserController;
 
 /* LOGIN */
 
-Route::middleware(['web'])->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-});
-
-/* AUTH (guest) */
 Route::middleware(['web', 'guest'])->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 });
+
 
 /* LOGOUT */
 Route::match(['GET', 'POST'], '/logout', [AuthController::class, 'logout'])

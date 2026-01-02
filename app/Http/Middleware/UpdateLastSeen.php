@@ -3,13 +3,17 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UpdateLastSeen
 {
-    public function handle(Request $request, Closure $next)
+    public function handle($request, Closure $next)
     {
-        file_put_contents(storage_path('logs/test_middleware.txt'), "MASUK\n", FILE_APPEND);
+        if (Auth::check()) {
+            Auth::user()->forceFill([
+                'last_seen' => now(),
+            ])->save();
+        }
 
         return $next($request);
     }

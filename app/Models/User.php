@@ -34,6 +34,13 @@ class User extends Authenticatable
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function getIsOnlineNowAttribute()
+    {
+        return $this->last_seen
+            && $this->last_seen->gt(now()->subMinutes(3));
+    }
+
+
     public function createdUsers()
     {
         return $this->hasMany(User::class, 'created_by');

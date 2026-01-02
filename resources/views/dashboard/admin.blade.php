@@ -263,22 +263,26 @@
                             </thead>
                             <tbody>
                                 @forelse($latestUsers as $i => $u)
-                                    @php
-                                        $role = $u->role ?? 'user';
-                                        $on = $u->is_online == 1;
-                                    @endphp
+                                    {{-- @php
+                                    $role = $u->role ?? 'user';
+                                    $on = $u->is_online == 1;
+                                    @endphp --}}
 
                                     <tr>
                                         <td class="text-muted">{{ $i + 1 }}</td>
                                         <td class="fw-semibold">{{ $u->name }}</td>
                                         <td class="text-muted">{{ $u->username ?? '—' }}</td>
-                                        <td><span class="chip-role">{{ $role }}</span></td>
+                                        <td>{{ $u->role }}</td>
                                         <td>
-                                            <span class="{{ $on ? 'badge-ok' : 'badge-soft-danger badge-soft' }}">
-                                                {{ $on ? 'Aktif' : 'Nonaktif' }}
-                                            </span>
+                                            @if($u->is_online_now)
+  <span class="badge bg-success">Online</span>
+@else
+  <span class="badge bg-secondary">Offline</span>
+@endif
+
                                         </td>
                                     </tr>
+
                                 @empty
                                     <tr>
                                         <td colspan="5" class="text-center text-muted">Belum ada data.</td>
@@ -432,20 +436,20 @@
                 wrapper.style.alignItems = 'center';
 
                 wrapper.innerHTML = `
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="viewDropdownBtn" data-bs-toggle="dropdown">
-                        Pilih: <span id="viewDropdownLabel">Bulanan</span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item view-select" data-mode="daily" href="#">Harian</a></li>
-                        <li><a class="dropdown-item view-select" data-mode="weekly" href="#">Mingguan</a></li>
-                        <li><a class="dropdown-item view-select" data-mode="monthly" href="#">Bulanan</a></li>
-                    </ul>
-                </div>
-                <div class="ms-auto text-muted small align-self-center">
-                    Menampilkan: <span id="currentModeLabel"></span>
-                </div>
-            `;
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="viewDropdownBtn" data-bs-toggle="dropdown">
+                                Pilih: <span id="viewDropdownLabel">Bulanan</span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item view-select" data-mode="daily" href="#">Harian</a></li>
+                                <li><a class="dropdown-item view-select" data-mode="weekly" href="#">Mingguan</a></li>
+                                <li><a class="dropdown-item view-select" data-mode="monthly" href="#">Bulanan</a></li>
+                            </ul>
+                        </div>
+                        <div class="ms-auto text-muted small align-self-center">
+                            Menampilkan: <span id="currentModeLabel"></span>
+                        </div>
+                    `;
 
                 const chartCompact = card.querySelector('.chart-compact');
                 card.insertBefore(wrapper, chartCompact);
