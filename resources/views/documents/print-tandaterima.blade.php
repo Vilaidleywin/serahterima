@@ -24,7 +24,7 @@
     <div class="kop">
       <div class="kop-flex">
         <div class="kop-left">
-          <img src="{{ asset('storage/akhlak.png') }}" alt="AKHLAK">
+          <img src="{{ asset('storage/danantara.png') }}" alt="AKHLAK">
         </div>
         <div class="kop-right">
           <img src="{{ asset('storage/pelni.png') }}" alt="PELNI SERVICES">

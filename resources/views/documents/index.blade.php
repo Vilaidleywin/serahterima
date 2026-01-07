@@ -118,7 +118,7 @@
               $hasSigned   = !empty($d->signed_at);
               $hasPhoto    = !empty($d->photo_path);
 
-              $canEdit     = !$isRejected;
+$canEdit     = !$isRejected && !$hasSigned;
               $canSign     = !$isSubmitted && !$isRejected && !$hasSigned;
               $canPhoto    = !$isRejected;
               $canDelete   = !$isRejected;

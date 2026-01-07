@@ -16,6 +16,9 @@
         $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
         $isPhotoTaken = filled($document->photo_path);
 
+        // Edit hanya boleh jika tidak REJECTED dan belum ditandatangani
+        $canEdit = !$isRejected && !$isSigned;
+
         // Delete boleh selama tidak REJECTED (DRAFT & SUBMITTED)
         $canDelete = !$isRejected;
       @endphp
@@ -25,10 +28,12 @@
           <i class="ti ti-arrow-left"></i> Kembali
         </a>
 
-        {{-- Edit tetap boleh, termasuk saat sudah SUBMITTED --}}
-        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary">
-          <i class="ti ti-edit"></i> Edit
-        </a>
+        {{-- Edit: hilang kalau sudah ditandatangani --}}
+        @if($canEdit)
+          <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary">
+            <i class="ti ti-edit"></i> Edit
+          </a>
+        @endif
       </div>
     </div>
 
