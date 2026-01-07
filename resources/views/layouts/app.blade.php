@@ -259,7 +259,7 @@
     </div>
 
     <footer class="app-footer">
-      © {{ date('Y') }} Sandi Fito. All rights reserved.
+      © {{ date('Y') }} Muhammad Kurnia Sandi - Fito Mauladi Wahid. All rights reserved.
     </footer>
   </main>
 
