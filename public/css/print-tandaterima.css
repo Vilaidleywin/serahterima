@@ -26,7 +26,7 @@ body {
 /* ====== KOP ====== */
 .kop {
   position: absolute;
-  top: 12mm;
+  top: 1mm;
   left: 18mm;
   right: 18mm;
 }
@@ -37,7 +37,12 @@ body {
   align-items: center;
 }
 
-.kop-left img,
+.kop-left img{
+  height: 50mm;
+  width: auto;
+  object-fit: contain;
+}
+
 .kop-right img {
   height: 22mm;
   width: auto;
