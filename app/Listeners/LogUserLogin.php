@@ -3,32 +3,33 @@
 namespace App\Listeners;
 
 use Illuminate\Auth\Events\Login;
-use App\Models\UserLogin;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class LogUserLogin
 {
     public function handle(Login $event): void
     {
-        $user = $event->user;
-        $sessionId = session()->getId();
+        if (!Schema::hasTable('user_logins')) {
+            return;
+        }
 
-        // tandai user online
-        $user->update([
-            'is_online' => true,
-            'session_id' => $sessionId,
-            'last_seen' => now(),
+        $userId = $event->user->id;
+
+        // Cegah keitung 2x: kalau ada log login user ini dalam 15 detik terakhir, skip
+        $recent = DB::table('user_logins')
+            ->where('user_id', $userId)
+            ->where('created_at', '>=', now()->subSeconds(15))
+            ->exists();
+
+        if ($recent) {
+            return;
+        }
+
+        DB::table('user_logins')->insert([
+            'user_id'    => $userId,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
-
-        // SINGLE LOGIN: UPDATE kalau ada, CREATE kalau belum
-        UserLogin::updateOrCreate(
-            ['user_id' => $user->id], // KEY UNIK
-            [
-                'session_id'   => $sessionId,
-                'ip'           => request()->ip(),
-                'user_agent'   => request()->userAgent(),
-                'is_online'    => true,
-                'last_activity' => now(),
-            ]
-        );
     }
 }
