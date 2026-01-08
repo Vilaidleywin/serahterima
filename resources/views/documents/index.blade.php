@@ -109,20 +109,25 @@
         </thead>
         <tbody>
           @forelse($documents as $i => $d)
-            @php
-              $rowNumber   = ($documents->firstItem() ?? 1) + $i;
-              $statusUpper = strtoupper($d->status ?? '');
-              $isRejected  = $statusUpper === 'REJECTED';
-              $isSubmitted = $statusUpper === 'SUBMITTED';
+@php
+  $rowNumber   = ($documents->firstItem() ?? 1) + $i;
+  $statusUpper = strtoupper($d->status ?? '');
+  $isRejected  = $statusUpper === 'REJECTED';
+  $isSubmitted = $statusUpper === 'SUBMITTED';
 
-              $hasSigned   = !empty($d->signed_at);
-              $hasPhoto    = !empty($d->photo_path);
+  $hasSigned   = !empty($d->signed_at);
+  $hasPhoto    = !empty($d->photo_path);
 
-$canEdit     = !$isRejected && !$hasSigned;
-              $canSign     = !$isSubmitted && !$isRejected && !$hasSigned;
-              $canPhoto    = !$isRejected;
-              $canDelete   = !$isRejected;
-            @endphp
+  // Edit boleh walau rejected, asal belum signed
+  $canEdit   = !$hasSigned;
+
+  // Sign tetap tidak boleh kalau submitted / rejected / signed
+  $canSign   = !$isSubmitted && !$isRejected && !$hasSigned;
+
+  // Foto & hapus tetap boleh walau rejected
+  $canPhoto  = true;
+  $canDelete = true;
+@endphp
 
             <tr>
               <td class="fw-semibold">{{ $rowNumber }}</td>

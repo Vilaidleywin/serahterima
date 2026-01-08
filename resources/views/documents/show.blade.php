@@ -11,16 +11,19 @@
       </div>
 
       @php
-        $isRejected = strtoupper($document->status) === 'REJECTED';
-        $isSigned = filled($document->signature_path);
-        $isSubmitted = strtoupper($document->status) === 'SUBMITTED';
-        $isPhotoTaken = filled($document->photo_path);
+        $statusUpper   = strtoupper($document->status ?? '');
+        $isRejected    = $statusUpper === 'REJECTED';
+        $isSubmitted   = $statusUpper === 'SUBMITTED';
 
-        // Edit hanya boleh jika tidak REJECTED dan belum ditandatangani
-        $canEdit = !$isRejected && !$isSigned;
+        $isSigned      = filled($document->signature_path);
+        $isPhotoTaken  = filled($document->photo_path);
 
-        // Delete boleh selama tidak REJECTED (DRAFT & SUBMITTED)
-        $canDelete = !$isRejected;
+        // REJECTED tetap boleh Edit & Hapus
+        // Edit hanya dibatasi kalau sudah signed
+        $canEdit   = !$isSigned;
+
+        // Hapus selalu boleh (sesuai request: REJECTED tetap bisa hapus)
+        $canDelete = true;
       @endphp
 
       <div class="d-flex gap-2">
@@ -40,7 +43,7 @@
     {{-- Banner jika REJECTED --}}
     @if($isRejected)
       <div class="alert alert-danger mb-4 reject-banner" role="alert">
-        <strong>Dokumen Ditolak.</strong> Tanda tangan dan pengambilan foto dinonaktifkan.
+        <strong>Dokumen Ditolak.</strong> Tanda tangan dinonaktifkan. Dokumen masih bisa diedit/dihapus untuk revisi.
       </div>
     @endif
 
@@ -116,7 +119,6 @@
             <div class="document-notes">{{ $document->description ?: '-' }}</div>
           </div>
 
-
           @if($document->file_path)
             <div class="mb-2">
               <h6 class="fw-semibold text-uppercase text-muted small mb-1">Lampiran</h6>
@@ -145,10 +147,9 @@
             </div>
           @endif
 
-          {{-- Keterangan Penolakan (box merah di card kanan) --}}
+          {{-- Keterangan Penolakan --}}
           @if($isRejected && $document->reject_reason)
             @php
-              // fallback ke updated_at kalau rejected_at null (data lama)
               $rejectedAt = $document->rejected_at ?? $document->updated_at;
 
               $rejectedAtCarbon = null;
@@ -207,8 +208,7 @@
             </a>
           @endif
 
-
-          {{-- Hapus Dokumen: DRAFT & SUBMITTED, asalkan tidak REJECTED --}}
+          {{-- Hapus Dokumen: selalu tampil (REJECTED juga boleh) --}}
           @if($canDelete)
             <button class="btn btn-outline-danger w-100 mb-2" onclick="confirmDelete({{ $document->id }})">
               <i class="ti ti-trash me-1"></i> Hapus Dokumen
@@ -241,15 +241,19 @@
         <div class="d-flex gap-2">
           {{-- Tanda Tangan: disable jika REJECTED atau sudah ditandatangani --}}
           <a href="{{ route('documents.sign', $document) }}"
-            class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}" @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
+            class="btn btn-primary btn-sm {{ ($isRejected || $isSigned) ? 'disabled' : '' }}"
+            @if($isRejected || $isSigned) aria-disabled="true" tabindex="-1" @endif>
             <i class="ti ti-signature me-1"></i> Tanda Tangan
           </a>
 
-          {{-- Ambil Foto: disable jika REJECTED atau SUDAH ADA FOTO --}}
-          <a href="{{ route('documents.photo', $document) }}"
-            class="btn btn-outline-primary btn-sm {{ ($isRejected || $isPhotoTaken) ? 'disabled' : '' }}" @if($isRejected || $isPhotoTaken) aria-disabled="true" tabindex="-1" @endif>
-            <i class="ti ti-camera me-1"></i> Ambil Foto
-          </a>
+          {{-- Ambil Foto: HILANG kalau sudah ada foto, disable kalau REJECTED --}}
+          @if(!$isPhotoTaken)
+            <a href="{{ route('documents.photo', $document) }}"
+              class="btn btn-outline-primary btn-sm {{ $isRejected ? 'disabled' : '' }}"
+              @if($isRejected) aria-disabled="true" tabindex="-1" @endif>
+              <i class="ti ti-camera me-1"></i> Ambil Foto
+            </a>
+          @endif
         </div>
       </div>
 
@@ -382,12 +386,9 @@
     .reject-info-box {
       border-radius: 12px;
       background: #fee2e2;
-      /* merah muda */
       border: 1px solid #fecaca;
-      /* border merah lembut */
       padding: 0.85rem 1rem;
       color: #991b1b;
-      /* teks merah tua */
     }
 
     .reject-info-box p {
@@ -397,11 +398,8 @@
 
     .document-notes {
       white-space: pre-line;
-      /* biar \n tetap jadi baris baru */
       word-break: break-word;
-      /* kalau satu “kata” kepanjangan, dipaksa patah */
       overflow-wrap: anywhere;
-      /* kalau masih ngeyel, patahin di mana saja */
     }
   </style>
 @endpush
@@ -432,6 +430,6 @@
           rejectModal.show();
         }
       @endif
-            });
+    });
   </script>
 @endpush
