@@ -9,19 +9,64 @@
   </div>
 
   <div class="card-soft p-4">
-    <form method="POST" action="{{ route('documents.update', $document) }}" enctype="multipart/form-data">
+    <form id="docForm" method="POST" action="{{ route('documents.update', $document) }}" enctype="multipart/form-data">
       @csrf
       @method('PATCH')
 
       <div class="row g-3">
-        {{-- NOMOR --}}
+        {{-- NOMOR (MULTI) --}}
         <div class="col-md-4">
           <label class="form-label fw-semibold">Nomor Dokumen</label>
-          <input type="text"
-                 name="number"
-                 class="form-control search"
-                 value="{{ old('number', $document->number) }}">
-          @error('number') <div class="text-danger small">{{ $message }}</div> @enderror
+
+          <div id="number-wrapper" class="d-grid gap-2">
+            @php
+              // ambil dari old() dulu, kalau tidak ada ambil dari $document->number
+              $docNumbers = $document->number ?? [''];
+
+              // kalau tersimpan sebagai JSON array string, coba decode
+              if (is_string($docNumbers)) {
+                $trim = trim($docNumbers);
+                if ($trim !== '' && ($trim[0] ?? '') === '[') {
+                  $decoded = json_decode($trim, true);
+                  if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $docNumbers = $decoded;
+                  } else {
+                    $docNumbers = [$docNumbers];
+                  }
+                } else {
+                  $docNumbers = [$docNumbers];
+                }
+              }
+
+              if (!is_array($docNumbers) || count($docNumbers) === 0) $docNumbers = [''];
+
+              $numbers = old('number', $docNumbers);
+              if (!is_array($numbers) || count($numbers) === 0) $numbers = [''];
+            @endphp
+
+            @foreach($numbers as $i => $val)
+              <div class="input-group number-row">
+                <input type="text"
+                       name="number[]"
+                       class="form-control search @error("number.$i") is-invalid @enderror"
+                       value="{{ $val }}"
+                       placeholder="Masukkan nomor dokumen">
+
+                <button type="button"
+                        class="btn btn-outline-danger remove-number px-3"
+                        title="Hapus"
+                        {{ $i === 0 ? 'disabled' : '' }}>
+                  Hapus
+                </button>
+              </div>
+
+              @error("number.$i") <div class="text-danger small">{{ $message }}</div> @enderror
+            @endforeach
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-number">
+            Tambah Nomor
+          </button>
         </div>
 
         {{-- JUDUL --}}
@@ -184,7 +229,67 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  // division other toggle
+
+  // ===== MULTI NOMOR (TAMBAHAN) =====
+  const addBtn = document.getElementById('add-number');
+  const wrapper = document.getElementById('number-wrapper');
+
+  function updateRemoveButtons() {
+    if (!wrapper) return;
+    const rows = wrapper.querySelectorAll('.number-row');
+    rows.forEach((row, idx) => {
+      const btn = row.querySelector('.remove-number');
+      if (btn) btn.disabled = (idx === 0);
+    });
+  }
+
+  function addNumberRow(focus = true) {
+    if (!wrapper) return;
+    const row = document.createElement('div');
+    row.className = 'input-group number-row';
+    row.innerHTML = `
+      <input type="text" name="number[]" class="form-control search" placeholder="Masukkan nomor dokumen">
+      <button type="button" class="btn btn-outline-danger remove-number px-3" title="Hapus">Hapus</button>
+    `;
+    wrapper.appendChild(row);
+    updateRemoveButtons();
+    if (focus) {
+      const input = row.querySelector('input[name="number[]"]');
+      if (input) input.focus();
+    }
+  }
+
+  if (addBtn && wrapper) {
+    addBtn.addEventListener('click', () => addNumberRow(true));
+
+    wrapper.addEventListener('click', (e) => {
+      const btn = e.target.closest('.remove-number');
+      if (!btn) return;
+      const row = btn.closest('.number-row');
+      if (row) row.remove();
+      updateRemoveButtons();
+    });
+
+    updateRemoveButtons();
+  }
+
+  // ENTER di input nomor => tambah nomor baru, bukan submit
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    if (target && target.matches('input[name="number[]"]')) {
+      e.preventDefault();
+
+      // optional: kalau mau Enter hanya jalan kalau input gak kosong, aktifin ini:
+      // if (!target.value.trim()) return;
+
+      addNumberRow(true);
+    }
+  });
+  // ===== END MULTI NOMOR =====
+
+
+  // division other toggle (kode kamu, gak diubah)
   const divisionSelect = document.getElementById('division-tujuan-select');
   const divisionOtherGroup = document.getElementById('division-other-group');
   const divisionOtherInput = document.getElementById('division_tujuan_other');
@@ -205,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function () {
   divisionSelect?.addEventListener('change', toggleDivisionOther);
   toggleDivisionOther();
 
-  // destination desc other toggle
+  // destination desc other toggle (kode kamu, gak diubah)
   const destSelect = document.getElementById('destination-desc-select');
   const destOtherGroup = document.getElementById('destination-desc-other-group');
   const destOtherInput = document.getElementById('destination_desc_other');

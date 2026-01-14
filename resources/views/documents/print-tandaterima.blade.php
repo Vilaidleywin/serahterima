@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
   <meta charset="UTF-8">
-  <title>Surat Serah Terima Dokumen – {{ $document->number }}</title>
+  <title>Surat Serah Terima Dokumen – {{ is_string($document->number) ? $document->number : 'Dokumen' }}</title>
   <link rel="stylesheet" href="{{ asset('css/print-tandaterima.css') }}">
 </head>
 
@@ -14,6 +13,37 @@
     $docDate = $document->date instanceof \Carbon\Carbon
       ? $document->date
       : \Carbon\Carbon::parse($document->date ?? now());
+
+    // ========= NORMALIZE NO DOKUMEN JADI ARRAY =========
+    $numbersRaw = $document->number ?? null;
+    $numbers = [];
+
+    if (is_array($numbersRaw)) {
+      $numbers = $numbersRaw;
+
+    } elseif (is_string($numbersRaw)) {
+      $trim = trim($numbersRaw);
+
+      // kalau JSON array string: ["a","b"]
+      if ($trim !== '' && str_starts_with($trim, '[')) {
+        $decoded = json_decode($trim, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+          $numbers = $decoded;
+        } else {
+          // fallback kalau decode gagal
+          $numbers = [$trim];
+        }
+      } else {
+        // kalau format lama "a, b, c"
+        $numbers = array_map('trim', explode(',', $trim));
+      }
+
+    } elseif (!is_null($numbersRaw)) {
+      $numbers = [(string) $numbersRaw];
+    }
+
+    // bersihin value kosong
+    $numbers = array_values(array_filter($numbers, fn($v) => trim((string)$v) !== ''));
   @endphp
 
   <div class="page">
@@ -52,33 +82,48 @@
             <td class="colon">:</td>
             <td class="value">{{ $document->title ?? '-' }}</td>
           </tr>
+
           <tr>
             <td class="label">No Dokumen</td>
             <td class="colon">:</td>
-            <td class="value">{{ $document->number ?? '-' }}</td>
+            <td class="value">
+              @if(count($numbers))
+                <ul class="docnum-list">
+  @foreach($numbers as $n)
+    <li>{{ $n }}</li>
+  @endforeach
+</ul>
+
+              @else
+                -
+              @endif
+            </td>
           </tr>
+
           <tr>
             <td class="label">Tanggal</td>
             <td class="colon">:</td>
-            <td class="value">
-              {{ $docDate->translatedFormat('l, d F Y') }}
-            </td>
+            <td class="value">{{ $docDate->translatedFormat('l, d F Y') }}</td>
           </tr>
+
           <tr>
             <td class="label">Divisi</td>
             <td class="colon">:</td>
             <td class="value">{{ $document->division ?? '-' }}</td>
           </tr>
+
           <tr>
             <td class="label">Pengirim</td>
             <td class="colon">:</td>
             <td class="value">{{ $document->sender ?? '-' }}</td>
           </tr>
+
           <tr>
             <td class="label">Penerima</td>
             <td class="colon">:</td>
             <td class="value">{{ $document->receiver ?? '-' }}</td>
           </tr>
+
           <tr>
             <td class="label">Nominal</td>
             <td class="colon">:</td>
@@ -90,15 +135,17 @@
               @endif
             </td>
           </tr>
+
           <tr>
             <td class="label">Tujuan</td>
             <td class="colon">:</td>
             <td class="value">{{ $document->destination ?? '-' }}</td>
           </tr>
+
           <tr>
             <td class="label">Catatan</td>
             <td class="colon">:</td>
-            <td class="value">{{ $document->description ?? '-' }}</td>
+            <td class="value">{!! nl2br(e($document->description ?? '-')) !!}</td>
           </tr>
         </tbody>
       </table>
@@ -118,7 +165,6 @@
               <img src="{{ asset('storage/' . $document->signature_path) }}" alt="Tanda Tangan Penerima">
             @endif
           </div>
-
 
           <div class="ttd-name">
             {{ $document->receiver ?? '................................' }}
@@ -142,5 +188,4 @@
   </div>
 
 </body>
-
 </html>

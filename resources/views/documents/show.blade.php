@@ -7,7 +7,36 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h3 class="fw-bold mb-0">{{ $document->title }}</h3>
-        <div class="text-muted small">No. Dokumen: {{ $document->number }}</div>
+
+        @php
+          // ===== MULTI NOMOR (TAMBAHAN) =====
+          $nums = $document->number;
+
+          // kalau string JSON array -> decode
+          if (is_string($nums)) {
+            $trim = trim($nums);
+            if ($trim !== '' && ($trim[0] ?? '') === '[') {
+              $decoded = json_decode($trim, true);
+              if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $nums = $decoded;
+              } else {
+                $nums = [$document->number];
+              }
+            } else {
+              $nums = [$document->number];
+            }
+          }
+
+          if (!is_array($nums)) $nums = [$document->number];
+
+          // bersihin value kosong
+          $nums = array_values(array_filter(array_map(fn($v) => trim((string)$v), $nums)));
+        @endphp
+
+        <div class="text-muted small">
+          No. Dokumen:
+          {{ $nums ? implode(', ', $nums) : '-' }}
+        </div>
       </div>
 
       @php
@@ -195,7 +224,7 @@
             </li>
             <li class="mb-2">
               <i class="ti ti-folder text-muted me-2"></i> Nomor Dokumen:
-              <span class="fw-semibold">{{ $document->number }}</span>
+              <span class="fw-semibold">{{ $nums ? implode(', ', $nums) : '-' }}</span>
             </li>
           </ul>
           <hr>

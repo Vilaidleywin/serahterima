@@ -13,14 +13,39 @@
       @csrf
 
       <div class="row g-3">
-        {{-- NOMOR --}}
+        {{-- NOMOR (MULTI) --}}
         <div class="col-md-4">
           <label class="form-label fw-semibold">Nomor Dokumen</label>
-          <input type="text"
-                 name="number"
-                 class="form-control search"
-                 value="{{ old('number') }}">
-          @error('number') <div class="text-danger small">{{ $message }}</div> @enderror
+
+          <div id="number-wrapper" class="d-grid gap-2">
+            @php
+              $oldNumbers = old('number', ['']);
+              if (!is_array($oldNumbers) || count($oldNumbers) === 0) $oldNumbers = [''];
+            @endphp
+
+            @foreach($oldNumbers as $i => $val)
+              <div class="input-group number-row">
+                <input type="text"
+                       name="number[]"
+                       class="form-control search @error("number.$i") is-invalid @enderror"
+                       value="{{ $val }}"
+                       placeholder="Masukkan nomor dokumen">
+
+                <button type="button"
+                        class="btn btn-outline-danger remove-number px-3"
+                        title="Hapus"
+                        {{ $i === 0 ? 'disabled' : '' }}>
+                  Hapus
+                </button>
+              </div>
+
+              @error("number.$i") <div class="text-danger small">{{ $message }}</div> @enderror
+            @endforeach
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-number">
+            Tambah Nomor
+          </button>
         </div>
 
         {{-- JUDUL --}}
@@ -92,18 +117,10 @@
                   id="destination-select"
                   class="form-select @error('destination_desc') is-invalid @enderror">
             <option value="">-- Pilih Tujuan --</option>
-            <option value="Cyber 1" {{ old('destination_desc') === 'Cyber 1' ? 'selected' : '' }}>
-              Cyber 1
-            </option>
-            <option value="Gudang Cakung" {{ old('destination_desc') === 'Gudang Cakung' ? 'selected' : '' }}>
-              Gudang Cakung
-            </option>
-            <option value="PID Kemayoran" {{ old('destination_desc') === 'PID Kemayoran' ? 'selected' : '' }}>
-              PID Kemayoran
-            </option>
-            <option value="Other" {{ old('destination_desc') === 'Other' ? 'selected' : '' }}>
-              Other
-            </option>
+            <option value="Cyber 1" {{ old('destination_desc') === 'Cyber 1' ? 'selected' : '' }}>Cyber 1</option>
+            <option value="Gudang Cakung" {{ old('destination_desc') === 'Gudang Cakung' ? 'selected' : '' }}>Gudang Cakung</option>
+            <option value="PID Kemayoran" {{ old('destination_desc') === 'PID Kemayoran' ? 'selected' : '' }}>PID Kemayoran</option>
+            <option value="Other" {{ old('destination_desc') === 'Other' ? 'selected' : '' }}>Other</option>
           </select>
           @error('destination_desc') <div class="invalid-feedback">{{ $message }}</div> @enderror
 
@@ -144,7 +161,7 @@
 
         {{-- FILE --}}
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Lampiran (Wajib)</label>
+          <label class="form-label fw-semibold">Lampiran</label>
           <input type="file"
                  name="file"
                  class="form-control @error('file') is-invalid @enderror">
@@ -186,6 +203,64 @@ document.addEventListener('DOMContentLoaded', function () {
   // Form
   const form = document.getElementById('docForm');
 
+  // ===== MULTI NOMOR (TAMBAHAN) =====
+  const addBtn = document.getElementById('add-number');
+  const wrapper = document.getElementById('number-wrapper');
+
+  function updateRemoveButtons() {
+    if (!wrapper) return;
+    const rows = wrapper.querySelectorAll('.number-row');
+    rows.forEach((row, idx) => {
+      const btn = row.querySelector('.remove-number');
+      if (btn) btn.disabled = (idx === 0);
+    });
+  }
+
+  function addNumberRow(focus = true) {
+    if (!wrapper) return;
+    const row = document.createElement('div');
+    row.className = 'input-group number-row';
+    row.innerHTML = `
+      <input type="text" name="number[]" class="form-control search" placeholder="Masukkan nomor dokumen">
+      <button type="button" class="btn btn-outline-danger remove-number px-3" title="Hapus">Hapus</button>
+    `;
+    wrapper.appendChild(row);
+    updateRemoveButtons();
+    if (focus) {
+      const input = row.querySelector('input[name="number[]"]');
+      if (input) input.focus();
+    }
+  }
+
+  if (addBtn && wrapper) {
+    addBtn.addEventListener('click', () => addNumberRow(true));
+
+    wrapper.addEventListener('click', (e) => {
+      const btn = e.target.closest('.remove-number');
+      if (!btn) return;
+      const row = btn.closest('.number-row');
+      if (row) row.remove();
+      updateRemoveButtons();
+    });
+
+    updateRemoveButtons();
+  }
+
+  // ✅ ENTER di input nomor => tambah nomor baru, bukan submit
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    if (target && target.matches('input[name="number[]"]')) {
+      e.preventDefault();
+
+      // optional: kalau mau Enter hanya jalan kalau input gak kosong, aktifin ini:
+      // if (!target.value.trim()) return;
+
+      addNumberRow(true);
+    }
+  });
+  // ===== END MULTI NOMOR =====
+
   function toggleDestinationOther() {
     if (!destSelect || !destGroup || !destInput) return;
 
@@ -196,8 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
       destGroup.style.display = 'none';
       destInput.removeAttribute('required');
       destInput.classList.remove('is-invalid');
-      // kosongkan hanya jika ingin meng-clear; komentar jika mau pertahankan
-      // destInput.value = '';
     }
   }
 
@@ -206,9 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleDestinationOther();
   }
 
-  if (!select || !group) {
-    // masih daftar destination handling di atas
-  } else {
+  if (select && group) {
     function toggleOther() {
       if (select.value === 'Other') {
         group.style.display = '';
@@ -220,7 +291,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (input) {
           input.removeAttribute('required');
           input.classList.remove('is-invalid');
-          // input.value = '';
         }
       }
     }
@@ -232,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // client-side submit validation: pastikan destination_other terisi bila Other dipilih
   if (form) {
     form.addEventListener('submit', function (ev) {
-      // reset any previous invalid state
       if (destInput) destInput.classList.remove('is-invalid');
 
       if (destSelect && destSelect.value === 'Other') {
@@ -244,14 +313,12 @@ document.addEventListener('DOMContentLoaded', function () {
             destInput.classList.add('is-invalid');
             destInput.focus();
           }
-          // optional: scroll to input
           const top = destInput.getBoundingClientRect().top + window.scrollY - 120;
           window.scrollTo({ top, behavior: 'smooth' });
           return false;
         }
       }
 
-      // juga validasi division other kalau ada
       if (select && select.value === 'Other') {
         const divInput = document.querySelector('input[name="division_tujuan_other"]');
         if (divInput) {

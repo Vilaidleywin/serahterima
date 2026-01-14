@@ -127,11 +127,31 @@
   // Foto & hapus tetap boleh walau rejected
   $canPhoto  = true;
   $canDelete = true;
+
+  // ===== MULTI NOMOR (TAMBAHAN) =====
+  $nums = $d->number;
+
+  if (is_string($nums)) {
+    $trim = trim($nums);
+    if ($trim !== '' && ($trim[0] ?? '') === '[') {
+      $decoded = json_decode($trim, true);
+      if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $nums = $decoded;
+      } else {
+        $nums = [$d->number];
+      }
+    } else {
+      $nums = [$d->number];
+    }
+  }
+  if (!is_array($nums)) $nums = [$d->number];
+  $nums = array_values(array_filter(array_map(fn($v) => trim((string)$v), $nums)));
+  $numberText = $nums ? implode(', ', $nums) : '-';
 @endphp
 
             <tr>
               <td class="fw-semibold">{{ $rowNumber }}</td>
-              <td>{{ $d->number ?? '-' }}</td>
+              <td>{{ $numberText }}</td>
               <td>{{ $d->title ?? '-' }}</td>
               <td>{{ $d->sender ?? '-' }}</td>
               <td>{{ $d->receiver ?? '-' }}</td>
@@ -197,7 +217,7 @@
                         <button
                           type="button"
                           class="dropdown-item text-danger"
-                          onclick="confirmDelete({{ $d->id }}, @js(($d->number ?? '-') . ' - ' . ($d->title ?? '-')))"
+                          onclick="confirmDelete({{ $d->id }}, @js(($numberText ?? '-') . ' - ' . ($d->title ?? '-')))"
                         >
                           <i class="ti ti-trash me-2"></i> Hapus
                         </button>
@@ -264,7 +284,7 @@
       </div>
     </div>
 
-  </div> 
+  </div>
 @endsection
 
 @push('scripts')

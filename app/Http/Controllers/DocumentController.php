@@ -425,7 +425,8 @@ class DocumentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'number'                  => ['required', 'string', 'max:50', 'unique:documents,number'],
+            'number' => ['required', 'array', 'min:1'],
+            'number.*' => ['required', 'string', 'max:50', 'distinct'],
             'title'                   => ['required', 'string', 'max:255'],
             'sender'                  => ['required', 'string', 'max:100'],
             'receiver'                => ['required', 'string', 'max:100'],
@@ -436,7 +437,7 @@ class DocumentController extends Controller
             'amount_idr'              => ['nullable'],
             'date'                    => ['required', 'date'],
             'description'             => ['nullable', 'string'],
-            'file'                    => ['required', 'file', 'max:5120'],
+            'file'                    => ['required', 'file', 'max:102400'],
         ]);
 
         $data = Arr::except($data, ['division', 'owner_division_input']);
@@ -467,6 +468,17 @@ class DocumentController extends Controller
         }
 
         $data['user_id'] = Auth::id() ?? null;
+        $numbers = array_values(array_filter(array_map(fn($v) => trim((string)$v), $request->input('number', []))));
+        $data['number'] = json_encode($numbers);
+        // cek unik nomor pertama
+        $exists = Document::where('number', $data['number'])->exists();
+        if ($exists) {
+            return back()->withErrors(['number.0' => 'Nomor Dokumen sudah digunakan.'])->withInput();
+        }
+
+        if (!$data['number']) {
+            return back()->withErrors(['number.0' => 'Nomor Dokumen wajib diisi.'])->withInput();
+        }
 
         $document = Document::create($data);
 
@@ -547,7 +559,8 @@ class DocumentController extends Controller
         // ========== VALIDASI ==========
 
         $rules = [
-            'number'                  => ['required', 'string', 'max:50', Rule::unique('documents', 'number')->ignore($document->id)],
+            'number' => ['required', 'array', 'min:1'],
+            'number.*' => ['required', 'string', 'max:50', 'distinct'],
             'title'                   => ['required', 'string', 'max:255'],
             'sender'                  => ['required', 'string', 'max:255'],
             'receiver'                => ['nullable', 'string', 'max:100'],
@@ -565,12 +578,26 @@ class DocumentController extends Controller
 
         // FILE Wajib hanya saat belum ada
         if (empty($document->file_path)) {
-            $rules['file'] = ['required', 'file', 'max:5120'];
+            $rules['file'] = ['required', 'file', 'max:102400'];
         } else {
-            $rules['file'] = ['nullable', 'file', 'max:5120'];
+            $rules['file'] = ['nullable', 'file', 'max:102400'];
         }
 
         $data = $request->validate($rules);
+        $numbers = array_values(array_filter(array_map(fn($v) => trim((string)$v), $request->input('number', []))));
+        $data['number'] = json_encode($numbers);
+        // cek unik nomor pertama (ignore dokumen sendiri)
+        $exists = Document::where('number', $data['number'])
+            ->where('id', '!=', $document->id)
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['number.0' => 'Nomor Dokumen sudah digunakan.'])->withInput();
+        }
+
+        if (!$data['number']) {
+            return back()->withErrors(['number.0' => 'Nomor Dokumen wajib diisi.'])->withInput();
+        }
 
         // ========== OLAH DATA ==========
 

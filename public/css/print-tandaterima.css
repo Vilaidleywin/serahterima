@@ -221,3 +221,17 @@ h2 {
     box-shadow: none !important;
   }
 }
+.meta-table .value {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.docnum-list{
+  margin: 0;
+  padding-left: 16px;
+  list-style-type: disc; /* • */
+}
+
+.docnum-list li{
+  margin: 0;
+  line-height: 1.4;
+}
